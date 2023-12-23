@@ -16,8 +16,6 @@ import (
 )
 
 const (
-	IssuerEndpoint                        = "https://auth.streamnative.cloud"
-	ApiEndpoint                           = "https://api.streamnative.cloud"
 	GlobalDefaultIssuer                   = "https://auth.streamnative.cloud/"
 	GlobalDefaultAudience                 = "https://api.streamnative.cloud"
 	GlobalDefaultAPIServer                = "https://api.streamnative.cloud"
@@ -78,9 +76,9 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 		}
 	}
 	issuer := auth.Issuer{
-		IssuerEndpoint: IssuerEndpoint,
+		IssuerEndpoint: GlobalDefaultIssuer,
 		ClientID:       clientID,
-		Audience:       ApiEndpoint,
+		Audience:       GlobalDefaultAudience,
 	}
 	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
 	if err != nil {
