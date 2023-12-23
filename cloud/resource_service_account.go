@@ -68,7 +68,6 @@ func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	_ = d.Set("name", serviceAccount.Name)
 	_ = d.Set("organization", serviceAccount.Namespace)
-	fmt.Println(serviceAccount)
 	//var privateKeyData = ""
 	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
 		privateKeyData = serviceAccount.Status.PrivateKeyData
