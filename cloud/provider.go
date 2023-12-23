@@ -31,6 +31,7 @@ func init() {
 		"organization":     "The organization name",
 		"name":             "The service account name",
 		"private_key_data": "The private key data",
+		"private_key_type": "The private key type",
 	}
 }
 
@@ -96,6 +97,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	options := cmd.NewOptions(streams)
 	options.ConfigDir = configDir
 	options.ConfigPath = filepath.Join(configDir, "config")
+	options.BackendOverride = "memory"
 	snConfig := &config.SnConfig{
 		Server:                   GlobalDefaultAPIServer,
 		CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(GlobalDefaultCertificateAuthorityData)),

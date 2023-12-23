@@ -35,6 +35,11 @@ func resourceServiceAccount() *schema.Resource {
 				Optional:    true,
 				Description: descriptions["name"],
 			},
+			"private_key_type": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["private_key_type"],
+			},
 			"private_key_data": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -52,6 +57,7 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	privateKeyData := d.Get("private_key_data").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(err)
@@ -62,9 +68,13 @@ func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	_ = d.Set("name", serviceAccount.Name)
 	_ = d.Set("organization", serviceAccount.Namespace)
-	if serviceAccount.Status.PrivateKeyData != "" {
-		_ = d.Set("private_key_data", serviceAccount.Status.PrivateKeyData)
+	fmt.Println(serviceAccount)
+	//var privateKeyData = ""
+	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
+		privateKeyData = serviceAccount.Status.PrivateKeyData
 	}
+	_ = d.Set("private_key_data", privateKeyData)
+	_ = d.Set("private_key_type", serviceAccount.Status.PrivateKeyType)
 	d.SetId(serviceAccount.Name)
 
 	return nil

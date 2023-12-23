@@ -32,7 +32,7 @@ provider "streamnative" {
 
 resource "streamnative_service_account" "test" {
   organization = "sndev"
-  name = "admin"
+  name = "admin-egn"
 }
 
 output "service_account_id" {
