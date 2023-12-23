@@ -202,9 +202,6 @@ replace (
 
 replace github.com/streamnative/cloud-api-server => github.com/streamnative/cloud-api-server v1.17.1-0.20231211182952-1704c260b408
 
-// pinned to v0.11.1 to align with kubernetes dependencies
-replace sigs.k8s.io/external-dns => sigs.k8s.io/external-dns v0.11.1
-
 // Pulsar Operator
 replace (
 	github.com/streamnative/pulsar-operators/bookkeeper-operator => github.com/streamnative/pulsar-operators/bookkeeper-operator v0.17.3
