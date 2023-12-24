@@ -30,11 +30,12 @@ provider "streamnative" {
     key_file_path = "/Users/tuteng/Downloads/sndev-admin.json"
 }
 
-resource "streamnative_service_account" "test" {
+resource "streamnative_service_account" "test-admin-a" {
   organization = "sndev"
-  name = "admin-egn"
+  name = "test-admin-a"
+  admin = true
 }
 
 output "service_account_id" {
-  value = streamnative_service_account.test
+  value = streamnative_service_account.test-admin-a
 }

@@ -30,8 +30,8 @@ func init() {
 		"key_file_path":    "The path of the private key file",
 		"organization":     "The organization name",
 		"name":             "The service account name",
+		"admin":            "Whether the service account is admin",
 		"private_key_data": "The private key data",
-		"private_key_type": "The private key type",
 	}
 }
 
