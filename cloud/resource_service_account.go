@@ -87,7 +87,7 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("name", serviceAccount.Name)
 		_ = d.Set("organization", serviceAccount.Namespace)
 		_ = d.Set("private_key_data", privateKeyData)
-		d.SetId(serviceAccount.Name)
+		d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
 	}
 	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		dia := resourceServiceAccountRead(ctx, d, meta)
@@ -124,7 +124,7 @@ func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, met
 		privateKeyData = serviceAccount.Status.PrivateKeyData
 	}
 	_ = d.Set("private_key_data", privateKeyData)
-	d.SetId(serviceAccount.Name)
+	d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
 
 	return nil
 }

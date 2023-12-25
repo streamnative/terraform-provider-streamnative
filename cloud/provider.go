@@ -40,14 +40,15 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"client_id": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CLIENT_ID", nil),
 				Description: descriptions["client_id"],
 			},
 			"key_file_path": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KEY_FILE_PATH", nil),
 				Description: descriptions["key_file_path"],
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PULSAR_KEY_FILE", "PULSAR_KEY_FILE_PATH"}, ""),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -76,10 +77,22 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 			return nil, diag.FromErr(err)
 		}
 	}
+	defaultIssuer := os.Getenv("GLOBAL_DEFAULT_ISSUER")
+	if defaultIssuer == "" {
+		defaultIssuer = GlobalDefaultIssuer
+	}
+	defaultAudience := os.Getenv("GLOBAL_DEFAULT_AUDIENCE")
+	if defaultAudience == "" {
+		defaultAudience = GlobalDefaultAudience
+	}
+	defaultApiServer := os.Getenv("GLOBAL_DEFAULT_API_SERVER")
+	if defaultApiServer == "" {
+		defaultApiServer = GlobalDefaultAPIServer
+	}
 	issuer := auth.Issuer{
-		IssuerEndpoint: GlobalDefaultIssuer,
+		IssuerEndpoint: defaultIssuer,
 		ClientID:       clientID,
-		Audience:       GlobalDefaultAudience,
+		Audience:       defaultAudience,
 	}
 	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
 	if err != nil {
@@ -99,11 +112,11 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	options.ConfigPath = filepath.Join(configDir, "config")
 	options.BackendOverride = "memory"
 	snConfig := &config.SnConfig{
-		Server:                   GlobalDefaultAPIServer,
+		Server:                   defaultApiServer,
 		CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(GlobalDefaultCertificateAuthorityData)),
 		Auth: config.Auth{
-			IssuerEndpoint: GlobalDefaultIssuer,
-			Audience:       GlobalDefaultAudience,
+			IssuerEndpoint: defaultIssuer,
+			Audience:       defaultAudience,
 			ClientID:       clientID,
 		},
 	}
@@ -111,9 +124,11 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	err = options.Complete()
-	if err != nil {
-		return nil, diag.FromErr(err)
+	if options.AuthOptions.Factory == nil {
+		err = options.Complete()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
 	err = options.Store.SaveGrant(issuer.Audience, *grant)
 	if err != nil {
