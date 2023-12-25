@@ -46,6 +46,6 @@ jobs:
           export KEY_FILE_PATH=$HOME/service_account.json
           make testacc
 
-#      - name: Setup tmate session
-#        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
