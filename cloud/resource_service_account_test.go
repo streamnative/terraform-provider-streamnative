@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestResourceServiceAccount(t *testing.T) {
@@ -30,6 +31,10 @@ func TestResourceServiceAccount(t *testing.T) {
 }
 
 func testCheckResourceServiceAccountDestroy(s *terraform.State) error {
+	// Add a sleep for wait the service account to be deleted
+	// It seems that azure connection to gcp is slow, so add a delay to wait
+	// for the resource to be cleaned up and check it again
+	time.Sleep(5 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_service_account" {
 			continue
