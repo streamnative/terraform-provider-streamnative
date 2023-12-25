@@ -24,24 +24,9 @@ func TestResourceServiceAccount(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckResourceServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
-				PlanOnly: true,
 			},
 		},
 	})
-}
-
-func testServiceAccountImported() resource.ImportStateCheckFunc {
-	return func(s []*terraform.InstanceState) error {
-		if len(s) != 1 {
-			return fmt.Errorf("expected %d states, got %d: %#v", 1, len(s), s)
-		}
-
-		if len(s[0].Attributes) != 10 {
-			return fmt.Errorf("expected %d attrs, got %d: %#v", 10, len(s[0].Attributes), s[0].Attributes)
-		}
-
-		return nil
-	}
 }
 
 func testCheckResourceServiceAccountDestroy(s *terraform.State) error {

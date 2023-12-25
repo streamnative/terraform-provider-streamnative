@@ -93,7 +93,8 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("private_key_data", privateKeyData)
 		d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
 	}
-	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
+	// Don't retry too frequently to avoid affecting the api-server.
+	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		dia := resourceServiceAccountRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT: %s", dia[0].Summary))
