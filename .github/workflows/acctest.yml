@@ -10,6 +10,7 @@ jobs:
       GLOBAL_DEFAULT_API_SERVER: https://api.test.cloud.gcp.streamnative.dev
       GLOBAL_DEFAULT_AUDIENCE: https://api.test.cloud.gcp.streamnative.dev
       GLOBAL_DEFAULT_ISSUER: https://auth.test.cloud.gcp.streamnative.dev/
+      ACCESS_TOKEN: ${{ secrets.SNBOT_GITHUB_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -19,6 +20,12 @@ jobs:
         with:
           go-version: 1.19
         id: go
+
+      - name: Setup Git token
+        run: |
+          git config --global user.email "snbot@streamnative.io"
+          git config --global user.name "StreamNative Bot"
+          git config --global url."https://streamnativebot:${ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
