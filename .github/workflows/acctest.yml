@@ -40,7 +40,7 @@ jobs:
           sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
           echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
 
-      - name: Run Acceptance Tests for the Provider on Standalone Instance
+      - name: Run Acceptance Tests for the Provider
         run: |
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
           export KEY_FILE_PATH=$HOME/service_account.json
