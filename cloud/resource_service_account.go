@@ -45,6 +45,7 @@ func resourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["admin"],
+				ForceNew:    true,
 			},
 			"private_key_data": {
 				Type:        schema.TypeString,
