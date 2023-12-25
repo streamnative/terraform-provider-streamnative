@@ -1,5 +1,10 @@
 # Terraform Provider for StreamNative cloud
 
+# Prerequisites
+
+- [Terraform](https://www.terraform.io/downloads.html) 1.15.7 or later
+- [Go](https://golang.org/doc/install) 1.19 or later (to build the provider plugin)
+
 # Installation
 
 - From terraform registry(TODO)
