@@ -1,0 +1,44 @@
+name: Tests
+on: [ pull_request ]
+jobs:
+  acctest:
+    name: Run acceptance tests
+    runs-on: ubuntu-latest
+    env:
+      CLIENT_ID: ${{ secrets.ACC_TEST_CLIENT_ID }}
+      ACC_TEST_SERVICE_ACCOUNT: ${{ secrets.ACC_TEST_SERVICE_ACCOUNT }}
+      GLOBAL_DEFAULT_API_SERVER: https://api.test.cloud.gcp.streamnative.dev
+      GLOBAL_DEFAULT_AUDIENCE: https://api.test.cloud.gcp.streamnative.dev
+      GLOBAL_DEFAULT_ISSUER: https://auth.test.cloud.gcp.streamnative.dev/
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+        id: go
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 3.0.0
+          terraform_wrapper: false
+
+      - name: Build the terraform-provider-streamnative
+        run: |
+          make build
+          mkdir -p $HOME/.terraform.d/plugins/linux_amd64
+          sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
+          echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
+
+      - name: Run Acceptance Tests for the Provider on Standalone Instance
+        run: |
+          echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
+          export KEY_FILE_PATH=$HOME/service_account.json
+          make testacc
+
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3
