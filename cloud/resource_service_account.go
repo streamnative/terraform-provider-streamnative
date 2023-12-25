@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 	"time"
 )
 
@@ -19,7 +20,9 @@ func resourceServiceAccount() *schema.Resource {
 		DeleteContext: resourceServiceAccountDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				_ = d.Set("service_account", d.Id())
+				organizationServiceAccount := strings.Split(d.Id(), "/")
+				_ = d.Set("organization", organizationServiceAccount[0])
+				_ = d.Set("name", organizationServiceAccount[1])
 				err := resourceServiceAccountRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
@@ -47,6 +50,7 @@ func resourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["private_key_data"],
+				Computed:    true,
 			},
 		},
 	}
@@ -89,7 +93,7 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("private_key_data", privateKeyData)
 		d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
 	}
-	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		dia := resourceServiceAccountRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT: %s", dia[0].Summary))
@@ -145,5 +149,14 @@ func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceServiceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	err := resourceServiceAccountRead(ctx, d, meta)
+	if err.HasError() {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT: %s", err[0].Summary))
+	}
+	namespace := d.Get("organization").(string)
+	name := d.Get("name").(string)
+	_ = d.Set("name", name)
+	_ = d.Set("organization", namespace)
+	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
 	return resourceServiceAccountRead(ctx, d, meta)
 }

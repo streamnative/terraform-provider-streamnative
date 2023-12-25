@@ -18,4 +18,7 @@ build-dev: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
 
+testacc:
+	TF_ACC=1 go test $(TEST) -v -count 3 $(TESTARGS) -timeout 120m
+
 .PHONY: build

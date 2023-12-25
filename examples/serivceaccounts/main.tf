@@ -25,9 +25,10 @@ terraform {
 }
 
 provider "streamnative" {
-    client_id = "PZWBM2tMCVDFQ1lQInIaYgG4k1OSqwIO"
+    # Replace with your own client_id
+    client_id = "Uxfu8OTq3uwuGJeIliACwEkEmBxhdDH5"
     # Please replace path use your own key file path
-    key_file_path = "/Users/tuteng/Downloads/sndev-admin.json"
+    key_file_path = "/Users/tuteng/Downloads/sndev-terraform-ci-test.json"
 }
 
 resource "streamnative_service_account" "test-admin-a" {
