@@ -1,9 +1,15 @@
 # Terraform Provider for StreamNative cloud
 
+Why don't you use this framework https://github.com/hashicorp/terraform-plugin-framework?
+This project relies on the cloud-cli project, cloud-cli doesn't work with go 1.20 yet, I tried to use the old version in the project but failed, we should consider migrating to this framework in the future.
+
+Why don't you use the latest version https://github.com/hashicorp/terraform-plugin-sdk/tree/v2.31.0?
+This project relies on the cloud-cli project, cloud-cli doesn't work with go 1.20 yet.
+
 # Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads.html) 1.15.7 or later
-- [Go](https://golang.org/doc/install) 1.19 or later (to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.19
 
 # Installation
 
