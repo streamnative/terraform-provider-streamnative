@@ -33,10 +33,20 @@ provider "streamnative" {
 
 resource "streamnative_service_account" "test-admin-a" {
   organization = "sndev"
-  name = "test-admin-a"
+  name = "test-admin-j"
+  admin = false
+}
+
+resource "streamnative_service_account" "test-admin-c" {
+  organization = "sndev"
+  name = "test-admin-n"
   admin = true
 }
 
 output "service_account_id" {
   value = streamnative_service_account.test-admin-a
+}
+
+output "service_account_id-2" {
+  value = streamnative_service_account.test-admin-c
 }

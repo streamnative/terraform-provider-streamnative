@@ -16,7 +16,6 @@ func resourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceServiceAccountCreate,
 		ReadContext:   resourceServiceAccountRead,
-		UpdateContext: resourceServiceAccountUpdate,
 		DeleteContext: resourceServiceAccountDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -35,11 +34,13 @@ func resourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: descriptions["organization"],
+				ForceNew:    true,
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["name"],
+				ForceNew:    true,
 			},
 			"admin": {
 				Type:        schema.TypeBool,
@@ -148,17 +149,4 @@ func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, m
 	}
 	_ = d.Set("name", "")
 	return nil
-}
-
-func resourceServiceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	err := resourceServiceAccountRead(ctx, d, meta)
-	if err.HasError() {
-		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT: %s", err[0].Summary))
-	}
-	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
-	_ = d.Set("name", name)
-	_ = d.Set("organization", namespace)
-	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
-	return resourceServiceAccountRead(ctx, d, meta)
 }
