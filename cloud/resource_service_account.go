@@ -16,6 +16,7 @@ func resourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceServiceAccountCreate,
 		ReadContext:   resourceServiceAccountRead,
+		UpdateContext: resourceServiceAccountUpdate,
 		DeleteContext: resourceServiceAccountDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -34,19 +35,16 @@ func resourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: descriptions["organization"],
-				ForceNew:    true,
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["name"],
-				ForceNew:    true,
 			},
 			"admin": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["admin"],
-				ForceNew:    true,
 			},
 			"private_key_data": {
 				Type:        schema.TypeString,
@@ -149,4 +147,9 @@ func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, m
 	}
 	_ = d.Set("name", "")
 	return nil
+}
+
+func resourceServiceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return diag.FromErr(fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT: " +
+		"The service account does not support updates, please recreate it"))
 }
