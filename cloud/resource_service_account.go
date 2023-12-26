@@ -38,7 +38,7 @@ func resourceServiceAccount() *schema.Resource {
 			},
 			"name": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				Description: descriptions["name"],
 			},
 			"admin": {
