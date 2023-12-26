@@ -39,7 +39,7 @@ resource "streamnative_service_account" "test-admin-a" {
 
 resource "streamnative_service_account" "test-admin-c" {
   organization = "sndev"
-  name = "test-admin-k"
+  name = "test-admin-u"
   admin = false
 }
 
