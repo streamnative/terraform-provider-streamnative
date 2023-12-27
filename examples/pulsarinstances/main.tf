@@ -14,7 +14,7 @@ provider "streamnative" {
 
 resource "streamnative_pulsar_instance" "test-instance-1" {
   organization = "sndev"
-  name = "test-instance-2"
+  name = "test-instance-1"
   availability_mode = "zonal"
   pool_name = "shared-gcp"
   pool_namespace = "streamnative"
