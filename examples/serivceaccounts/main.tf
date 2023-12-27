@@ -25,28 +25,16 @@ terraform {
 }
 
 provider "streamnative" {
-    # Replace with your own client_id
-    client_id = "Uxfu8OTq3uwuGJeIliACwEkEmBxhdDH5"
     # Please replace path use your own key file path
     key_file_path = "/Users/tuteng/Downloads/sndev-terraform-ci-test.json"
 }
 
 resource "streamnative_service_account" "test-admin-a" {
   organization = "sndev"
-  name = "test-admin-k"
-  admin = true
-}
-
-resource "streamnative_service_account" "test-admin-c" {
-  organization = "sndev"
-  name = "test-admin-u"
+  name = "test-admin-a"
   admin = false
 }
 
 output "service_account_id" {
   value = streamnative_service_account.test-admin-a
-}
-
-output "service_account_id-2" {
-  value = streamnative_service_account.test-admin-c
 }
