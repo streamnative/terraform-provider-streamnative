@@ -162,20 +162,13 @@ func resourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, met
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_INSTANCE: %w", err))
 	}
+	_ = d.Set("ready", "False")
 	if pulsarInstance.Status.Conditions != nil {
-		ready := false
 		for _, condition := range pulsarInstance.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
-				ready = true
+				_ = d.Set("ready", "True")
 			}
 		}
-		if ready {
-			_ = d.Set("ready", "True")
-		} else {
-			_ = d.Set("ready", "False")
-		}
-	} else {
-		_ = d.Set("ready", "False")
 	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarInstance.Namespace, pulsarInstance.Name))
 	return nil
