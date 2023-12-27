@@ -19,6 +19,6 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   location = "us-central1"
 }
 
-output "pulsar_instance" {
+output "pulsar_cluster" {
   value = streamnative_pulsar_cluster.test-cluster-1
 }
