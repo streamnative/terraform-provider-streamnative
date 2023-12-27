@@ -71,14 +71,19 @@ func resourcePulsarInstance() *schema.Resource {
 			"pool_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["pool-name"],
+				Description:  descriptions["pool_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"pool_namespace": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["pool-namespace"],
+				Description:  descriptions["pool_namespace"],
 				ValidateFunc: validateNotBlank,
+			},
+			"ready": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["instance_ready"],
 			},
 		},
 	}
@@ -132,7 +137,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 			return resourcePulsarInstanceRead(ctx, d, meta)
 		}
 	}
-	err = retry.RetryContext(ctx, 10*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
 		dia := resourcePulsarInstanceRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_INSTANCE: %s", dia[0].Summary))
@@ -169,6 +174,8 @@ func resourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, met
 		} else {
 			_ = d.Set("ready", "False")
 		}
+	} else {
+		_ = d.Set("ready", "False")
 	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarInstance.Namespace, pulsarInstance.Name))
 	return nil
