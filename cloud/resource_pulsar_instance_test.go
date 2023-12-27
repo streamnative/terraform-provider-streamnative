@@ -78,7 +78,7 @@ func testCheckResourcePulsarInstanceExists(name string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		organizationInstance := strings.Split(name, "/")
+		organizationInstance := strings.Split(rs.Primary.ID, "/")
 		pulsarInstance, err := clientSet.CloudV1alpha1().
 			PulsarInstances(organizationInstance[0]).
 			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
