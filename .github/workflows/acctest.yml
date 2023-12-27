@@ -1,0 +1,50 @@
+name: Tests
+on: [ pull_request ]
+jobs:
+  acctest:
+    name: Run acceptance tests
+    runs-on: ubuntu-latest
+    env:
+      ACC_TEST_SERVICE_ACCOUNT: ${{ secrets.ACC_TEST_SERVICE_ACCOUNT }}
+      GLOBAL_DEFAULT_API_SERVER: https://api.test.cloud.gcp.streamnative.dev
+      GLOBAL_DEFAULT_AUDIENCE: https://api.test.cloud.gcp.streamnative.dev
+      GLOBAL_DEFAULT_ISSUER: https://auth.test.cloud.gcp.streamnative.dev/
+      ACCESS_TOKEN: ${{ secrets.SNBOT_GITHUB_TOKEN }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+        id: go
+
+      - name: Setup Git token
+        run: |
+          git config --global user.email "snbot@streamnative.io"
+          git config --global user.name "StreamNative Bot"
+          git config --global url."https://streamnativebot:${ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - name: Build the terraform-provider-streamnative
+        run: |
+          make build
+          mkdir -p $HOME/.terraform.d/plugins/linux_amd64
+          sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
+          echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
+
+      - name: Run Acceptance Tests for the Provider
+        run: |
+          echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
+          export KEY_FILE_PATH=$HOME/service_account.json
+          make testacc
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
