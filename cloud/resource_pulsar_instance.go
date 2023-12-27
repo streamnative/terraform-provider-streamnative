@@ -18,6 +18,23 @@ func resourcePulsarInstance() *schema.Resource {
 		ReadContext:   resourcePulsarInstanceRead,
 		UpdateContext: resourcePulsarInstanceUpdate,
 		DeleteContext: resourcePulsarInstanceDelete,
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
+			oldOrg, _ := diff.GetChange("organization")
+			oldName, _ := diff.GetChange("name")
+			if oldOrg.(string) == "" && oldName.(string) == "" {
+				// This is create event, so we don't need to check the diff.
+				return nil
+			}
+			if diff.HasChange("name") ||
+				diff.HasChanges("organization") ||
+				diff.HasChanges("availability_mode") ||
+				diff.HasChanges("pool_name") ||
+				diff.HasChanges("pool_namespace") {
+				return fmt.Errorf("ERROR_UPDATE_PULSAR_INSTANCE: " +
+					"The pulsar instance does not support updates, please recreate it")
+			}
+			return nil
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationInstance := strings.Split(d.Id(), "/")
