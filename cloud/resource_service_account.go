@@ -22,6 +22,7 @@ func resourceServiceAccount() *schema.Resource {
 			oldOrg, _ := diff.GetChange("organization")
 			oldName, _ := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
+				// This is create event, so we don't need to check the diff.
 				return nil
 			}
 			if diff.HasChange("name") ||
