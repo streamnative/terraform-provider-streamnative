@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestResourcePulsarInstance(t *testing.T) {
@@ -35,6 +36,10 @@ func TestResourcePulsarInstance(t *testing.T) {
 }
 
 func testCheckResourcePulsarInstanceDestroy(s *terraform.State) error {
+	// Add a sleep for wait the service account to be deleted
+	// It seems that azure connection to gcp is slow, so add a delay to wait
+	// for the resource to be cleaned up and check it again
+	time.Sleep(5 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_pulsar_instance" {
 			continue
@@ -74,11 +79,14 @@ func testCheckResourcePulsarInstanceExists(name string) resource.TestCheckFunc {
 			return err
 		}
 		organizationInstance := strings.Split(name, "/")
-		_, err = clientSet.CloudV1alpha1().
+		instance, err := clientSet.CloudV1alpha1().
 			PulsarInstances(organizationInstance[0]).
 			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
 		if err != nil {
 			return err
+		}
+		if instance.Status.Conditions[0].Type != "Ready" {
+			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_INSTANCE_NOT_READY: "%s"`, rs.Primary.ID)
 		}
 		return nil
 	}
