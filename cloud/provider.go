@@ -30,7 +30,6 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"client_id":        "The OAuth 2.0 client identifier",
 		"key_file_path":    "The path of the private key file",
 		"organization":     "The organization name",
 		"name":             "The service account name",
@@ -42,12 +41,6 @@ func init() {
 func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"client_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLIENT_ID", nil),
-				Description: descriptions["client_id"],
-			},
 			"key_file_path": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -68,7 +61,6 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
 
-	clientID := d.Get("client_id").(string)
 	keyFilePath := d.Get("key_file_path").(string)
 
 	home, err := homedir.Dir()
@@ -93,9 +85,14 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultApiServer == "" {
 		defaultApiServer = GlobalDefaultAPIServer
 	}
+	credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
+	keyFile, err := credsProvider.GetClientCredentials()
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
 	issuer := auth.Issuer{
 		IssuerEndpoint: defaultIssuer,
-		ClientID:       clientID,
+		ClientID:       keyFile.ClientID,
 		Audience:       defaultAudience,
 	}
 	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
@@ -121,7 +118,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 		Auth: config.Auth{
 			IssuerEndpoint: defaultIssuer,
 			Audience:       defaultAudience,
-			ClientID:       clientID,
+			ClientID:       keyFile.ClientID,
 		},
 	}
 	err = options.SaveConfig(snConfig)

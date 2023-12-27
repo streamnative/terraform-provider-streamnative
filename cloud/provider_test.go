@@ -31,9 +31,6 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("CLIENT_ID"); v == "" {
-		t.Fatal("CLIENT_ID must be set for acceptance tests")
-	}
 	if v := os.Getenv("KEY_FILE_PATH"); v == "" {
 		t.Fatal("KEY_FILE_PATH must be set for acceptance tests")
 	}

@@ -18,6 +18,20 @@ func resourceServiceAccount() *schema.Resource {
 		ReadContext:   resourceServiceAccountRead,
 		UpdateContext: resourceServiceAccountUpdate,
 		DeleteContext: resourceServiceAccountDelete,
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
+			oldOrg, _ := diff.GetChange("organization")
+			oldName, _ := diff.GetChange("name")
+			if oldOrg.(string) == "" && oldName.(string) == "" {
+				return nil
+			}
+			if diff.HasChange("name") ||
+				diff.HasChanges("organization") ||
+				diff.HasChanges("admin") {
+				return fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT: " +
+					"The service account does not support updates, please recreate it")
+			}
+			return nil
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationServiceAccount := strings.Split(d.Id(), "/")
@@ -32,14 +46,16 @@ func resourceServiceAccount() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"organization": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: descriptions["organization"],
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["organization"],
+				ValidateFunc: validateNotBlank,
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: descriptions["name"],
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  descriptions["name"],
+				ValidateFunc: validateNotBlank,
 			},
 			"admin": {
 				Type:        schema.TypeBool,

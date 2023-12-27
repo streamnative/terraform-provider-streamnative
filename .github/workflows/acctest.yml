@@ -5,7 +5,6 @@ jobs:
     name: Run acceptance tests
     runs-on: ubuntu-latest
     env:
-      CLIENT_ID: ${{ secrets.ACC_TEST_CLIENT_ID }}
       ACC_TEST_SERVICE_ACCOUNT: ${{ secrets.ACC_TEST_SERVICE_ACCOUNT }}
       GLOBAL_DEFAULT_API_SERVER: https://api.test.cloud.gcp.streamnative.dev
       GLOBAL_DEFAULT_AUDIENCE: https://api.test.cloud.gcp.streamnative.dev
