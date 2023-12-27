@@ -49,14 +49,16 @@ func resourcePulsarInstance() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"organization": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: descriptions["organization"],
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["organization"],
+				ValidateFunc: validateNotBlank,
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: descriptions["name"],
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["name"],
+				ValidateFunc: validateNotBlank,
 			},
 			"availability_mode": {
 				Type:     schema.TypeString,
@@ -67,14 +69,16 @@ func resourcePulsarInstance() *schema.Resource {
 				Description: descriptions["availability-mode"],
 			},
 			"pool_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: descriptions["pool-name"],
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["pool-name"],
+				ValidateFunc: validateNotBlank,
 			},
 			"pool_namespace": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: descriptions["pool-namespace"],
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["pool-namespace"],
+				ValidateFunc: validateNotBlank,
 			},
 		},
 	}
