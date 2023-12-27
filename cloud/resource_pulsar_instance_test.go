@@ -79,14 +79,22 @@ func testCheckResourcePulsarInstanceExists(name string) resource.TestCheckFunc {
 			return err
 		}
 		organizationInstance := strings.Split(name, "/")
-		instance, err := clientSet.CloudV1alpha1().
+		pulsarInstance, err := clientSet.CloudV1alpha1().
 			PulsarInstances(organizationInstance[0]).
 			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if instance.Status.Conditions[0].Type != "Ready" {
-			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_INSTANCE_NOT_READY: "%s"`, rs.Primary.ID)
+		if pulsarInstance.Status.Conditions != nil {
+			ready := false
+			for _, condition := range pulsarInstance.Status.Conditions {
+				if condition.Type == "Ready" && condition.Status == "True" {
+					ready = true
+				}
+			}
+			if !ready {
+				return fmt.Errorf(`ERROR_RESOURCE_PULSAR_INSTANCE_NOT_READY: "%s"`, rs.Primary.ID)
+			}
 		}
 		return nil
 	}
