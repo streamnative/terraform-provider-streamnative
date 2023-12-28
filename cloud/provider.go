@@ -30,11 +30,22 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"key_file_path":    "The path of the private key file",
-		"organization":     "The organization name",
-		"name":             "The service account name",
-		"admin":            "Whether the service account is admin",
-		"private_key_data": "The private key data",
+		"key_file_path":     "The path of the private key file",
+		"organization":      "The organization name",
+		"name":              "The service account name",
+		"admin":             "Whether the service account is admin",
+		"private_key_data":  "The private key data",
+		"availability-mode": "The availability mode, supporting 'zonal' and 'regional'",
+		"pool_name":         "The infrastructure pool name to use.",
+		"pool_namespace":    "The infrastructure pool namespace to use",
+		"instance_name":     "The pulsar instance name",
+		"location":          "The location of the pulsar cluster",
+		"bookie_replicas":   "The number of bookie replicas",
+		"broker_replicas":   "The number of broker replicas",
+		"compute_unit":      "compute unit, 1 compute unit is 2 cpu and 8gb memory",
+		"storage_unit":      "storage unit, 1 storage unit is 2 cpu and 8gb memory",
+		"cluster_ready":     "Pulsar cluster is ready, it will be set to 'True' after the cluster is ready",
+		"instance_ready":    "Pulsar instance is ready, it will be set to 'True' after the instance is ready",
 	}
 }
 
@@ -50,6 +61,7 @@ func Provider() *schema.Provider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account": resourceServiceAccount(),
+			"streamnative_pulsar_instance": resourcePulsarInstance(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

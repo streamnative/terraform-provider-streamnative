@@ -21,7 +21,8 @@ func TestResourceServiceAccount(t *testing.T) {
 		CheckDestroy:      testCheckResourceServiceAccountDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceServiceAccount("sndev", "test-service-account-b", true),
+				Config: testResourceServiceAccount(
+					"sndev", "terraform-test-service-account-b", true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckResourceServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
