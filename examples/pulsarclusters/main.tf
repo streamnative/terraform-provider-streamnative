@@ -19,11 +19,11 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   location = "us-central1"
   bookie_replicas = 3
   broker_replicas = 2
-  compute_unit = 0.6
-  storage_unit = 0.6
-  websocket_enabled = true
+  compute_unit = 0.3
+  storage_unit = 0.3
+  websocket_enabled = false
   function_enabled = false
-  transaction_enabled = true
+  transaction_enabled = false
   kafka = {}
   mqtt = {}
   categories = ["Management", "Describe", "Produce", "Consume"]
