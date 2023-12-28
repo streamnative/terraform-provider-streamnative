@@ -127,11 +127,11 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:     map[string]interface{}{},
 				Description: descriptions["mqtt"],
 			},
-			"audit_log": {
+			"categories": {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MinItems:    1,
-				Description: descriptions["audit_log"],
+				Description: descriptions["categories"],
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validateAuditLog,
@@ -171,6 +171,16 @@ func resourcePulsarCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["websocket_service_url"],
+			},
+			"pulsar_version": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["pulsar_version"],
+			},
+			"bookkeeper_version": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["bookkeeper_version"],
 			},
 		},
 	}
@@ -292,26 +302,61 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		for _, condition := range pulsarCluster.Status.Conditions {
 			if condition.Type == "Ready" {
 				_ = d.Set("ready", condition.Status)
-				dnsName := pulsarCluster.Spec.ServiceEndpoints[0].DnsName
-				_ = d.Set("http_tls_service_url", fmt.Sprintf("https://%s", dnsName))
-				_ = d.Set("pulsar_tls_service_url", fmt.Sprintf("pulsar+ssl://%s:6651", dnsName))
-				if pulsarCluster.Spec.Config != nil {
-					if pulsarCluster.Spec.Config.WebsocketEnabled != nil &&
-						*pulsarCluster.Spec.Config.WebsocketEnabled {
-						_ = d.Set("websocket_service_url", fmt.Sprintf("wss://%s:9443", dnsName))
-					}
-					if pulsarCluster.Spec.Config.Protocols != nil {
-						if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
-							_ = d.Set("kafka_service_url", fmt.Sprintf("%s:9093", dnsName))
-						}
-						if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
-							_ = d.Set("mqtt_service_url", fmt.Sprintf("mqtts://%s:8883", dnsName))
-						}
-					}
+			}
+		}
+	}
+	if len(pulsarCluster.Spec.ServiceEndpoints) > 0 {
+		dnsName := pulsarCluster.Spec.ServiceEndpoints[0].DnsName
+		_ = d.Set("http_tls_service_url", fmt.Sprintf("https://%s", dnsName))
+		_ = d.Set("pulsar_tls_service_url", fmt.Sprintf("pulsar+ssl://%s:6651", dnsName))
+		if pulsarCluster.Spec.Config != nil {
+			if pulsarCluster.Spec.Config.WebsocketEnabled != nil &&
+				*pulsarCluster.Spec.Config.WebsocketEnabled {
+				_ = d.Set("websocket_service_url", fmt.Sprintf("wss://%s:9443", dnsName))
+			}
+			if pulsarCluster.Spec.Config.Protocols != nil {
+				if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
+					_ = d.Set("kafka_service_url", fmt.Sprintf("%s:9093", dnsName))
+				}
+				if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
+					_ = d.Set("mqtt_service_url", fmt.Sprintf("mqtts://%s:8883", dnsName))
 				}
 			}
 		}
 	}
+	if pulsarCluster.Spec.Config != nil {
+		if pulsarCluster.Spec.Config.Protocols != nil {
+			if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
+				_ = d.Set("kafka", map[string]interface{}{})
+			}
+			if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
+				_ = d.Set("mqtt", map[string]interface{}{})
+			}
+		}
+		if pulsarCluster.Spec.Config.FunctionEnabled != nil {
+			_ = d.Set("function_enabled", *pulsarCluster.Spec.Config.FunctionEnabled)
+		}
+		if pulsarCluster.Spec.Config.TransactionEnabled != nil {
+			_ = d.Set("transaction_enabled", *pulsarCluster.Spec.Config.TransactionEnabled)
+		}
+		if pulsarCluster.Spec.Config.WebsocketEnabled != nil {
+			_ = d.Set("websocket_enabled", *pulsarCluster.Spec.Config.WebsocketEnabled)
+		}
+		if pulsarCluster.Spec.Config.AuditLog != nil {
+			categories := make([]interface{}, len(pulsarCluster.Spec.Config.AuditLog.Categories))
+			for i, category := range pulsarCluster.Spec.Config.AuditLog.Categories {
+				categories[i] = category
+			}
+			_ = d.Set("categories", categories)
+		}
+		if pulsarCluster.Spec.Config.Custom != nil {
+			_ = d.Set("custom", pulsarCluster.Spec.Config.Custom)
+		}
+	}
+	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	_ = d.Set("pulsar_version", brokerImage[1])
+	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
+	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
@@ -430,14 +475,14 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 		pulsarCluster.Spec.Config.TransactionEnabled = &transactionEnabled
 		changed = true
 	}
-	auditLog := d.Get("audit_log").(*schema.Set)
-	if auditLog.Len() > 0 {
-		categories := make([]string, 0)
-		for _, category := range auditLog.List() {
-			categories = append(categories, category.(string))
+	categories := d.Get("categories").(*schema.Set)
+	if categories.Len() > 0 {
+		categoriesList := make([]string, 0)
+		for _, category := range categories.List() {
+			categoriesList = append(categoriesList, category.(string))
 		}
 		pulsarCluster.Spec.Config.AuditLog = &cloudv1alpha1.AuditLog{
-			Categories: categories,
+			Categories: categoriesList,
 		}
 		changed = true
 	}

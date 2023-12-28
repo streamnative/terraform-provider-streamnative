@@ -110,7 +110,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   	transaction_enabled = true
   	kafka = {}
   	mqtt = {}
-  	audit_log = ["Management", "Describe", "Produce", "Consume"]
+  	categories = ["Management", "Describe", "Produce", "Consume"]
   	custom = {
     	"allowAutoTopicCreation": "true"
   	}

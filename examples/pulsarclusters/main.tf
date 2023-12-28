@@ -14,24 +14,30 @@ provider "streamnative" {
 
 resource "streamnative_pulsar_cluster" "test-cluster-1" {
   organization = "sndev"
-  name = "test-cluster-2"
+  name = "test-cluster-1"
   instance_name = "test-instance"
   location = "us-central1"
   bookie_replicas = 3
   broker_replicas = 2
-  compute_unit = 0.3
-  storage_unit = 0.3
+  compute_unit = 0.6
+  storage_unit = 0.6
   websocket_enabled = true
   function_enabled = false
   transaction_enabled = true
   kafka = {}
   mqtt = {}
-  audit_log = ["Management", "Describe", "Produce", "Consume"]
+  categories = ["Management", "Describe", "Produce", "Consume"]
   custom = {
     "allowAutoTopicCreation": "true"
   }
 }
 
+data "streamnative_pulsar_cluster" "test-cluster-1" {
+  depends_on = [streamnative_pulsar_cluster.test-cluster-1]
+  organization = "sndev"
+  name = "test-cluster-1"
+}
+
 output "pulsar_cluster" {
-  value = streamnative_pulsar_cluster.test-cluster-1
+  value = data.streamnative_pulsar_cluster.test-cluster-1
 }
