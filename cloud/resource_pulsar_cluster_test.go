@@ -35,7 +35,7 @@ func TestResourcePulsarCluster(t *testing.T) {
 }
 
 func testCheckResourcePulsarClusterDestroy(s *terraform.State) error {
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_pulsar_cluster" {
 			continue
