@@ -26,10 +26,9 @@ func resourcePulsarCluster() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChanges("organization") {
+			if diff.HasChanges([]string{"organization", "name", "instance_name", "location"}...) {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
-					"The pulsar cluster does not support updates, please recreate it")
+					"The pulsar cluster organization, name, instance_name, location does not support updates, please recreate it")
 			}
 			return nil
 		},
@@ -98,10 +97,80 @@ func resourcePulsarCluster() *schema.Resource {
 				Description:  descriptions["storage_unit"],
 				ValidateFunc: validateCUSU,
 			},
+			"websocket_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["websocket_enabled"],
+			},
+			"function_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["function_enabled"],
+			},
+			"transaction_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["transaction_enabled"],
+			},
+			"kafka": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Default:     map[string]interface{}{},
+				Description: descriptions["kafka"],
+			},
+			"mqtt": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Default:     map[string]interface{}{},
+				Description: descriptions["mqtt"],
+			},
+			"audit_log": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MinItems:    1,
+				Description: descriptions["audit_log"],
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateAuditLog,
+				},
+			},
+			"custom": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: descriptions["custom"],
+			},
 			"ready": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["cluster_ready"],
+			},
+			"http_tls_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["http_tls_service_url"],
+			},
+			"pulsar_tls_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["pulsar_tls_service_url"],
+			},
+			"kafka_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["kafka_service_url"],
+			},
+			"mqtt_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["mqtt_service_url"],
+			},
+			"websocket_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["websocket_service_url"],
 			},
 		},
 	}
@@ -137,10 +206,11 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				"creating a cluster under instance of type '%s' is no longer allowed",
 			cloudv1alpha1.PulsarInstanceTypeFree))
 	}
-	bookieCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
-	brokerCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
+	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
+	brokerCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
 	brokerMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
-	bookieMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
+	bookieMem := resource.NewQuantity(int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
+
 	pulsarCluster := &cloudv1alpha1.PulsarCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PulsarCluster",
@@ -171,6 +241,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			},
 		},
 	}
+	getPulsarClusterChanged(pulsarCluster, d)
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -221,6 +292,23 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		for _, condition := range pulsarCluster.Status.Conditions {
 			if condition.Type == "Ready" {
 				_ = d.Set("ready", condition.Status)
+				dnsName := pulsarCluster.Spec.ServiceEndpoints[0].DnsName
+				_ = d.Set("http_tls_service_url", fmt.Sprintf("https://%s", dnsName))
+				_ = d.Set("pulsar_tls_service_url", fmt.Sprintf("pulsar+ssl://%s:6651", dnsName))
+				if pulsarCluster.Spec.Config != nil {
+					if pulsarCluster.Spec.Config.WebsocketEnabled != nil &&
+						*pulsarCluster.Spec.Config.WebsocketEnabled {
+						_ = d.Set("websocket_service_url", fmt.Sprintf("wss://%s:9443", dnsName))
+					}
+					if pulsarCluster.Spec.Config.Protocols != nil {
+						if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
+							_ = d.Set("kafka_service_url", fmt.Sprintf("%s:9093", dnsName))
+						}
+						if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
+							_ = d.Set("mqtt_service_url", fmt.Sprintf("mqtts://%s:8883", dnsName))
+						}
+					}
+				}
 			}
 		}
 	}
@@ -256,42 +344,40 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	if d.HasChange("bookie_replicas") {
-		pulsarCluster.Spec.Broker.Replicas = d.Get("bookie_replicas").(*int32)
+		brokerReplicas := int32(d.Get("bookie_replicas").(int))
+		pulsarCluster.Spec.Broker.Replicas = &brokerReplicas
 	}
 	if d.HasChange("broker_replicas") {
-		pulsarCluster.Spec.Broker.Replicas = d.Get("broker_replicas").(*int32)
+		bookieReplicas := int32(d.Get("broker_replicas").(int))
+		pulsarCluster.Spec.Broker.Replicas = &bookieReplicas
 	}
 	if d.HasChange("compute_unit") {
 		computeUnit := d.Get("compute_unit").(float64)
 		pulsarCluster.Spec.Broker.Resources.Cpu = resource.NewMilliQuantity(
 			int64(computeUnit*2*1000), resource.DecimalSI)
+		pulsarCluster.Spec.Broker.Resources.Memory = resource.NewQuantity(
+			int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
 	if d.HasChange("storage_unit") {
 		storageUnit := d.Get("storage_unit").(float64)
-		pulsarCluster.Spec.Broker.Resources.Memory = resource.NewQuantity(
+		pulsarCluster.Spec.BookKeeper.Resources.Cpu = resource.NewMilliQuantity(
+			int64(storageUnit*2*1000), resource.DecimalSI)
+		pulsarCluster.Spec.BookKeeper.Resources.Memory = resource.NewQuantity(
 			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
+	changed := getPulsarClusterChanged(pulsarCluster, d)
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
 		d.HasChange("compute_unit") ||
-		d.HasChange("storage_unit") {
-		pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
+		d.HasChange("storage_unit") || changed {
+		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
 			FieldManager: "terraform-update",
 		})
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: %w", err))
 		}
-		if pc.Status.Conditions != nil {
-			ready := false
-			for _, condition := range pc.Status.Conditions {
-				if condition.Type == "Ready" && condition.Status == "True" {
-					ready = true
-				}
-			}
-			if ready {
-				return resourcePulsarClusterRead(ctx, d, meta)
-			}
-		}
+		// Delay 5 seconds to wait for api server start reconcile.
+		time.Sleep(5 * time.Second)
 		err = retry.RetryContext(ctx, 15*time.Minute, func() *retry.RetryError {
 			dia := resourcePulsarClusterRead(ctx, d, meta)
 			if dia.HasError() {
@@ -322,4 +408,62 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_DELETE_PULSAR_CLUSTER: %w", err))
 	}
 	return nil
+}
+
+func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *schema.ResourceData) bool {
+	changed := false
+	if pulsarCluster.Spec.Config == nil {
+		pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+	}
+	websocketEnabled := d.Get("websocket_enabled").(bool)
+	if websocketEnabled {
+		pulsarCluster.Spec.Config.WebsocketEnabled = &websocketEnabled
+		changed = true
+	}
+	functionEnabled := d.Get("function_enabled").(bool)
+	if functionEnabled {
+		pulsarCluster.Spec.Config.FunctionEnabled = &functionEnabled
+		changed = true
+	}
+	transactionEnabled := d.Get("transaction_enabled").(bool)
+	if transactionEnabled {
+		pulsarCluster.Spec.Config.TransactionEnabled = &transactionEnabled
+		changed = true
+	}
+	auditLog := d.Get("audit_log").(*schema.Set)
+	if auditLog.Len() > 0 {
+		categories := make([]string, 0)
+		for _, category := range auditLog.List() {
+			categories = append(categories, category.(string))
+		}
+		pulsarCluster.Spec.Config.AuditLog = &cloudv1alpha1.AuditLog{
+			Categories: categories,
+		}
+		changed = true
+	}
+	if pulsarCluster.Spec.Config.Protocols == nil {
+		pulsarCluster.Spec.Config.Protocols = &cloudv1alpha1.ProtocolsConfig{}
+	}
+	kafka := d.Get("kafka").(map[string]interface{})
+	if kafka != nil {
+		pulsarCluster.Spec.Config.Protocols.Kafka = &cloudv1alpha1.KafkaConfig{}
+		changed = true
+	}
+	mqtt := d.Get("mqtt").(map[string]interface{})
+	if mqtt != nil {
+		pulsarCluster.Spec.Config.Protocols.Mqtt = &cloudv1alpha1.MqttConfig{}
+		changed = true
+	}
+	custom := d.Get("custom").(map[string]interface{})
+	if custom != nil && len(custom) > 0 {
+		result := map[string]string{}
+		for k := range custom {
+			if v, ok := custom[k].(string); ok {
+				result[k] = v
+			}
+		}
+		pulsarCluster.Spec.Config.Custom = result
+		changed = true
+	}
+	return changed
 }

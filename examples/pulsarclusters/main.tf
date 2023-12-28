@@ -17,6 +17,19 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   name = "test-cluster-2"
   instance_name = "test-instance"
   location = "us-central1"
+  bookie_replicas = 3
+  broker_replicas = 2
+  compute_unit = 0.3
+  storage_unit = 0.3
+  websocket_enabled = true
+  function_enabled = false
+  transaction_enabled = true
+  kafka = {}
+  mqtt = {}
+  audit_log = ["Management", "Describe", "Produce", "Consume"]
+  custom = {
+    "allowAutoTopicCreation": "true"
+  }
 }
 
 output "pulsar_cluster" {
