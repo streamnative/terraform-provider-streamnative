@@ -101,8 +101,8 @@ resource "streamnative_service_account" "test-service-account" {
 
 data "streamnative_service_account" "test-service-account" {
   depends_on = [streamnative_service_account.test-service-account]
-  organization = "streamnative_service_account.test-service-account.organization"
-  name = "streamnative_service_account.test-service-account.name"
+  organization = streamnative_service_account.test-service-account.organization
+  name = streamnative_service_account.test-service-account.name
 }
 `, organization, name, admin)
 }
