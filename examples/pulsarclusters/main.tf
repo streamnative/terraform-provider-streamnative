@@ -34,8 +34,8 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
 
 data "streamnative_pulsar_cluster" "test-cluster-1" {
   depends_on = [streamnative_pulsar_cluster.test-cluster-1]
-  organization = "sndev"
-  name = "test-cluster-1"
+  organization = streamnative_pulsar_cluster.test-cluster-1.organization
+  name = streamnative_pulsar_cluster.test-cluster-1.name
 }
 
 output "pulsar_cluster" {

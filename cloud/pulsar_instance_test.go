@@ -12,30 +12,30 @@ import (
 	"time"
 )
 
-func TestResourcePulsarInstance(t *testing.T) {
+func TestPulsarInstance(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testCheckResourcePulsarInstanceDestroy,
+		CheckDestroy:      testCheckPulsarInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourcePulsarInstance(
+				Config: testResourceDataSourcePulsarInstance(
 					"sndev",
 					"terraform-test-pulsar-instance-b",
 					"zonal",
 					"shared-gcp",
 					"streamnative"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckResourcePulsarInstanceExists("streamnative_pulsar_instance.test-pulsar-instance"),
+					testCheckPulsarInstanceExists("streamnative_pulsar_instance.test-pulsar-instance"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckResourcePulsarInstanceDestroy(s *terraform.State) error {
+func testCheckPulsarInstanceDestroy(s *terraform.State) error {
 	// Add a sleep for wait the service account to be deleted
 	// It seems that azure connection to gcp is slow, so add a delay to wait
 	// for the resource to be cleaned up and check it again
@@ -64,7 +64,7 @@ func testCheckResourcePulsarInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckResourcePulsarInstanceExists(name string) resource.TestCheckFunc {
+func testCheckPulsarInstanceExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -100,7 +100,7 @@ func testCheckResourcePulsarInstanceExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourcePulsarInstance(
+func testResourceDataSourcePulsarInstance(
 	organization string, name string, availabilityMode string, poolName string, poolNamespace string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
@@ -111,6 +111,11 @@ resource "streamnative_pulsar_instance" "test-pulsar-instance" {
 	availability_mode = "%s"
 	pool_name = "%s"
 	pool_namespace = "%s"
+}
+data "streamnative_pulsar_instance" "test-pulsar-instance" {
+  depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
+  name = streamnative_pulsar_instance.test-pulsar-instance.name
+  organization = streamnative_pulsar_instance.test-pulsar-instance.organization
 }
 `, organization, name, availabilityMode, poolName, poolNamespace)
 }

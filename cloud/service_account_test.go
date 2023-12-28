@@ -12,26 +12,26 @@ import (
 	"time"
 )
 
-func TestResourceServiceAccount(t *testing.T) {
+func TestServiceAccount(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testCheckResourceServiceAccountDestroy,
+		CheckDestroy:      testCheckServiceAccountDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceServiceAccount(
+				Config: testResourceDataSourceServiceAccount(
 					"sndev", "terraform-test-service-account-b", true),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckResourceServiceAccountExists("streamnative_service_account.test-service-account"),
+					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckResourceServiceAccountDestroy(s *terraform.State) error {
+func testCheckServiceAccountDestroy(s *terraform.State) error {
 	// Add a sleep for wait the service account to be deleted
 	// It seems that azure connection to gcp is slow, so add a delay to wait
 	// for the resource to be cleaned up and check it again
@@ -60,7 +60,7 @@ func testCheckResourceServiceAccountDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckResourceServiceAccountExists(name string) resource.TestCheckFunc {
+func testCheckServiceAccountExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -88,7 +88,7 @@ func testCheckResourceServiceAccountExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceServiceAccount(organization string, name string, admin bool) string {
+func testResourceDataSourceServiceAccount(organization string, name string, admin bool) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -97,6 +97,12 @@ resource "streamnative_service_account" "test-service-account" {
 	organization = "%s"
 	name = "%s"
 	admin = %t
+}
+
+data "streamnative_service_account" "test-service-account" {
+  depends_on = [streamnative_service_account.test-service-account]
+  organization = "streamnative_service_account.test-service-account.organization"
+  name = "streamnative_service_account.test-service-account.name"
 }
 `, organization, name, admin)
 }

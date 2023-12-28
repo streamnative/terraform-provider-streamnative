@@ -12,29 +12,29 @@ import (
 	"time"
 )
 
-func TestResourcePulsarCluster(t *testing.T) {
+func TestPulsarCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testCheckResourcePulsarClusterDestroy,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourcePulsarCluster(
+				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
 					"terraform-test-pulsar-cluster",
 					"terraform-test-pulsar-instance",
 					"us-central1"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckResourcePulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckResourcePulsarClusterDestroy(s *terraform.State) error {
+func testCheckPulsarClusterDestroy(s *terraform.State) error {
 	time.Sleep(5 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_pulsar_cluster" {
@@ -60,7 +60,7 @@ func testCheckResourcePulsarClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckResourcePulsarClusterExists(name string) resource.TestCheckFunc {
+func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -96,7 +96,7 @@ func testCheckResourcePulsarClusterExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourcePulsarCluster(organization, name, instanceName, location string) string {
+func testResourceDataSourcePulsarCluster(organization, name, instanceName, location string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -114,6 +114,11 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   	custom = {
     	"allowAutoTopicCreation": "true"
   	}
+}
+data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+  depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
+  organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
+  name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
 `, organization, name, instanceName, location)
 }
