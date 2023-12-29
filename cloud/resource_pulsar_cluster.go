@@ -151,14 +151,19 @@ func resourcePulsarCluster() *schema.Resource {
 						"websocket_enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  true,
 						},
 						"function_enabled": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: descriptions["function_enabled"],
 						},
 						"transaction_enabled": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: descriptions["transaction_enabled"],
 						},
 						"protocols": {
 							Type:        schema.TypeSet,
@@ -167,13 +172,16 @@ func resourcePulsarCluster() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"kafka": {
-										Type:     schema.TypeMap,
-										Default:  map[string]interface{}{},
-										Optional: true,
+										Type:        schema.TypeMap,
+										Default:     map[string]interface{}{},
+										Optional:    true,
+										Description: descriptions["kafka"],
 									},
 									"mqtt": {
-										Type:     schema.TypeMap,
-										Optional: true,
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Default:     map[string]interface{}{},
+										Description: descriptions["mqtt"],
 									},
 								},
 							},
@@ -185,9 +193,10 @@ func resourcePulsarCluster() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"categories": {
-										Type:     schema.TypeSet,
-										Optional: true,
-										MinItems: 1,
+										Type:        schema.TypeSet,
+										Optional:    true,
+										MinItems:    1,
+										Description: descriptions["categories"],
 										Elem: &schema.Schema{
 											Type:         schema.TypeString,
 											ValidateFunc: validateAuditLog,
