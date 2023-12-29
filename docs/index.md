@@ -12,6 +12,17 @@ Use the StreamNative provider to deploy and manage [StreamNative Cloud](https://
 
 ## Example Usage
 
+  ```hcl
+  terraform {
+    required_providers {
+      pulsar = {
+        version = "0.1.0"
+        source = "registry.terraform.io/streamnative/streamnative"
+      }
+    }
+  }
+  ```
+
 [Add example]
 
 ## Enable StreamNative Cloud Access

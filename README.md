@@ -19,3 +19,11 @@ This library is licensed under the terms of the [Apache License 2.0](LICENSE) an
 ## About StreamNative
 
 Founded in 2019 by the original creators of Apache Pulsar, [StreamNative](https://streamnative.io/) is one of the leading contributors to the open-source Apache Pulsar project. We have helped engineering teams worldwide make the move to Pulsar with [StreamNative Cloud](https://streamnative.io/product), a fully managed service to help teams accelerate time-to-production.
+
+## FAQ
+
+### Why don't you use this framework https://github.com/hashicorp/terraform-plugin-framework?
+This project relies on the cloud-cli project, cloud-cli doesn't work with go 1.20 yet, I tried to use the old version in the project but failed, we should consider migrating to this framework in the future.
+
+### Why don't you use the latest version https://github.com/hashicorp/terraform-plugin-sdk/tree/v2.31.0?
+This project relies on the cloud-cli project, cloud-cli doesn't work with go 1.20 yet.
