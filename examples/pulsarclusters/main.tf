@@ -21,14 +21,25 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   broker_replicas = 2
   compute_unit = 0.3
   storage_unit = 0.3
-  websocket_enabled = true
-  function_enabled = false
-  transaction_enabled = true
-  kafka = {}
-  mqtt = {}
-  audit_log = ["Management", "Describe", "Produce", "Consume"]
-  custom = {
-    "allowAutoTopicCreation": "true"
+
+  config {
+    websocket_enabled = true
+    function_enabled = false
+    transaction_enabled = false
+    protocols {
+      mqtt = {
+        enabled = false
+      }
+      kafka = {
+        enabled = true
+      }
+    }
+    audit_log {
+      categories = ["Management", "Describe", "Produce", "Consume"]
+    }
+    custom = {
+        allowAutoTopicCreation = "true"
+    }
   }
 }
 

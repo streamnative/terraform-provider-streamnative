@@ -105,15 +105,22 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	name = "%s"
   	instance_name = "%s"
   	location = "%s"
-  	websocket_enabled = true
-  	function_enabled = true
-  	transaction_enabled = true
-  	kafka = {}
-  	mqtt = {}
-  	audit_log = ["Management", "Describe", "Produce", "Consume"]
-  	custom = {
-    	"allowAutoTopicCreation": "true"
-  	}
+	config {
+		websocket_enabled = true
+		function_enabled = false
+		transaction_enabled = false
+		protocols {
+		  mqtt = {
+			enabled = false
+		  }
+		  kafka = {
+			enabled = true
+		  }
+		}
+		custom = {
+			allowAutoTopicCreation = "true"
+		}
+	}
 }
 `, organization, name, instanceName, location)
 }
