@@ -97,51 +97,6 @@ func resourcePulsarCluster() *schema.Resource {
 				Description:  descriptions["storage_unit"],
 				ValidateFunc: validateCUSU,
 			},
-			"websocket_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: descriptions["websocket_enabled"],
-			},
-			"function_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: descriptions["function_enabled"],
-			},
-			"transaction_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: descriptions["transaction_enabled"],
-			},
-			"kafka": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Default:     map[string]interface{}{},
-				Description: descriptions["kafka"],
-			},
-			"mqtt": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Default:     map[string]interface{}{},
-				Description: descriptions["mqtt"],
-			},
-			"audit_log": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MinItems:    1,
-				Description: descriptions["audit_log"],
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateAuditLog,
-				},
-			},
-			"custom": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: descriptions["custom"],
-			},
 			"config": {
 				Type:     schema.TypeSet,
 				Optional: true,
