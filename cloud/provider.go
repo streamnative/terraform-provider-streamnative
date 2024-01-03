@@ -123,7 +123,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	options := cmd.NewOptions(streams)
 	options.ConfigDir = configDir
 	options.ConfigPath = filepath.Join(configDir, "config")
-	options.BackendOverride = "memory"
+	options.BackendOverride = "file"
 	snConfig := &config.SnConfig{
 		Server:                   defaultApiServer,
 		CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(GlobalDefaultCertificateAuthorityData)),
