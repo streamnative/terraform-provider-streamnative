@@ -42,13 +42,13 @@ func flattenProtocols(in *cloudv1alpha1.ProtocolsConfig) []interface{} {
 
 func flattenKafkaConfig() map[string]interface{} {
 	att := make(map[string]interface{})
-	att["enabled"] = interface{}(true)
+	att["enabled"] = "true"
 	return att
 }
 
 func flattenMqttConfig() map[string]interface{} {
 	att := make(map[string]interface{})
-	att["enabled"] = interface{}(true)
+	att["enabled"] = "true"
 	return att
 }
 
