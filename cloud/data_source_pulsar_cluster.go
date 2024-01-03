@@ -67,43 +67,80 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Description: descriptions["storage_unit"],
 				Computed:    true,
 			},
-			"websocket_enabled": {
-				Type:        schema.TypeBool,
-				Description: descriptions["websocket_enabled"],
-				Computed:    true,
-			},
-			"function_enabled": {
-				Type:        schema.TypeBool,
-				Description: descriptions["function_enabled"],
-				Computed:    true,
-			},
-			"transaction_enabled": {
-				Type:        schema.TypeBool,
-				Description: descriptions["transaction_enabled"],
-				Computed:    true,
-			},
-			"kafka": {
-				Type:        schema.TypeMap,
-				Description: descriptions["kafka"],
-				Computed:    true,
-			},
-			"mqtt": {
-				Type:        schema.TypeMap,
-				Description: descriptions["mqtt"],
-				Computed:    true,
-			},
-			"categories": {
-				Type:        schema.TypeSet,
-				Description: descriptions["categories"],
-				Computed:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+			"config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MinItems: 0,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"websocket_enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"function_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Computed:    true,
+							Description: descriptions["function_enabled"],
+						},
+						"transaction_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Computed:    true,
+							Description: descriptions["transaction_enabled"],
+						},
+						"protocols": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: descriptions["protocols"],
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"kafka": {
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Computed:    true,
+										Description: descriptions["kafka"],
+									},
+									"mqtt": {
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Computed:    true,
+										Description: descriptions["mqtt"],
+									},
+								},
+							},
+						},
+						"audit_log": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Computed:    true,
+							Description: descriptions["audit_log"],
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"categories": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Computed:    true,
+										MinItems:    1,
+										Description: descriptions["categories"],
+										Elem: &schema.Schema{
+											Type:         schema.TypeString,
+											ValidateFunc: validateAuditLog,
+										},
+									},
+								},
+							},
+						},
+						"custom": {
+							Type:        schema.TypeMap,
+							Optional:    true,
+							Computed:    true,
+							Description: descriptions["custom"],
+						},
+					},
 				},
-			},
-			"custom": {
-				Type:        schema.TypeMap,
-				Computed:    true,
-				Description: descriptions["custom"],
 			},
 			"ready": {
 				Type:        schema.TypeString,
@@ -188,41 +225,15 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	if pulsarCluster.Spec.Config != nil {
-		if pulsarCluster.Spec.Config.Protocols != nil {
-			if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
-				_ = d.Set("kafka", map[string]interface{}{})
-			}
-			if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
-				_ = d.Set("mqtt", map[string]interface{}{})
-			}
-		}
-		if pulsarCluster.Spec.Config.FunctionEnabled != nil {
-			_ = d.Set("function_enabled", *pulsarCluster.Spec.Config.FunctionEnabled)
-		}
-		if pulsarCluster.Spec.Config.TransactionEnabled != nil {
-			_ = d.Set("transaction_enabled", *pulsarCluster.Spec.Config.TransactionEnabled)
-		}
-		if pulsarCluster.Spec.Config.WebsocketEnabled != nil {
-			_ = d.Set("websocket_enabled", *pulsarCluster.Spec.Config.WebsocketEnabled)
-		}
-		if pulsarCluster.Spec.Config.AuditLog != nil {
-			categories := make([]interface{}, len(pulsarCluster.Spec.Config.AuditLog.Categories))
-			for i, category := range pulsarCluster.Spec.Config.AuditLog.Categories {
-				categories[i] = category
-			}
-			_ = d.Set("categories", categories)
-		}
-		if pulsarCluster.Spec.Config.Custom != nil {
-			_ = d.Set("custom", pulsarCluster.Spec.Config.Custom)
+		err = d.Set("config", flattenPulsarClusterConfig(pulsarCluster.Spec.Config))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
 	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
 	_ = d.Set("pulsar_version", brokerImage[1])
 	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
 	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
-	if pulsarCluster.Spec.Config.AuditLog != nil && len(pulsarCluster.Spec.Config.AuditLog.Categories) > 0 {
-		_ = d.Set("categories", pulsarCluster.Spec.Config.AuditLog.Categories)
-	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }

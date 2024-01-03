@@ -28,10 +28,10 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
     transaction_enabled = false
     protocols {
       mqtt = {
-        enabled = false
+        enabled = true
       }
       kafka = {
-        enabled = true
+        enabled = false
       }
     }
     audit_log {

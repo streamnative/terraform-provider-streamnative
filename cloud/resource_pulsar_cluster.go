@@ -98,7 +98,7 @@ func resourcePulsarCluster() *schema.Resource {
 				ValidateFunc: validateCUSU,
 			},
 			"config": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				MinItems: 0,
 				Elem: &schema.Resource{
@@ -121,7 +121,7 @@ func resourcePulsarCluster() *schema.Resource {
 							Description: descriptions["transaction_enabled"],
 						},
 						"protocols": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: descriptions["protocols"],
 							Elem: &schema.Resource{
@@ -142,13 +142,13 @@ func resourcePulsarCluster() *schema.Resource {
 							},
 						},
 						"audit_log": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: descriptions["audit_log"],
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"categories": {
-										Type:        schema.TypeSet,
+										Type:        schema.TypeList,
 										Optional:    true,
 										MinItems:    1,
 										Description: descriptions["categories"],
@@ -351,32 +351,9 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 	if pulsarCluster.Spec.Config != nil {
-		if pulsarCluster.Spec.Config.Protocols != nil {
-			if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
-				_ = d.Set("kafka", map[string]interface{}{})
-			}
-			if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
-				_ = d.Set("mqtt", map[string]interface{}{})
-			}
-		}
-		if pulsarCluster.Spec.Config.FunctionEnabled != nil {
-			_ = d.Set("function_enabled", *pulsarCluster.Spec.Config.FunctionEnabled)
-		}
-		if pulsarCluster.Spec.Config.TransactionEnabled != nil {
-			_ = d.Set("transaction_enabled", *pulsarCluster.Spec.Config.TransactionEnabled)
-		}
-		if pulsarCluster.Spec.Config.WebsocketEnabled != nil {
-			_ = d.Set("websocket_enabled", *pulsarCluster.Spec.Config.WebsocketEnabled)
-		}
-		if pulsarCluster.Spec.Config.AuditLog != nil {
-			categories := make([]interface{}, len(pulsarCluster.Spec.Config.AuditLog.Categories))
-			for i, category := range pulsarCluster.Spec.Config.AuditLog.Categories {
-				categories[i] = category
-			}
-			_ = d.Set("categories", categories)
-		}
-		if pulsarCluster.Spec.Config.Custom != nil {
-			_ = d.Set("custom", pulsarCluster.Spec.Config.Custom)
+		err = d.Set("config", flattenPulsarClusterConfig(pulsarCluster.Spec.Config))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
 	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
@@ -486,9 +463,9 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 	if pulsarCluster.Spec.Config == nil {
 		pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
 	}
-	config := d.Get("config").(*schema.Set)
-	if config.Len() > 0 {
-		for _, configItem := range config.List() {
+	config := d.Get("config").([]interface{})
+	if config != nil && len(config) > 0 {
+		for _, configItem := range config {
 			configItemMap := configItem.(map[string]interface{})
 			if configItemMap["websocket_enabled"] != nil {
 				webSocketEnabled := configItemMap["websocket_enabled"].(bool)
@@ -511,29 +488,31 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 				if pulsarCluster.Spec.Config.Protocols == nil {
 					pulsarCluster.Spec.Config.Protocols = &cloudv1alpha1.ProtocolsConfig{}
 				}
-				protocols := configItemMap["protocols"].(*schema.Set)
-				for _, protocolItem := range protocols.List() {
-					protocolItemMap := protocolItem.(map[string]interface{})
-					kafka, ok := protocolItemMap["kafka"]
-					if ok {
-						if kafka != nil {
-							kafkaMap := kafka.(map[string]interface{})
-							if enabled, ok := kafkaMap["enabled"]; ok {
-								flag := enabled.(string)
-								if flag == "false" {
-									kafkaEnabled = false
+				protocols := configItemMap["protocols"].([]interface{})
+				if protocols != nil && len(protocols) > 0 {
+					for _, protocolItem := range protocols {
+						protocolItemMap := protocolItem.(map[string]interface{})
+						kafka, ok := protocolItemMap["kafka"]
+						if ok {
+							if kafka != nil {
+								kafkaMap := kafka.(map[string]interface{})
+								if enabled, ok := kafkaMap["enabled"]; ok {
+									flag := enabled.(string)
+									if flag == "false" {
+										kafkaEnabled = false
+									}
 								}
 							}
 						}
-					}
-					mqtt, ok := protocolItemMap["mqtt"]
-					if ok {
-						if mqtt != nil {
-							mqttMap := mqtt.(map[string]interface{})
-							if enabled, ok := mqttMap["enabled"]; ok {
-								flag := enabled.(string)
-								if flag == "false" {
-									mqttEnabled = false
+						mqtt, ok := protocolItemMap["mqtt"]
+						if ok {
+							if mqtt != nil {
+								mqttMap := mqtt.(map[string]interface{})
+								if enabled, ok := mqttMap["enabled"]; ok {
+									flag := enabled.(string)
+									if flag == "false" {
+										mqttEnabled = false
+									}
 								}
 							}
 						}
@@ -554,17 +533,17 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 				changed = true
 			}
 			auditLogEnabled := false
-			categories := make([]string, 0)
+			var categories []string
 			if configItemMap["audit_log"] != nil {
-				auditLog := configItemMap["audit_log"].(*schema.Set)
-				if auditLog.Len() > 0 {
-					for _, category := range auditLog.List() {
+				auditLog := configItemMap["audit_log"].([]interface{})
+				if auditLog != nil && len(auditLog) > 0 {
+					for _, category := range auditLog {
 						c := category.(map[string]interface{})
 						if _, ok := c["categories"]; ok {
-							categoriesSchema := c["categories"].(*schema.Set)
-							if categoriesSchema.Len() > 0 {
+							categoriesSchema := c["categories"].([]interface{})
+							if categoriesSchema != nil && len(categoriesSchema) > 0 {
 								auditLogEnabled = true
-								for _, categoryItem := range categoriesSchema.List() {
+								for _, categoryItem := range categoriesSchema {
 									categories = append(categories, categoryItem.(string))
 								}
 							}
