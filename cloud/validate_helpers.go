@@ -39,3 +39,12 @@ func validateCUSU(val interface{}, key string) (warns []string, errs []error) {
 	}
 	return
 }
+
+func validateAuditLog(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if val != "Management" && val != "Describe" && val != "Produce" && val != "Consume" {
+		errs = append(errs, fmt.Errorf(
+			"%q should be none, managed or external, got: %s", key, v))
+	}
+	return
+}

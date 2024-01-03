@@ -30,22 +30,37 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"key_file_path":     "The path of the private key file",
-		"organization":      "The organization name",
-		"name":              "The service account name",
-		"admin":             "Whether the service account is admin",
-		"private_key_data":  "The private key data",
-		"availability-mode": "The availability mode, supporting 'zonal' and 'regional'",
-		"pool_name":         "The infrastructure pool name to use.",
-		"pool_namespace":    "The infrastructure pool namespace to use",
-		"instance_name":     "The pulsar instance name",
-		"location":          "The location of the pulsar cluster",
-		"bookie_replicas":   "The number of bookie replicas",
-		"broker_replicas":   "The number of broker replicas",
-		"compute_unit":      "compute unit, 1 compute unit is 2 cpu and 8gb memory",
-		"storage_unit":      "storage unit, 1 storage unit is 2 cpu and 8gb memory",
-		"cluster_ready":     "Pulsar cluster is ready, it will be set to 'True' after the cluster is ready",
-		"instance_ready":    "Pulsar instance is ready, it will be set to 'True' after the instance is ready",
+		"key_file_path":          "The path of the private key file",
+		"organization":           "The organization name",
+		"name":                   "The service account name",
+		"admin":                  "Whether the service account is admin",
+		"private_key_data":       "The private key data",
+		"availability-mode":      "The availability mode, supporting 'zonal' and 'regional'",
+		"pool_name":              "The infrastructure pool name to use.",
+		"pool_namespace":         "The infrastructure pool namespace to use",
+		"instance_name":          "The pulsar instance name",
+		"location":               "The location of the pulsar cluster",
+		"bookie_replicas":        "The number of bookie replicas",
+		"broker_replicas":        "The number of broker replicas",
+		"compute_unit":           "compute unit, 1 compute unit is 2 cpu and 8gb memory",
+		"storage_unit":           "storage unit, 1 storage unit is 2 cpu and 8gb memory",
+		"cluster_ready":          "Pulsar cluster is ready, it will be set to 'True' after the cluster is ready",
+		"instance_ready":         "Pulsar instance is ready, it will be set to 'True' after the instance is ready",
+		"websocket_enabled":      "Whether the websocket is enabled",
+		"function_enabled":       "Whether the function is enabled",
+		"transaction_enabled":    "Whether the transaction is enabled",
+		"kafka":                  "Controls the kafka protocol config of pulsar cluster",
+		"mqtt":                   "Controls the mqtt protocol config of pulsar cluster",
+		"audit_log":              "Controls the custom config of audit log",
+		"custom":                 "Controls the custom config of pulsar cluster",
+		"http_tls_service_url":   "The service url of the pulsar cluster, use it to management the pulsar cluster",
+		"pulsar_tls_service_url": "The service url of the pulsar cluster, use it to produce and consume message",
+		"kafka_service_url": "If you want to connect to the pulsar cluster using the kafka protocol," +
+			" use this kafka service url",
+		"mqtt_service_url": "If you want to connect to the pulsar cluster using the mqtt protocol, " +
+			"use this mqtt service url",
+		"websocket_service_url": "If you want to connect to the pulsar cluster using the websocket protocol, " +
+			"use this websocket service url",
 	}
 }
 
@@ -62,6 +77,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account": resourceServiceAccount(),
 			"streamnative_pulsar_instance": resourcePulsarInstance(),
+			"streamnative_pulsar_cluster":  resourcePulsarCluster(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
