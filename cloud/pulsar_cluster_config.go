@@ -32,23 +32,27 @@ func flattenPulsarClusterConfig(in *cloudv1alpha1.Config) []interface{} {
 func flattenProtocols(in *cloudv1alpha1.ProtocolsConfig) []interface{} {
 	att := make(map[string]interface{})
 	if in.Kafka != nil {
-		att["kafka"] = flattenKafkaConfig()
+		att["kafka"] = flattenKafkaConfig("true")
+	} else {
+		att["kafka"] = flattenKafkaConfig("false")
 	}
 	if in.Mqtt != nil {
-		att["mqtt"] = flattenMqttConfig()
+		att["mqtt"] = flattenMqttConfig("true")
+	} else {
+		att["mqtt"] = flattenMqttConfig("false")
 	}
 	return []interface{}{att}
 }
 
-func flattenKafkaConfig() map[string]interface{} {
+func flattenKafkaConfig(flag string) map[string]interface{} {
 	att := make(map[string]interface{})
-	att["enabled"] = "true"
+	att["enabled"] = flag
 	return att
 }
 
-func flattenMqttConfig() map[string]interface{} {
+func flattenMqttConfig(flag string) map[string]interface{} {
 	att := make(map[string]interface{})
-	att["enabled"] = "true"
+	att["enabled"] = flag
 	return att
 }
 
