@@ -45,15 +45,11 @@ func flattenProtocols(in *cloudv1alpha1.ProtocolsConfig) []interface{} {
 }
 
 func flattenKafkaConfig(flag string) map[string]interface{} {
-	att := make(map[string]interface{})
-	att["enabled"] = flag
-	return att
+	return map[string]interface{}{"enabled": flag}
 }
 
 func flattenMqttConfig(flag string) map[string]interface{} {
-	att := make(map[string]interface{})
-	att["enabled"] = flag
-	return att
+	return map[string]interface{}{"enabled": flag}
 }
 
 func flattenAuditLog(in *cloudv1alpha1.AuditLog) []interface{} {
@@ -65,9 +61,9 @@ func flattenAuditLog(in *cloudv1alpha1.AuditLog) []interface{} {
 }
 
 func flattenCategories(in []string) []interface{} {
-	var att []interface{}
-	for _, category := range in {
-		att = append(att, category)
+	att := make([]interface{}, len(in))
+	for i, category := range in {
+		att[i] = category
 	}
 	return att
 }
