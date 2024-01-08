@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
 	"time"
@@ -41,14 +40,10 @@ func testCheckServiceAccountDestroy(s *terraform.State) error {
 			continue
 		}
 		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
+		apiClient := getFactoryFromMeta(meta)
 		organizationServiceAccount := strings.Split(rs.Primary.ID, "/")
-		_, err = clientSet.CloudV1alpha1().
-			ServiceAccounts(organizationServiceAccount[0]).
-			Get(context.Background(), organizationServiceAccount[1], metav1.GetOptions{})
+		_, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedServiceAccount(
+			context.Background(), organizationServiceAccount[1], organizationServiceAccount[0]).Execute()
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return nil
@@ -70,18 +65,14 @@ func testCheckServiceAccountExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf(`ERROR_RESOURCE_SERVICE_ACCOUNT_ID_NOT_SET`)
 		}
 		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
+		apiClient := getFactoryFromMeta(meta)
 		organizationCluster := strings.Split(rs.Primary.ID, "/")
-		serviceAccount, err := clientSet.CloudV1alpha1().
-			ServiceAccounts(organizationCluster[0]).
-			Get(context.Background(), organizationCluster[1], metav1.GetOptions{})
+		serviceAccount, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedServiceAccount(
+			context.Background(), organizationCluster[1], organizationCluster[0]).Execute()
 		if err != nil {
 			return err
 		}
-		if serviceAccount.Status.Conditions[0].Type != "Ready" || serviceAccount.Status.PrivateKeyData == "" {
+		if serviceAccount.Status.Conditions[0].Type != "Ready" || *serviceAccount.Status.PrivateKeyData == "" {
 			return fmt.Errorf(`ERROR_RESOURCE_SERVICE_ACCOUNT_NOT_READY: "%s"`, rs.Primary.ID)
 		}
 		return nil

@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
 	"time"
@@ -45,14 +44,10 @@ func testCheckPulsarInstanceDestroy(s *terraform.State) error {
 			continue
 		}
 		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
+		apiClient := getFactoryFromMeta(meta)
 		organizationInstance := strings.Split(rs.Primary.ID, "/")
-		_, err = clientSet.CloudV1alpha1().
-			PulsarInstances(organizationInstance[0]).
-			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
+		_, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedPulsarInstance(
+			context.Background(), organizationInstance[1], organizationInstance[0]).Execute()
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return nil
@@ -74,14 +69,10 @@ func testCheckPulsarInstanceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("ERROR_RESOURCE_PULSAR_INSTANCE_ID_NOT_SET")
 		}
 		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
+		apiClient := getFactoryFromMeta(meta)
 		organizationInstance := strings.Split(rs.Primary.ID, "/")
-		pulsarInstance, err := clientSet.CloudV1alpha1().
-			PulsarInstances(organizationInstance[0]).
-			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
+		pulsarInstance, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedPulsarInstance(
+			context.Background(), organizationInstance[1], organizationInstance[0]).Execute()
 		if err != nil {
 			return err
 		}

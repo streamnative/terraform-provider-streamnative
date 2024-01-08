@@ -6,8 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	sncloudv1 "github.com/tuteng/sncloud-go-sdk"
 	"strings"
 	"time"
 )
@@ -77,41 +76,38 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	admin := d.Get("admin").(bool)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_SERVICE_ACCOUNT: %w", err))
-	}
-	sa := &v1alpha1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServiceAccount",
-			APIVersion: v1alpha1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+	apiVersion := "cloud.streamnative.io/v1alpha1"
+	kind := "ServiceAccount"
+	sa := sncloudv1.V1alpha1ServiceAccount{
+		ApiVersion: &apiVersion,
+		Kind:       &kind,
+		Metadata: &sncloudv1.V1ObjectMeta{
+			Name:      &name,
+			Namespace: &namespace,
 		},
 	}
 	if admin {
-		sa.ObjectMeta.Annotations = map[string]string{
+		sa.Metadata.Annotations = &map[string]string{
 			ServiceAccountAdminAnnotation: "admin",
 		}
 	}
-	serviceAccount, err := clientSet.CloudV1alpha1().ServiceAccounts(namespace).Create(ctx, sa, metav1.CreateOptions{
-		FieldManager: "terraform-create",
-	})
+	apiClient := getFactoryFromMeta(meta)
+	serviceAccount, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		CreateNamespacedServiceAccount(ctx, namespace).Body(sa).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_SERVICE_ACCOUNT: %w", err))
 	}
 	var privateKeyData = ""
 	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
-		privateKeyData = serviceAccount.Status.PrivateKeyData
-		_ = d.Set("name", serviceAccount.Name)
-		_ = d.Set("organization", serviceAccount.Namespace)
+		metadata := serviceAccount.GetMetadata()
+		privateKeyData = *serviceAccount.Status.PrivateKeyData
+		_ = d.Set("name", metadata.GetName())
+		_ = d.Set("organization", metadata.GetNamespace())
 		_ = d.Set("private_key_data", privateKeyData)
-		d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
+		d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 	}
 	// Don't retry too frequently to avoid affecting the api-server.
-	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 5*time.Minute, func() *retry.RetryError {
 		dia := resourceServiceAccountRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT: %s", dia[0].Summary))
@@ -131,34 +127,31 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
-	}
-	serviceAccount, err := clientSet.CloudV1alpha1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	saRequest := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedServiceAccount(ctx, name, namespace)
+	serviceAccount, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedServiceAccountExecute(saRequest)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_SERVICE_ACCOUNT: %w", err))
 	}
-	_ = d.Set("name", serviceAccount.Name)
-	_ = d.Set("organization", serviceAccount.Namespace)
+	metadata := serviceAccount.GetMetadata()
+	_ = d.Set("name", metadata.GetName())
+	_ = d.Set("organization", metadata.GetNamespace())
 	var privateKeyData = ""
 	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
-		privateKeyData = serviceAccount.Status.PrivateKeyData
+		privateKeyData = *serviceAccount.Status.PrivateKeyData
 	}
 	_ = d.Set("private_key_data", privateKeyData)
-	d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 
 	return nil
 }
 
 func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_SERVICE_ACCOUNT: %w", err))
-	}
+	apiClient := getFactoryFromMeta(meta)
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	err = clientSet.CloudV1alpha1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	saRequest := apiClient.CloudStreamnativeIoV1alpha1Api.DeleteNamespacedServiceAccount(ctx, name, namespace)
+	_, err := apiClient.CloudStreamnativeIoV1alpha1Api.DeleteNamespacedServiceAccountExecute(saRequest)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_SERVICE_ACCOUNT: %w", err))
 	}

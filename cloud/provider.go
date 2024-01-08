@@ -2,30 +2,30 @@ package cloud
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mitchellh/go-homedir"
-	"github.com/streamnative/cloud-cli/pkg/auth"
-	"github.com/streamnative/cloud-cli/pkg/auth/store"
-	"github.com/streamnative/cloud-cli/pkg/cmd"
-	"github.com/streamnative/cloud-cli/pkg/config"
-	"github.com/streamnative/cloud-cli/pkg/plugin"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	sncloud "github.com/tuteng/sncloud-go-sdk"
+	"golang.org/x/oauth2/clientcredentials"
+	"net/url"
 	"os"
-	"path/filepath"
 )
 
 const (
-	GlobalDefaultIssuer                   = "https://auth.streamnative.cloud/"
-	GlobalDefaultAudience                 = "https://api.streamnative.cloud"
-	GlobalDefaultAPIServer                = "https://api.streamnative.cloud"
-	GlobalDefaultCertificateAuthorityData = ``
-	ServiceAccountAdminAnnotation         = "annotations.cloud.streamnative.io/service-account-role"
+	GlobalDefaultIssuer           = "https://auth.streamnative.cloud/"
+	GlobalDefaultAudience         = "https://api.streamnative.cloud"
+	GlobalDefaultAPIServer        = "api.streamnative.cloud"
+	ServiceAccountAdminAnnotation = "annotations.cloud.streamnative.io/service-account-role"
+	KeyFileTypeServiceAccount     = "sn_service_account"
 )
+
+type KeyFile struct {
+	Type         string `json:"type"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	ClientEmail  string `json:"client_email"`
+}
 
 var descriptions map[string]string
 
@@ -97,19 +97,21 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
-
 	keyFilePath := d.Get("key_file_path").(string)
-
-	home, err := homedir.Dir()
+	keyFile, err := os.ReadFile(keyFilePath)
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	configDir := filepath.Join(home, ".streamnative")
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(configDir, 0755); err != nil {
-			return nil, diag.FromErr(err)
-		}
+
+	var v KeyFile
+	err = json.Unmarshal(keyFile, &v)
+	if err != nil {
+		return nil, diag.FromErr(err)
 	}
+	if v.Type != KeyFileTypeServiceAccount {
+		return nil, diag.FromErr(fmt.Errorf("open %s: unsupported format", keyFilePath))
+	}
+
 	defaultIssuer := os.Getenv("GLOBAL_DEFAULT_ISSUER")
 	if defaultIssuer == "" {
 		defaultIssuer = GlobalDefaultIssuer
@@ -122,71 +124,30 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultApiServer == "" {
 		defaultApiServer = GlobalDefaultAPIServer
 	}
-	credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
-	keyFile, err := credsProvider.GetClientCredentials()
+	debug := os.Getenv("TF_LOG")
+
+	values := url.Values{
+		"audience": {defaultAudience},
+	}
+	config := clientcredentials.Config{
+		ClientID:       v.ClientID,
+		ClientSecret:   v.ClientSecret,
+		TokenURL:       fmt.Sprintf("%soauth/token", defaultIssuer),
+		EndpointParams: values,
+	}
+	token, err := config.Token(context.Background())
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	issuer := auth.Issuer{
-		IssuerEndpoint: defaultIssuer,
-		ClientID:       keyFile.ClientID,
-		Audience:       defaultAudience,
-	}
-	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	grant, err := flow.Authorize()
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	streams := genericclioptions.IOStreams{
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
-	options := cmd.NewOptions(streams)
-	options.ConfigDir = configDir
-	options.ConfigPath = filepath.Join(configDir, "config")
-	options.BackendOverride = "file"
-	snConfig := &config.SnConfig{
-		Server:                   defaultApiServer,
-		CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(GlobalDefaultCertificateAuthorityData)),
-		Auth: config.Auth{
-			IssuerEndpoint: defaultIssuer,
-			Audience:       defaultAudience,
-			ClientID:       keyFile.ClientID,
-		},
-	}
-	err = options.SaveConfig(snConfig)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	apc := &clientcmdapi.AuthProviderConfig{
-		Name: "streamnative",
-	}
-	// Pre-check if the auth provider is already exist for avoid issue
-	// auth Provider Plugin streamnative was registered twice
-	provider, _ := rest.GetAuthProvider("", apc, nil)
-	if provider == nil {
-		err = options.Complete()
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
+	configuration := sncloud.NewConfiguration()
+	configuration.Host = defaultApiServer
+	configuration.Scheme = "https"
+	if debug == "debug" {
+		configuration.Debug = true
 	} else {
-		options.Store = store.NewMemoryStore()
-		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
-			return issuer, nil
-		})
-		err = options.ServerOptions.Complete(options)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
+		configuration.Debug = false
 	}
-	err = options.Store.SaveGrant(issuer.Audience, *grant)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	factory := cmdutil.NewFactory(options)
-	return factory, nil
+	configuration.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+	apiClient := sncloud.NewAPIClient(configuration)
+	return apiClient, nil
 }

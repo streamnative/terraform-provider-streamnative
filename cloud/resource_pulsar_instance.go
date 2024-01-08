@@ -6,8 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	sncloudv1 "github.com/tuteng/sncloud-go-sdk"
 	"strings"
 	"time"
 )
@@ -95,32 +94,28 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 	availabilityMode := d.Get("availability_mode").(string)
 	poolName := d.Get("pool_name").(string)
 	poolNamespace := d.Get("pool_namespace").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_INSTANCE: %w", err))
-	}
-	poolRef := &cloudv1alpha1.PoolRef{
-		Namespace: poolNamespace,
-		Name:      poolName,
-	}
-	pulsarInstance := &cloudv1alpha1.PulsarInstance{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PulsarInstance",
-			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
+	apiVersion := "cloud.streamnative.io/v1alpha1"
+	kind := "PulsarInstance"
+	instanceType := "standard"
+	pulsarInstance := sncloudv1.V1alpha1PulsarInstance{
+		ApiVersion: &apiVersion,
+		Kind:       &kind,
+		Metadata: &sncloudv1.V1ObjectMeta{
+			Name:      &name,
+			Namespace: &namespace,
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: cloudv1alpha1.PulsarInstanceSpec{
-			AvailabilityMode: cloudv1alpha1.InstanceAvailabilityMode(availabilityMode),
-			Type:             cloudv1alpha1.PulsarInstanceTypeStandard,
-			PoolRef:          poolRef,
+		Spec: &sncloudv1.V1alpha1PulsarInstanceSpec{
+			AvailabilityMode: availabilityMode,
+			Type:             &instanceType,
+			PoolRef: &sncloudv1.V1alpha1PoolRef{
+				Namespace: poolNamespace,
+				Name:      poolName,
+			},
 		},
 	}
-	pi, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Create(ctx, pulsarInstance, metav1.CreateOptions{
-		FieldManager: "terraform-create",
-	})
+	apiClient := getFactoryFromMeta(meta)
+	pi, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		CreateNamespacedPulsarInstance(ctx, namespace).Body(pulsarInstance).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_INSTANCE: %w", err))
 	}
@@ -154,11 +149,9 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 func resourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
-	}
-	pulsarInstance, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	pulsarInstance, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		ReadNamespacedPulsarInstance(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_INSTANCE: %w", err))
 	}
@@ -170,7 +163,8 @@ func resourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, met
 			}
 		}
 	}
-	d.SetId(fmt.Sprintf("%s/%s", pulsarInstance.Namespace, pulsarInstance.Name))
+	metadata := pulsarInstance.GetMetadata()
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 	return nil
 }
 
@@ -180,13 +174,10 @@ func resourcePulsarInstanceUpdate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourcePulsarInstanceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_PULSAR_INSTANCE: %w", err))
-	}
+	apiClient := getFactoryFromMeta(meta)
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	err = clientSet.CloudV1alpha1().PulsarInstances(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	_, err := apiClient.CloudStreamnativeIoV1alpha1Api.DeleteNamespacedPulsarInstance(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_PULSAR_INSTANCE: %w", err))
 	}

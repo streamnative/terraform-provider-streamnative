@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
@@ -57,27 +56,22 @@ func dataSourceServiceAccount() *schema.Resource {
 func DataSourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
-	}
-	serviceAccount, err := clientSet.CloudV1alpha1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	serviceAccount, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		ReadNamespacedServiceAccount(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_SERVICE_ACCOUNT: %w", err))
 	}
-	_ = d.Set("name", serviceAccount.Name)
-	_ = d.Set("organization", serviceAccount.Namespace)
 	var privateKeyData = ""
 	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
-		privateKeyData = serviceAccount.Status.PrivateKeyData
+		privateKeyData = *serviceAccount.Status.PrivateKeyData
 	}
 	_ = d.Set("private_key_data", privateKeyData)
-	if serviceAccount.Annotations != nil && serviceAccount.Annotations[ServiceAccountAdminAnnotation] == "admin" {
-		_ = d.Set("admin", true)
-	} else {
-		_ = d.Set("admin", false)
+	metadata := serviceAccount.GetMetadata()
+	if annotation, ok := metadata.GetAnnotations()[ServiceAccountAdminAnnotation]; ok {
+		_ = d.Set("admin", annotation == "admin")
 	}
-	d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 
 	return nil
 }
