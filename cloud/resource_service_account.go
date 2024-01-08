@@ -93,7 +93,7 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 	if admin {
 		sa.ObjectMeta.Annotations = map[string]string{
-			"annotations.cloud.streamnative.io/service-account-role": "admin",
+			ServiceAccountAdminAnnotation: "admin",
 		}
 	}
 	serviceAccount, err := clientSet.CloudV1alpha1().ServiceAccounts(namespace).Create(ctx, sa, metav1.CreateOptions{

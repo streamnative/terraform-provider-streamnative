@@ -35,6 +35,12 @@ resource "streamnative_service_account" "test-admin-a" {
   admin = false
 }
 
+data "streamnative_service_account" "test-admin-a" {
+  depends_on = [streamnative_service_account.test-admin-a]
+  organization = streamnative_service_account.test-admin-a.organization
+  name = streamnative_service_account.test-admin-a.name
+}
+
 output "service_account_id" {
-  value = streamnative_service_account.test-admin-a
+  value = data.streamnative_service_account.test-admin-a
 }

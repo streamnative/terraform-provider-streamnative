@@ -14,7 +14,7 @@ provider "streamnative" {
 
 resource "streamnative_pulsar_cluster" "test-cluster-1" {
   organization = "sndev"
-  name = "test-cluster-2"
+  name = "test-cluster-1"
   instance_name = "test-instance"
   location = "us-central1"
   bookie_replicas = 3
@@ -28,10 +28,10 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
     transaction_enabled = false
     protocols {
       mqtt = {
-        enabled = false
+        enabled = "false"
       }
       kafka = {
-        enabled = true
+        enabled = "true"
       }
     }
     audit_log {
@@ -43,6 +43,12 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   }
 }
 
+data "streamnative_pulsar_cluster" "test-cluster-1" {
+  depends_on = [streamnative_pulsar_cluster.test-cluster-1]
+  organization = streamnative_pulsar_cluster.test-cluster-1.organization
+  name = streamnative_pulsar_cluster.test-cluster-1.name
+}
+
 output "pulsar_cluster" {
-  value = streamnative_pulsar_cluster.test-cluster-1
+  value = data.streamnative_pulsar_cluster.test-cluster-1
 }
