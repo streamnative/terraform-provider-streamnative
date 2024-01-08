@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
@@ -67,11 +66,8 @@ func dataSourcePulsarInstance() *schema.Resource {
 func dataSourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
-	}
-	pulsarInstance, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	pulsarInstance, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedPulsarInstance(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_INSTANCE: %w", err))
 	}
@@ -88,6 +84,7 @@ func dataSourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("pool_namespace", pulsarInstance.Spec.PoolRef.Namespace)
 	}
 	_ = d.Set("availability_mode", pulsarInstance.Spec.AvailabilityMode)
-	d.SetId(fmt.Sprintf("%s/%s", pulsarInstance.Namespace, pulsarInstance.Name))
+	metadata := pulsarInstance.GetMetadata()
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 	return nil
 }

@@ -6,9 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	sncloudv1 "github.com/tuteng/sncloud-go-sdk"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
 )
@@ -221,66 +220,53 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	brokerReplicas := int32(d.Get("broker_replicas").(int))
 	computeUnit := d.Get("compute_unit").(float64)
 	storageUnit := d.Get("storage_unit").(float64)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_PULSAR_CLUSTER: %w", err))
-	}
-	pulsarInstance, err := clientSet.CloudV1alpha1().
-		PulsarInstances(namespace).
-		Get(context.Background(), instanceName, metav1.GetOptions{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PulsarInstance",
-				APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
-			},
-		})
+	apiClient := getFactoryFromMeta(meta)
+	pulsarInstance, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		ReadNamespacedPulsarInstance(ctx, instanceName, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_GET_PULSAR_INSTANCE_ON_CREATE_PULSAR_CLUSTER: %w", err))
 	}
-	if pulsarInstance.Spec.Plan == string(cloudv1alpha1.PulsarInstanceTypeFree) {
+	if pulsarInstance.Spec.Plan != nil && *pulsarInstance.Spec.Plan == "free" {
 		return diag.FromErr(fmt.Errorf(
-			"ERROR_CREATE_PULSAR_CLUSTER: "+
-				"creating a cluster under instance of type '%s' is no longer allowed",
-			cloudv1alpha1.PulsarInstanceTypeFree))
+			"ERROR_CREATE_PULSAR_CLUSTER: " +
+				"creating a cluster under instance of type free is no longer allowed"))
 	}
 	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
 	brokerCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
 	brokerMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
 	bookieMem := resource.NewQuantity(int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
 
-	pulsarCluster := &cloudv1alpha1.PulsarCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PulsarCluster",
-			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
+	apiVersion := "cloud.streamnative.io/v1alpha1"
+	kind := "PulsarCluster"
+	pulsarCluster := &sncloudv1.V1alpha1PulsarCluster{
+		ApiVersion: &apiVersion,
+		Kind:       &kind,
+		Metadata: &sncloudv1.V1ObjectMeta{
+			Name:      &name,
+			Namespace: &namespace,
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: cloudv1alpha1.PulsarClusterSpec{
+		Spec: &sncloudv1.V1alpha1PulsarClusterSpec{
 			InstanceName: instanceName,
 			Location:     location,
-			BookKeeper: &cloudv1alpha1.BookKeeper{
-				Replicas: &bookieReplicas,
-				Resources: &cloudv1alpha1.BookkeeperNodeResource{
-					DefaultNodeResource: cloudv1alpha1.DefaultNodeResource{
-						Cpu:    bookieCPU,
-						Memory: bookieMem,
-					},
+			Bookkeeper: &sncloudv1.V1alpha1BookKeeper{
+				Replicas: bookieReplicas,
+				Resources: &sncloudv1.V1alpha1BookkeeperNodeResource{
+					Cpu:    bookieCPU.String(),
+					Memory: bookieMem.String(),
 				},
 			},
-			Broker: cloudv1alpha1.Broker{
-				Replicas: &brokerReplicas,
-				Resources: &cloudv1alpha1.DefaultNodeResource{
-					Cpu:    brokerCPU,
-					Memory: brokerMem,
+			Broker: sncloudv1.V1alpha1Broker{
+				Replicas: brokerReplicas,
+				Resources: &sncloudv1.V1alpha1DefaultNodeResource{
+					Cpu:    brokerCPU.String(),
+					Memory: brokerMem.String(),
 				},
 			},
 		},
 	}
-	getPulsarClusterChanged(pulsarCluster, d)
-	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
-		FieldManager: "terraform-create",
-	})
+	createPulsarCluster(pulsarCluster, d)
+	pc, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		CreateNamespacedPulsarCluster(ctx, namespace).Body(*pulsarCluster).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: %w", err))
 	}
@@ -315,11 +301,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
-	}
-	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	pulsarCluster, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		ReadNamespacedPulsarCluster(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
@@ -356,11 +340,12 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	brokerImage := strings.Split(*pulsarCluster.Spec.Broker.Image, ":")
 	_ = d.Set("pulsar_version", brokerImage[1])
-	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
+	bookkeeperImage := strings.Split(*pulsarCluster.Spec.Bookkeeper.Image, ":")
 	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
-	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
+	metadata := pulsarCluster.GetMetadata()
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 	return nil
 }
 
@@ -383,44 +368,37 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
-	}
-	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
+	apiClient := getFactoryFromMeta(meta)
+	pulsarCluster, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.ReadNamespacedPulsarCluster(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	if d.HasChange("bookie_replicas") {
 		brokerReplicas := int32(d.Get("bookie_replicas").(int))
-		pulsarCluster.Spec.Broker.Replicas = &brokerReplicas
+		pulsarCluster.Spec.Broker.Replicas = brokerReplicas
 	}
 	if d.HasChange("broker_replicas") {
 		bookieReplicas := int32(d.Get("broker_replicas").(int))
-		pulsarCluster.Spec.Broker.Replicas = &bookieReplicas
+		pulsarCluster.Spec.Broker.Replicas = bookieReplicas
 	}
 	if d.HasChange("compute_unit") {
 		computeUnit := d.Get("compute_unit").(float64)
 		pulsarCluster.Spec.Broker.Resources.Cpu = resource.NewMilliQuantity(
-			int64(computeUnit*2*1000), resource.DecimalSI)
+			int64(computeUnit*2*1000), resource.DecimalSI).String()
 		pulsarCluster.Spec.Broker.Resources.Memory = resource.NewQuantity(
-			int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
+			int64(computeUnit*8*1024*1024*1024), resource.DecimalSI).String()
 	}
 	if d.HasChange("storage_unit") {
 		storageUnit := d.Get("storage_unit").(float64)
-		pulsarCluster.Spec.BookKeeper.Resources.Cpu = resource.NewMilliQuantity(
-			int64(storageUnit*2*1000), resource.DecimalSI)
-		pulsarCluster.Spec.BookKeeper.Resources.Memory = resource.NewQuantity(
-			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
+		pulsarCluster.Spec.Bookkeeper.Resources.Cpu = resource.NewMilliQuantity(
+			int64(storageUnit*2*1000), resource.DecimalSI).String()
+		pulsarCluster.Spec.Bookkeeper.Resources.Memory = resource.NewQuantity(
+			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI).String()
 	}
-	changed := getPulsarClusterChanged(pulsarCluster, d)
-	if d.HasChange("bookie_replicas") ||
-		d.HasChange("broker_replicas") ||
-		d.HasChange("compute_unit") ||
-		d.HasChange("storage_unit") || changed {
-		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
-			FieldManager: "terraform-update",
-		})
+	changed := updatePulsarCluster(pulsarCluster, d)
+	if len(changed) > 0 {
+		_, _, err = apiClient.CloudStreamnativeIoV1alpha1Api.
+			PatchNamespacedPulsarCluster(ctx, name, namespace).Body(changed).Execute()
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: %w", err))
 		}
@@ -445,23 +423,20 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_PULSAR_CLUSTER: %w", err))
-	}
+	apiClient := getFactoryFromMeta(meta)
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	_, err := apiClient.CloudStreamnativeIoV1alpha1Api.DeleteNamespacedPulsarCluster(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_DELETE_PULSAR_CLUSTER: %w", err))
 	}
 	return nil
 }
 
-func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *schema.ResourceData) bool {
+func createPulsarCluster(pulsarCluster *sncloudv1.V1alpha1PulsarCluster, d *schema.ResourceData) bool {
 	changed := false
 	if pulsarCluster.Spec.Config == nil {
-		pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+		pulsarCluster.Spec.Config = &sncloudv1.V1alpha1Config{}
 	}
 	config := d.Get("config").([]interface{})
 	if config != nil && len(config) > 0 {
@@ -486,7 +461,7 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 			mqttEnabled := true
 			if configItemMap["protocols"] != nil {
 				if pulsarCluster.Spec.Config.Protocols == nil {
-					pulsarCluster.Spec.Config.Protocols = &cloudv1alpha1.ProtocolsConfig{}
+					pulsarCluster.Spec.Config.Protocols = &sncloudv1.V1alpha1ProtocolsConfig{}
 				}
 				protocols := configItemMap["protocols"].([]interface{})
 				if protocols != nil && len(protocols) > 0 {
@@ -520,12 +495,12 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 				}
 			}
 			if kafkaEnabled {
-				pulsarCluster.Spec.Config.Protocols.Kafka = &cloudv1alpha1.KafkaConfig{}
+				pulsarCluster.Spec.Config.Protocols.Kafka = map[string]interface{}{}
 			} else {
 				pulsarCluster.Spec.Config.Protocols.Kafka = nil
 			}
 			if mqttEnabled {
-				pulsarCluster.Spec.Config.Protocols.Mqtt = &cloudv1alpha1.MqttConfig{}
+				pulsarCluster.Spec.Config.Protocols.Mqtt = map[string]interface{}{}
 			} else {
 				pulsarCluster.Spec.Config.Protocols.Mqtt = nil
 			}
@@ -552,7 +527,7 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 				}
 			}
 			if auditLogEnabled {
-				pulsarCluster.Spec.Config.AuditLog = &cloudv1alpha1.AuditLog{
+				pulsarCluster.Spec.Config.AuditLog = &sncloudv1.V1alpha1AuditLog{
 					Categories: categories,
 				}
 			} else {
@@ -570,8 +545,211 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 							result[k] = v
 						}
 					}
-					pulsarCluster.Spec.Config.Custom = result
+					pulsarCluster.Spec.Config.Custom = &result
 					changed = true
+				}
+			}
+		}
+	}
+	return changed
+}
+
+func updatePulsarCluster(pulsarCluster *sncloudv1.V1alpha1PulsarCluster, d *schema.ResourceData) []map[string]interface{} {
+	var changed []map[string]interface{}
+	if d.HasChange("bookie_replicas") {
+		bookieReplicas := int32(d.Get("bookie_replicas").(int))
+		changed = append(changed, map[string]interface{}{
+			"op":    "replace",
+			"path":  "/spec/bookkeeper/replicas",
+			"value": bookieReplicas,
+		})
+
+	}
+	if d.HasChange("broker_replicas") {
+		brokerReplicas := int32(d.Get("broker_replicas").(int))
+		changed = append(changed, map[string]interface{}{
+			"op":    "replace",
+			"path":  "/spec/broker/replicas",
+			"value": brokerReplicas,
+		})
+	}
+	if d.HasChange("compute_unit") {
+		computeUnit := d.Get("compute_unit").(float64)
+		if pulsarCluster.Spec.Broker.Resources != nil {
+			changed = append(changed, map[string]interface{}{
+				"op":    "replace",
+				"path":  "/spec/broker/resources/cpu",
+				"value": resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI).String(),
+			})
+			changed = append(changed, map[string]interface{}{
+				"op":    "replace",
+				"path":  "/spec/broker/resources/memory",
+				"value": resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI).String(),
+			})
+		} else {
+			changed = append(changed, map[string]interface{}{
+				"op":   "add",
+				"path": "/spec/broker/resources",
+				"value": map[string]interface{}{
+					"cpu":    resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI).String(),
+					"memory": resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI).String(),
+				},
+			})
+		}
+	}
+	if d.HasChange("storage_unit") {
+		storageUnit := d.Get("storage_unit").(float64)
+		if pulsarCluster.Spec.Bookkeeper.Resources != nil {
+			changed = append(changed, map[string]interface{}{
+				"op":    "replace",
+				"path":  "/spec/bookkeeper/resources/cpu",
+				"value": resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI).String(),
+			})
+			changed = append(changed, map[string]interface{}{
+				"op":    "replace",
+				"path":  "/spec/bookkeeper/resources/memory",
+				"value": resource.NewQuantity(int64(storageUnit*8*1024*1024*1024), resource.DecimalSI).String(),
+			})
+		} else {
+			changed = append(changed, map[string]interface{}{
+				"op":   "add",
+				"path": "/spec/bookkeeper/resources",
+				"value": map[string]interface{}{
+					"cpu":    resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI).String(),
+					"memory": resource.NewQuantity(int64(storageUnit*8*1024*1024*1024), resource.DecimalSI).String(),
+				},
+			})
+		}
+	}
+	config := d.Get("config").([]interface{})
+	if config != nil && len(config) > 0 {
+		for _, configItem := range config {
+			configItemMap := configItem.(map[string]interface{})
+			if configItemMap["websocket_enabled"] != nil {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/websocketEnabled",
+					"value": configItemMap["websocket_enabled"],
+				})
+			}
+			if configItemMap["function_enabled"] != nil {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/functionEnabled",
+					"value": configItemMap["function_enabled"],
+				})
+			}
+			if configItemMap["transaction_enabled"] != nil {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/transactionEnabled",
+					"value": configItemMap["transaction_enabled"],
+				})
+			}
+			kafkaEnabled := true
+			mqttEnabled := true
+			if configItemMap["protocols"] != nil {
+				if pulsarCluster.Spec.Config.Protocols == nil {
+					pulsarCluster.Spec.Config.Protocols = &sncloudv1.V1alpha1ProtocolsConfig{}
+				}
+				protocols := configItemMap["protocols"].([]interface{})
+				if protocols != nil && len(protocols) > 0 {
+					for _, protocolItem := range protocols {
+						protocolItemMap := protocolItem.(map[string]interface{})
+						kafka, ok := protocolItemMap["kafka"]
+						if ok {
+							if kafka != nil {
+								kafkaMap := kafka.(map[string]interface{})
+								if enabled, ok := kafkaMap["enabled"]; ok {
+									flag := enabled.(string)
+									if flag == "false" {
+										kafkaEnabled = false
+									}
+								}
+							}
+						}
+						mqtt, ok := protocolItemMap["mqtt"]
+						if ok {
+							if mqtt != nil {
+								mqttMap := mqtt.(map[string]interface{})
+								if enabled, ok := mqttMap["enabled"]; ok {
+									flag := enabled.(string)
+									if flag == "false" {
+										mqttEnabled = false
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if kafkaEnabled {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/protocols/kafka",
+					"value": map[string]interface{}{},
+				})
+			} else {
+				changed = append(changed, map[string]interface{}{
+					"op":   "remove",
+					"path": "/spec/config/protocols/kafka",
+				})
+			}
+			if mqttEnabled {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/protocols/mqtt",
+					"value": map[string]interface{}{},
+				})
+			} else {
+				changed = append(changed, map[string]interface{}{
+					"op":   "remove",
+					"path": "/spec/config/protocols/mqtt",
+				})
+			}
+			auditLogEnabled := false
+			var categories []string
+			if configItemMap["audit_log"] != nil {
+				auditLog := configItemMap["audit_log"].([]interface{})
+				if auditLog != nil && len(auditLog) > 0 {
+					for _, category := range auditLog {
+						c := category.(map[string]interface{})
+						if _, ok := c["categories"]; ok {
+							categoriesSchema := c["categories"].([]interface{})
+							if categoriesSchema != nil && len(categoriesSchema) > 0 {
+								auditLogEnabled = true
+								for _, categoryItem := range categoriesSchema {
+									categories = append(categories, categoryItem.(string))
+								}
+							}
+						}
+					}
+				}
+			}
+			if auditLogEnabled {
+				changed = append(changed, map[string]interface{}{
+					"op":    "add",
+					"path":  "/spec/config/auditLog/categories",
+					"value": categories,
+				})
+			} else {
+				changed = append(changed, map[string]interface{}{
+					"op":   "remove",
+					"path": "/spec/config/auditLog",
+				})
+			}
+			if configItemMap["custom"] != nil {
+				custom := configItemMap["custom"].(map[string]interface{})
+				if len(custom) > 0 {
+					for k := range custom {
+						if v, ok := custom[k].(string); ok {
+							changed = append(changed, map[string]interface{}{
+								"op":    "add",
+								"path":  fmt.Sprintf("/spec/config/custom/%s", k),
+								"value": v,
+							})
+						}
+					}
 				}
 			}
 		}

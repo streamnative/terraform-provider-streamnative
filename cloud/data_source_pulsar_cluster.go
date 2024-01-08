@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
@@ -189,13 +188,11 @@ func dataSourcePulsarCluster() *schema.Resource {
 func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	apiClient := getFactoryFromMeta(meta)
+	pulsarCluster, _, err := apiClient.CloudStreamnativeIoV1alpha1Api.
+		ReadNamespacedPulsarCluster(ctx, name, namespace).Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
-	}
-	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	_ = d.Set("ready", "False")
 	if pulsarCluster.Status.Conditions != nil {
@@ -230,10 +227,11 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	brokerImage := strings.Split(*pulsarCluster.Spec.Broker.Image, ":")
 	_ = d.Set("pulsar_version", brokerImage[1])
-	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
+	bookkeeperImage := strings.Split(*pulsarCluster.Spec.Bookkeeper.Image, ":")
 	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
-	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
+	metadata := pulsarCluster.GetMetadata()
+	d.SetId(fmt.Sprintf("%s/%s", metadata.GetNamespace(), metadata.GetName()))
 	return nil
 }

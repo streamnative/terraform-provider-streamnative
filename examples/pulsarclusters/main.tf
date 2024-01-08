@@ -25,20 +25,20 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   config {
     websocket_enabled = true
     function_enabled = false
-    transaction_enabled = false
+    transaction_enabled = true
     protocols {
       mqtt = {
         enabled = "false"
       }
       kafka = {
-        enabled = "true"
+        enabled = "false"
       }
     }
     audit_log {
-      categories = ["Management", "Describe", "Produce", "Consume"]
+      categories = ["Management", "Describe", "Produce"]
     }
     custom = {
-        allowAutoTopicCreation = "true"
+        allowAutoTopicCreation = "false"
     }
   }
 }

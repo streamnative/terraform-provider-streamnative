@@ -1,10 +1,10 @@
 package cloud
 
 import (
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	sncloudv1 "github.com/tuteng/sncloud-go-sdk"
 )
 
-func flattenPulsarClusterConfig(in *cloudv1alpha1.Config) []interface{} {
+func flattenPulsarClusterConfig(in *sncloudv1.V1alpha1Config) []interface{} {
 	att := make(map[string]interface{})
 	if in.WebsocketEnabled != nil {
 		att["websocket_enabled"] = in.WebsocketEnabled
@@ -23,13 +23,13 @@ func flattenPulsarClusterConfig(in *cloudv1alpha1.Config) []interface{} {
 		att["audit_log"] = flattenAuditLog(in.AuditLog)
 	}
 	if in.Custom != nil {
-		att["custom"] = in.Custom
+		att["custom"] = *in.Custom
 	}
 
 	return []interface{}{att}
 }
 
-func flattenProtocols(in *cloudv1alpha1.ProtocolsConfig) []interface{} {
+func flattenProtocols(in *sncloudv1.V1alpha1ProtocolsConfig) []interface{} {
 	att := make(map[string]interface{})
 	if in.Kafka != nil {
 		att["kafka"] = flattenKafkaConfig("true")
@@ -52,7 +52,7 @@ func flattenMqttConfig(flag string) map[string]interface{} {
 	return map[string]interface{}{"enabled": flag}
 }
 
-func flattenAuditLog(in *cloudv1alpha1.AuditLog) []interface{} {
+func flattenAuditLog(in *sncloudv1.V1alpha1AuditLog) []interface{} {
 	att := make(map[string]interface{})
 	if in.Categories != nil {
 		att["categories"] = flattenCategories(in.Categories)
