@@ -1,8 +1,28 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package cloud
 
 import (
 	"context"
 	"encoding/base64"
+	"os"
+	"path/filepath"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
@@ -15,8 +35,6 @@ import (
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -118,9 +136,9 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultAudience == "" {
 		defaultAudience = GlobalDefaultAudience
 	}
-	defaultApiServer := os.Getenv("GLOBAL_DEFAULT_API_SERVER")
-	if defaultApiServer == "" {
-		defaultApiServer = GlobalDefaultAPIServer
+	defaultAPIServer := os.Getenv("GLOBAL_DEFAULT_API_SERVER")
+	if defaultAPIServer == "" {
+		defaultAPIServer = GlobalDefaultAPIServer
 	}
 	credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
 	keyFile, err := credsProvider.GetClientCredentials()
@@ -150,7 +168,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	options.ConfigPath = filepath.Join(configDir, "config")
 	options.BackendOverride = "file"
 	snConfig := &config.SnConfig{
-		Server:                   defaultApiServer,
+		Server:                   defaultAPIServer,
 		CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(GlobalDefaultCertificateAuthorityData)),
 		Auth: config.Auth{
 			IssuerEndpoint: defaultIssuer,
@@ -178,6 +196,9 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
 			return issuer, nil
 		})
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 		err = options.ServerOptions.Complete(options)
 		if err != nil {
 			return nil, diag.FromErr(err)

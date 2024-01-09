@@ -9,6 +9,7 @@ require (
 	github.com/streamnative/cloud-cli v0.15.1-rc.3
 	k8s.io/apimachinery v0.23.17
 	k8s.io/cli-runtime v0.23.17
+	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kubectl v0.23.17
 )
 
@@ -153,7 +154,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.23.17 // indirect
 	k8s.io/apiserver v0.23.17 // indirect
-	k8s.io/client-go v12.0.0+incompatible // indirect
 	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
