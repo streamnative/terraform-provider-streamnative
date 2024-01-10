@@ -57,6 +57,6 @@ lint:
 
 tools:
 	go install github.com/bflad/tfproviderlint/cmd/tfproviderlint@v0.29.0
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.0
 
 .PHONY: build
