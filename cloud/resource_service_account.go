@@ -80,7 +80,6 @@ func resourceServiceAccount() *schema.Resource {
 			},
 			"private_key_data": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Description: descriptions["private_key_data"],
 				Computed:    true,
 			},

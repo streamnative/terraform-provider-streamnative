@@ -84,43 +84,36 @@ func dataSourcePulsarCluster() *schema.Resource {
 			},
 			"config": {
 				Type:     schema.TypeList,
-				Optional: true,
 				Computed: true,
-				MinItems: 0,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"websocket_enabled": {
 							Type:     schema.TypeBool,
-							Optional: true,
 							Computed: true,
 						},
 						"function_enabled": {
 							Type:        schema.TypeBool,
-							Optional:    true,
 							Computed:    true,
 							Description: descriptions["function_enabled"],
 						},
 						"transaction_enabled": {
 							Type:        schema.TypeBool,
-							Optional:    true,
 							Computed:    true,
 							Description: descriptions["transaction_enabled"],
 						},
 						"protocols": {
 							Type:        schema.TypeList,
-							Optional:    true,
+							Computed:    true,
 							Description: descriptions["protocols"],
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"kafka": {
 										Type:        schema.TypeMap,
-										Optional:    true,
 										Computed:    true,
 										Description: descriptions["kafka"],
 									},
 									"mqtt": {
 										Type:        schema.TypeMap,
-										Optional:    true,
 										Computed:    true,
 										Description: descriptions["mqtt"],
 									},
@@ -129,16 +122,13 @@ func dataSourcePulsarCluster() *schema.Resource {
 						},
 						"audit_log": {
 							Type:        schema.TypeList,
-							Optional:    true,
 							Computed:    true,
 							Description: descriptions["audit_log"],
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"categories": {
 										Type:        schema.TypeList,
-										Optional:    true,
 										Computed:    true,
-										MinItems:    1,
 										Description: descriptions["categories"],
 										Elem: &schema.Schema{
 											Type:         schema.TypeString,
@@ -150,7 +140,6 @@ func dataSourcePulsarCluster() *schema.Resource {
 						},
 						"custom": {
 							Type:        schema.TypeMap,
-							Optional:    true,
 							Computed:    true,
 							Description: descriptions["custom"],
 						},

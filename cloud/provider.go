@@ -46,16 +46,17 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"key_file_path":       "The path of the private key file",
-		"organization":        "The organization name",
-		"name":                "The service account name",
-		"admin":               "Whether the service account is admin",
-		"private_key_data":    "The private key data",
-		"availability-mode":   "The availability mode, supporting 'zonal' and 'regional'",
-		"pool_name":           "The infrastructure pool name to use.",
-		"pool_namespace":      "The infrastructure pool namespace to use",
-		"instance_name":       "The pulsar instance name",
-		"location":            "The location of the pulsar cluster",
+		"key_file_path":     "The path of the private key file",
+		"organization":      "The organization name",
+		"name":              "The service account name",
+		"admin":             "Whether the service account is admin",
+		"private_key_data":  "The private key data",
+		"availability-mode": "The availability mode, supporting 'zonal' and 'regional'",
+		"pool_name":         "The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'",
+		"pool_namespace":    "The infrastructure pool namespace to use, supported 'streamnative'",
+		"instance_name":     "The pulsar instance name",
+		"location": "The location of the pulsar cluster, " +
+			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
 		"bookie_replicas":     "The number of bookie replicas",
 		"broker_replicas":     "The number of broker replicas",
 		"compute_unit":        "compute unit, 1 compute unit is 2 cpu and 8gb memory",

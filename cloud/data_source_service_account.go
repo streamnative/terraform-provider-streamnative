@@ -55,13 +55,11 @@ func dataSourceServiceAccount() *schema.Resource {
 			},
 			"admin": {
 				Type:        schema.TypeBool,
-				Optional:    true,
 				Description: descriptions["admin"],
 				Computed:    true,
 			},
 			"private_key_data": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Description: descriptions["private_key_data"],
 				Computed:    true,
 			},
