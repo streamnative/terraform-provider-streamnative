@@ -18,7 +18,7 @@ description: |-
 ### Required
 
 - `instance_name` (String) The pulsar instance name
-- `location` (String) The location of the pulsar cluster
+- `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `name` (String) The service account name
 - `organization` (String) The organization name
 

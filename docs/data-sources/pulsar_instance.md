@@ -24,8 +24,8 @@ description: |-
 
 - `availability_mode` (String) The availability mode, supporting 'zonal' and 'regional'
 - `id` (String) The ID of this resource.
-- `pool_name` (String) The infrastructure pool name to use.
-- `pool_namespace` (String) The infrastructure pool namespace to use
+- `pool_name` (String) The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'
+- `pool_namespace` (String) The infrastructure pool namespace to use, default is 'streamnative'
 - `ready` (String) Pulsar instance is ready, it will be set to 'True' after the instance is ready
 
 

@@ -31,7 +31,7 @@ description: |-
 - `id` (String) The ID of this resource.
 - `instance_name` (String) The pulsar instance name
 - `kafka_service_url` (String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url
-- `location` (String) The location of the pulsar cluster
+- `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `mqtt_service_url` (String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url
 - `pulsar_tls_service_url` (String) The service url of the pulsar cluster, use it to produce and consume message
 - `pulsar_version` (String) The version of the pulsar cluster

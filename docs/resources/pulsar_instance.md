@@ -20,8 +20,8 @@ description: |-
 - `availability_mode` (String) The availability mode, supporting 'zonal' and 'regional'
 - `name` (String) The service account name
 - `organization` (String) The organization name
-- `pool_name` (String) The infrastructure pool name to use.
-- `pool_namespace` (String) The infrastructure pool namespace to use
+- `pool_name` (String) The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'
+- `pool_namespace` (String) The infrastructure pool namespace to use, default is 'streamnative'
 
 ### Read-Only
 
