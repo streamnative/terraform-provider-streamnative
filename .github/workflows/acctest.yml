@@ -58,7 +58,3 @@ jobs:
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
           export KEY_FILE_PATH=$HOME/service_account.json
           make testacc
-
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
