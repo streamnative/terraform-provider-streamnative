@@ -92,7 +92,6 @@ func resourcePulsarInstance() *schema.Resource {
 			"pool_namespace": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Default:      "streamnative",
 				Description:  descriptions["pool_namespace"],
 				ValidateFunc: validateNotBlank,
 			},

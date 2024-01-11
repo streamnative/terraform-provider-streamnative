@@ -85,7 +85,6 @@ func dataSourcePulsarCluster() *schema.Resource {
 			"config": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MinItems: 0,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"websocket_enabled": {
@@ -130,7 +129,6 @@ func dataSourcePulsarCluster() *schema.Resource {
 									"categories": {
 										Type:        schema.TypeList,
 										Computed:    true,
-										MinItems:    1,
 										Description: descriptions["categories"],
 										Elem: &schema.Schema{
 											Type:         schema.TypeString,

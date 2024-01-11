@@ -53,7 +53,7 @@ func init() {
 		"private_key_data":  "The private key data",
 		"availability-mode": "The availability mode, supporting 'zonal' and 'regional'",
 		"pool_name":         "The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'",
-		"pool_namespace":    "The infrastructure pool namespace to use, default is 'streamnative'",
+		"pool_namespace":    "The infrastructure pool namespace to use, supported 'streamnative'",
 		"instance_name":     "The pulsar instance name",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
