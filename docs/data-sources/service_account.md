@@ -21,11 +21,11 @@ description: |-
 
 ### Optional
 
-- `admin` (Boolean) Whether the service account is admin
 - `name` (String) The service account name
 
 ### Read-Only
 
+- `admin` (Boolean) Whether the service account is admin
 - `id` (String) The ID of this resource.
 - `private_key_data` (String) The private key data
 

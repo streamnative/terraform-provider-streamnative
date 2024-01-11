@@ -55,7 +55,6 @@ func dataSourceServiceAccount() *schema.Resource {
 			},
 			"admin": {
 				Type:        schema.TypeBool,
-				Optional:    true,
 				Description: descriptions["admin"],
 				Computed:    true,
 			},

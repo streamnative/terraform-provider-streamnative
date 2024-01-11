@@ -20,16 +20,13 @@ description: |-
 - `name` (String) The service account name
 - `organization` (String) The organization name
 
-### Optional
-
-- `config` (Block List) (see [below for nested schema](#nestedblock--config))
-
 ### Read-Only
 
 - `bookie_replicas` (Number) The number of bookie replicas
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
+- `config` (List of Object) (see [below for nested schema](#nestedatt--config))
 - `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster
 - `id` (String) The ID of this resource.
 - `instance_name` (String) The pulsar instance name
@@ -42,32 +39,32 @@ description: |-
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url
 
-<a id="nestedblock--config"></a>
+<a id="nestedatt--config"></a>
 ### Nested Schema for `config`
 
-Optional:
+Read-Only:
 
-- `audit_log` (Block List) (see [below for nested schema](#nestedblock--config--audit_log))
-- `custom` (Map of String) Controls the custom config of pulsar cluster
-- `function_enabled` (Boolean) Whether the function is enabled
-- `protocols` (Block List) (see [below for nested schema](#nestedblock--config--protocols))
-- `transaction_enabled` (Boolean) Whether the transaction is enabled
+- `audit_log` (List of Object) (see [below for nested schema](#nestedobjatt--config--audit_log))
+- `custom` (Map of String)
+- `function_enabled` (Boolean)
+- `protocols` (List of Object) (see [below for nested schema](#nestedobjatt--config--protocols))
+- `transaction_enabled` (Boolean)
 - `websocket_enabled` (Boolean)
 
-<a id="nestedblock--config--audit_log"></a>
+<a id="nestedobjatt--config--audit_log"></a>
 ### Nested Schema for `config.audit_log`
 
-Optional:
+Read-Only:
 
-- `categories` (List of String) Controls the audit log categories config of pulsar cluster, supported categories: "Management", "Describe", "Produce", "Consume"
+- `categories` (List of String)
 
 
-<a id="nestedblock--config--protocols"></a>
+<a id="nestedobjatt--config--protocols"></a>
 ### Nested Schema for `config.protocols`
 
-Optional:
+Read-Only:
 
-- `kafka` (Map of String) Controls the kafka protocol config of pulsar cluster
-- `mqtt` (Map of String) Controls the mqtt protocol config of pulsar cluster
+- `kafka` (Map of String)
+- `mqtt` (Map of String)
 
 
