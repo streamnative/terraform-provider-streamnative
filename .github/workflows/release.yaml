@@ -23,10 +23,25 @@ permissions:
   contents: write
 
 jobs:
+  setup-go-module:
+    env:
+      ACCESS_TOKEN: ${{ secrets.SNBOT_GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+        id: go
+
+      - name: Setup Git token
+        run: |
+          git config --global user.email "snbot@streamnative.io"
+          git config --global user.name "StreamNative Bot"
+          git config --global url."https://streamnativebot:${ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
   terraform-provider-release:
     uses: hashicorp/ghaction-terraform-provider-release/.github/workflows/community.yml@v2
     secrets:
-      hc-releases-github-token: '${{ secrets.SNBOT_GITHUB_TOKEN }}'
       gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
       gpg-private-key-passphrase: ${{ secrets.GPG_PRIVATE_KEY_PASSPHRASE }}
     with:
