@@ -23,10 +23,10 @@ description: |-
 
 - `admin` (Boolean) Whether the service account is admin
 - `name` (String) The service account name
-- `private_key_data` (String) The private key data
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `private_key_data` (String) The private key data
 
 
