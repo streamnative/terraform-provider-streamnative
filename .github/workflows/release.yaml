@@ -26,6 +26,7 @@ jobs:
   terraform-provider-release:
     uses: hashicorp/ghaction-terraform-provider-release/.github/workflows/community.yml@v2
     secrets:
+      hc-releases-github-token: '${{ secrets.SNBOT_GITHUB_TOKEN }}'
       gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
       gpg-private-key-passphrase: ${{ secrets.GPG_PRIVATE_KEY_PASSPHRASE }}
     with:
