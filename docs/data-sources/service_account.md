@@ -17,11 +17,8 @@ description: |-
 
 ### Required
 
-- `organization` (String) The organization name
-
-### Optional
-
 - `name` (String) The service account name
+- `organization` (String) The organization name
 
 ### Read-Only
 

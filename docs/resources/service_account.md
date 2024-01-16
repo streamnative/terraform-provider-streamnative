@@ -17,12 +17,12 @@ description: |-
 
 ### Required
 
+- `name` (String) The service account name
 - `organization` (String) The organization name
 
 ### Optional
 
 - `admin` (Boolean) Whether the service account is admin
-- `name` (String) The service account name
 
 ### Read-Only
 
