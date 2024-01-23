@@ -104,16 +104,18 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":  resourceServiceAccount(),
-			"streamnative_pulsar_instance":  resourcePulsarInstance(),
-			"streamnative_pulsar_cluster":   resourcePulsarCluster(),
-			"streamnative_cloud_connection": resourceCloudConnection(),
+			"streamnative_service_account":   resourceServiceAccount(),
+			"streamnative_pulsar_instance":   resourcePulsarInstance(),
+			"streamnative_pulsar_cluster":    resourcePulsarCluster(),
+			"streamnative_cloud_connection":  resourceCloudConnection(),
+			"streamnative_cloud_environment": resourceCloudEnvironment(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":  dataSourceServiceAccount(),
-			"streamnative_pulsar_instance":  dataSourcePulsarInstance(),
-			"streamnative_pulsar_cluster":   dataSourcePulsarCluster(),
-			"streamnative_cloud_connection": dataSourceCloudConnection(),
+			"streamnative_service_account":   dataSourceServiceAccount(),
+			"streamnative_pulsar_instance":   dataSourcePulsarInstance(),
+			"streamnative_pulsar_cluster":    dataSourcePulsarCluster(),
+			"streamnative_cloud_connection":  dataSourceCloudConnection(),
+			"streamnative_cloud_environment": dataSourceCloudEnvironment(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
