@@ -127,7 +127,7 @@ resource "streamnative_cloud_environment" "test-cloud-environment" {
 }
 data "streamnative_cloud_environment" "test-cloud-environment" {
   depends_on = [streamnative_cloud_environment.test-cloud-environment]
-  name = streamnative_cloud_environment.test-cloud-environmentinstance.name
+  name = streamnative_cloud_environment.test-cloud-environment.name
   organization = streamnative_cloud_environment.test-cloud-environment.organization
 }
 `, organization, name, region, cloudConnectionName)
