@@ -52,28 +52,18 @@ func dataSourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["name"],
 				ValidateFunc: validateNotBlank,
 			},
-			"availability_mode": {
+			"region": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: descriptions["availability-mode"],
+				Description: descriptions["region"],
 			},
-			"pool_name": {
+			"cloud_connection_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: descriptions["pool_name"],
-			},
-			"pool_namespace": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: descriptions["pool_namespace"],
-			},
-			"ready": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: descriptions["instance_ready"],
+				Description: descriptions["cloud_connection_name"],
 			},
 		},
 	}
@@ -84,25 +74,18 @@ func dataSourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData,
 	name := d.Get("name").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
-	serviceAccount, err := clientSet.CloudV1alpha1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_READ_SERVICE_ACCOUNT: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
-	_ = d.Set("name", serviceAccount.Name)
-	_ = d.Set("organization", serviceAccount.Namespace)
-	var privateKeyData = ""
-	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
-		privateKeyData = serviceAccount.Status.PrivateKeyData
-	}
-	_ = d.Set("private_key_data", privateKeyData)
-	if serviceAccount.Annotations != nil && serviceAccount.Annotations[ServiceAccountAdminAnnotation] == "admin" {
-		_ = d.Set("admin", true)
-	} else {
-		_ = d.Set("admin", false)
-	}
-	d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
+	_ = d.Set("name", cloudEnvironment.Name)
+	_ = d.Set("organization", cloudEnvironment.Namespace)
+	_ = d.Set("region", cloudEnvironment.Spec.Region)
+	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)
+
+	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 
 	return nil
 }
