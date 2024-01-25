@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/streamnative/cloud-api-server v1.17.1-0.20231211182952-1704c260b408
+	github.com/streamnative/cloud-api-server v1.23.0
 	github.com/streamnative/cloud-cli v0.15.1-rc.3
 	k8s.io/apimachinery v0.23.17
 	k8s.io/cli-runtime v0.23.17
