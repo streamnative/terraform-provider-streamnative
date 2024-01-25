@@ -57,4 +57,5 @@ jobs:
         run: |
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
           export KEY_FILE_PATH=$HOME/service_account.json
+          cat $HOME/service_account.json
           make testacc
