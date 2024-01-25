@@ -114,21 +114,13 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	name := d.Get("name").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
-	network := d.Get("network").(map[string]string)
+	network := d.Get("network").([]interface{})
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
 	}
 
-	if network["id"] == "" && network["cidr"] == "" {
-		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
-	}
-
-	networkRef := &cloudv1alpha1.Network{
-		ID:   network["id"],
-		CIDR: network["cidr"],
-	}
-	CloudEnvironment := &cloudv1alpha1.CloudEnvironment{
+	cloudEnvironment := &cloudv1alpha1.CloudEnvironment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CloudEnvironment",
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
@@ -140,10 +132,29 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
 			CloudConnectionName: cloudConnectionName,
 			Region:              region,
-			Network:             networkRef,
+			Network:             &cloudv1alpha1.Network{},
 		},
 	}
-	pi, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, CloudEnvironment, metav1.CreateOptions{
+
+	if len(network) > 0 {
+		for _, networkItem := range network {
+			networkItemMap := networkItem.(map[string]interface{})
+			if networkItemMap["id"] != nil {
+				networkId := networkItemMap["id"].(string)
+				cloudEnvironment.Spec.Network.ID = networkId
+			}
+			if networkItemMap["cidr"] != nil {
+				networkCidr := networkItemMap["cidr"].(string)
+				cloudEnvironment.Spec.Network.CIDR = networkCidr
+			}
+		}
+	}
+
+	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
+
+	pi, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, cloudEnvironment, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
 	if err != nil {
