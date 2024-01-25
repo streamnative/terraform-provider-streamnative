@@ -63,7 +63,7 @@ func dataSourceCloudEnvironment() *schema.Resource {
 				Description: descriptions["cloud_connection_name"],
 			},
 			"network": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Description: descriptions["network"],
 				Elem: &schema.Resource{
@@ -99,7 +99,13 @@ func dataSourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData,
 	_ = d.Set("organization", cloudEnvironment.Namespace)
 	_ = d.Set("region", cloudEnvironment.Spec.Region)
 	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)
-	_ = d.Set("network", cloudEnvironment.Spec.Network)
+
+	if cloudEnvironment.Spec.Network != nil {
+		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT_CONFIG: %w", err))
+		}
+	}
 
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 

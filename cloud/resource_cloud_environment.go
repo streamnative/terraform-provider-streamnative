@@ -89,7 +89,7 @@ func resourceCloudEnvironment() *schema.Resource {
 				ValidateFunc: validateNotBlank,
 			},
 			"network": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Required:    true,
 				Description: descriptions["network"],
 				Elem: &schema.Resource{
@@ -212,7 +212,7 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 	if cloudEnvironment.Spec.Network != nil {
 		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT_CONFIG: %w", err))
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
