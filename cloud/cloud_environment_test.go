@@ -124,6 +124,9 @@ resource "streamnative_cloud_environment" "test-cloud-environment" {
 	name = "%s"
 	region = "%s"
 	cloud_connection_name = "%s"
+	network {
+		cidr = "10.0.16.0/20"
+	}
 }
 data "streamnative_cloud_environment" "test-cloud-environment" {
   depends_on = [streamnative_cloud_environment.test-cloud-environment]

@@ -53,17 +53,31 @@ func dataSourceCloudEnvironment() *schema.Resource {
 				ValidateFunc: validateNotBlank,
 			},
 			"region": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Type:        schema.TypeString,
+				Computed:    true,
 				Description: descriptions["region"],
 			},
 			"cloud_connection_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["cloud_connection_name"],
+			},
+			"network": {
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Description: descriptions["network"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cidr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -80,10 +94,12 @@ func dataSourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
+
 	_ = d.Set("name", cloudEnvironment.Name)
 	_ = d.Set("organization", cloudEnvironment.Namespace)
 	_ = d.Set("region", cloudEnvironment.Spec.Region)
 	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)
+	_ = d.Set("network", cloudEnvironment.Spec.Network)
 
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 

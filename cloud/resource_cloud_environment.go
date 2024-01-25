@@ -43,7 +43,9 @@ func resourceCloudEnvironment() *schema.Resource {
 			if diff.HasChange("name") ||
 				diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
-				diff.HasChanges("region") {
+				diff.HasChanges("region") ||
+				diff.HasChanges("network_id") ||
+				diff.HasChanges("network_cidr") {
 				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
 					"The cloud environment does not support updates, please recreate it")
 			}
@@ -86,6 +88,23 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["cloud_connection_name"],
 				ValidateFunc: validateNotBlank,
 			},
+			"network": {
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: descriptions["network"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cidr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -95,12 +114,20 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	name := d.Get("name").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
+	network := d.Get("network").(map[string]string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
 	}
+
+	if network["id"] == "" && network["cidr"] == "" {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
 	//TODO grab values from tf definition
-	networkRef := &cloudv1alpha1.Network{}
+	networkRef := &cloudv1alpha1.Network{
+		ID:   network["id"],
+		CIDR: network["cidr"],
+	}
 	CloudEnvironment := &cloudv1alpha1.CloudEnvironment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CloudEnvironment",
@@ -159,19 +186,25 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
 	}
-	CloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 	_ = d.Set("ready", "False")
-	if CloudEnvironment.Status.Conditions != nil {
-		for _, condition := range CloudEnvironment.Status.Conditions {
+	if cloudEnvironment.Status.Conditions != nil {
+		for _, condition := range cloudEnvironment.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				_ = d.Set("ready", "True")
 			}
 		}
 	}
-	d.SetId(fmt.Sprintf("%s/%s", CloudEnvironment.Namespace, CloudEnvironment.Name))
+	if cloudEnvironment.Spec.Network != nil {
+		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
+		}
+	}
+	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 	return nil
 }
 
