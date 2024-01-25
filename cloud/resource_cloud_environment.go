@@ -123,7 +123,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if network["id"] == "" && network["cidr"] == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
 	}
-	//TODO grab values from tf definition
+
 	networkRef := &cloudv1alpha1.Network{
 		ID:   network["id"],
 		CIDR: network["cidr"],
