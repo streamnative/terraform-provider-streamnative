@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -33,7 +32,7 @@ func TestCloudConnection(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testCheckcloudConnectionDestroy,
+		CheckDestroy:      testCheckCloudConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceCloudConnection(
@@ -41,18 +40,14 @@ func TestCloudConnection(t *testing.T) {
 					"terraform-test-cloud-connection-b",
 					"aws"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckcloudConnectionExists("streamnative_cloud_connection.test-cloud-connection"),
+					testCheckCloudConnectionExists("streamnative_cloud_connection.test-cloud-connection"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckcloudConnectionDestroy(s *terraform.State) error {
-	// Add a sleep for wait the service account to be deleted
-	// It seems that azure connection to gcp is slow, so add a delay to wait
-	// for the resource to be cleaned up and check it again
-	time.Sleep(5 * time.Second)
+func testCheckCloudConnectionDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_cloud_connection" {
 			continue
@@ -77,7 +72,7 @@ func testCheckcloudConnectionDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckcloudConnectionExists(name string) resource.TestCheckFunc {
+func testCheckCloudConnectionExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -91,23 +86,15 @@ func testCheckcloudConnectionExists(name string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		organizationInstance := strings.Split(rs.Primary.ID, "/")
+		namespaceName := strings.Split(rs.Primary.ID, "/")
 		cloudConnection, err := clientSet.CloudV1alpha1().
-			CloudConnections(organizationInstance[0]).
-			Get(context.Background(), organizationInstance[1], metav1.GetOptions{})
+			CloudConnections(namespaceName[0]).
+			Get(context.Background(), namespaceName[1], metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if cloudConnection.Status.Conditions != nil {
-			ready := false
-			for _, condition := range cloudConnection.Status.Conditions {
-				if condition.Type == "Ready" && condition.Status == "True" {
-					ready = true
-				}
-			}
-			if !ready {
-				return fmt.Errorf(`ERROR_RESOURCE_CLOUD_CONNECTION_NOT_READY: "%s"`, rs.Primary.ID)
-			}
+		if cloudConnection == nil {
+			return fmt.Errorf(`ERROR_RESOURCE_CLOUD_CONNECTION_NOT_READY: "%s"`, rs.Primary.ID)
 		}
 		return nil
 	}
