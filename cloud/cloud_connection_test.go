@@ -39,7 +39,7 @@ func TestCloudConnection(t *testing.T) {
 				Config: testResourceDataSourceCloudConnection(
 					"sndev",
 					"terraform-test-cloud-connection-b",
-					"us-west1"),
+					"aws"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckcloudConnectionExists("streamnative_cloud_connection.test-cloud-connection"),
 				),
