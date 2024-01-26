@@ -36,11 +36,10 @@ func TestCloudConnection(t *testing.T) {
 		CheckDestroy:      testCheckcloudConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceDataSourcecloudConnection(
+				Config: testResourceDataSourceCloudConnection(
 					"sndev",
 					"terraform-test-cloud-connection-b",
-					"us-west1",
-					"sn-cloud-connection"),
+					"us-west1"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckcloudConnectionExists("streamnative_cloud_connection.test-cloud-connection"),
 				),
@@ -114,18 +113,17 @@ func testCheckcloudConnectionExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourcecloudConnection(
-	organization string, name string, region string, cloudConnectionName string) string {
+func testResourceDataSourceCloudConnection(
+	organization string, name string, cloudType string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
 resource "streamnative_cloud_connection" "test-cloud-connection" {
 	organization = "%s"
 	name = "%s"
-	region = "%s"
-	cloud_connection_name = "%s"
-	network {
-		cidr = "10.0.16.0/20"
+	type = "%s"
+	aws {
+		accountId = "test-account"
 	}
 }
 data "streamnative_cloud_connection" "test-cloud-connection" {
@@ -133,5 +131,5 @@ data "streamnative_cloud_connection" "test-cloud-connection" {
   name = streamnative_cloud_connection.test-cloud-connection.name
   organization = streamnative_cloud_connection.test-cloud-connection.organization
 }
-`, organization, name, region, cloudConnectionName)
+`, organization, name, cloudType)
 }
