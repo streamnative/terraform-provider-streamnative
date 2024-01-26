@@ -102,6 +102,15 @@ func dataSourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, 
 	_ = d.Set("organization", cloudConnection.Namespace)
 	_ = d.Set("type", cloudConnection.Spec.ConnectionType)
 
+	_ = d.Set("ready", "False")
+	if cloudConnection.Status.Conditions != nil {
+		for _, condition := range cloudConnection.Status.Conditions {
+			if condition.Type == "Ready" {
+				_ = d.Set("ready", condition.Status)
+			}
+		}
+	}
+
 	if cloudConnection.Spec.AWS != nil {
 		err = d.Set("aws", flattenCloudConnectionAws(cloudConnection.Spec.AWS))
 		if err != nil {
