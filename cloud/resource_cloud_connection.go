@@ -84,7 +84,7 @@ func resourceCloudConnection() *schema.Resource {
 			},
 			"aws": {
 				Type:        schema.TypeList,
-				Required:    true,
+				Optional:    true,
 				Description: descriptions["aws"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -97,7 +97,7 @@ func resourceCloudConnection() *schema.Resource {
 			},
 			"gcp": {
 				Type:        schema.TypeList,
-				Required:    true,
+				Optional:    true,
 				Description: descriptions["gcp"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
