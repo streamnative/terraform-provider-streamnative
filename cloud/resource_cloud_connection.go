@@ -115,7 +115,7 @@ func resourceCloudConnection() *schema.Resource {
 func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	connectionType := d.Get("type").(cloudv1alpha1.ConnectionType)
+	connectionType := d.Get("type").(string)
 	aws := d.Get("aws").([]interface{})
 	gcp := d.Get("gcp").([]interface{})
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -134,7 +134,7 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 		},
 
 		Spec: cloudv1alpha1.CloudConnectionSpec{
-			ConnectionType: connectionType,
+			ConnectionType: cloudv1alpha1.ConnectionType(connectionType),
 			AWS:            &cloudv1alpha1.AWSCloudConnection{},
 			GCloud:         &cloudv1alpha1.GCloudConnection{},
 		},
@@ -164,15 +164,15 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.accountId or gcp.project must be set"))
 	}
 
-	pi, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Create(ctx, cloudConnection, metav1.CreateOptions{
+	cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Create(ctx, cloudConnection, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: %w", err))
 	}
-	if pi.Status.Conditions != nil {
+	if cc.Status.Conditions != nil {
 		ready := false
-		for _, condition := range pi.Status.Conditions {
+		for _, condition := range cc.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				ready = true
 			}
@@ -187,10 +187,6 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 		dia := resourceCloudConnectionRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_CLOUD_CONNECTION: %s", dia[0].Summary))
-		}
-		ready := d.Get("ready")
-		if ready == "False" {
-			return retry.RetryableError(fmt.Errorf("CONTINUE_RETRY_READ_CLOUD_CONNECTION"))
 		}
 		return nil
 	})
@@ -211,14 +207,14 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION: %w", err))
 	}
-	_ = d.Set("ready", "False")
-	if cloudConnection.Status.Conditions != nil {
-		for _, condition := range cloudConnection.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == "True" {
-				_ = d.Set("ready", "True")
-			}
-		}
-	}
+	// _ = d.Set("ready", "False")
+	// if cloudConnection.Status.Conditions != nil {
+	// 	for _, condition := range cloudConnection.Status.Conditions {
+	// 		if condition.Type == "Ready" && condition.Status == "True" {
+	// 			_ = d.Set("ready", "True")
+	// 		}
+	// 	}
+	// }
 
 	if cloudConnection.Spec.AWS != nil {
 		err = d.Set("aws", flattenCloudConnectionAws(cloudConnection.Spec.AWS))
