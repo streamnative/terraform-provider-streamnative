@@ -69,7 +69,7 @@ func resourcePulsarCluster() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["name"],
+				Description:  descriptions["cluster_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"instance_name": {
