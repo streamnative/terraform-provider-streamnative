@@ -123,7 +123,7 @@ resource "streamnative_cloud_connection" "test-cloud-connection" {
 	name = "%s"
 	type = "%s"
 	aws {
-		accountId = "test-account"
+		account_id = "test-account"
 	}
 }
 data "streamnative_cloud_connection" "test-cloud-connection" {
