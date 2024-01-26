@@ -86,6 +86,9 @@ func init() {
 			"use this websocket service url",
 		"pulsar_version":     "The version of the pulsar cluster",
 		"bookkeeper_version": "The version of the bookkeeper cluster",
+		"type":               "Type of cloud connection, one of aws or gcp",
+		"aws":                "AWS configuration for the connection",
+		"gcp":                "GCP configuration for the connection",
 	}
 }
 
