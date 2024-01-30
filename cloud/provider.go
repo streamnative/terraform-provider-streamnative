@@ -89,6 +89,7 @@ func init() {
 		"type":               "Type of cloud connection, one of aws or gcp",
 		"aws":                "AWS configuration for the connection",
 		"gcp":                "GCP configuration for the connection",
+		"connection_name":    "Name of the cloud connection",
 	}
 }
 
