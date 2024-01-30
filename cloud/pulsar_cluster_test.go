@@ -133,7 +133,8 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 		  }
 		}
 		custom = {
-			allowAutoTopicCreation = "true"
+			"allowAutoTopicCreation" = "true"
+			"bookkeeper.journalSyncData" = "false"
 		}
 	}
 }

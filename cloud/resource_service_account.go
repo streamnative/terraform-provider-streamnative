@@ -70,7 +70,7 @@ func resourceServiceAccount() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["name"],
+				Description:  descriptions["service_account_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"admin": {

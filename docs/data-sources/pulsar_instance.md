@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- `name` (String) The service account name
+- `name` (String) The pulsar instance name
 - `organization` (String) The organization name
 
 ### Read-Only
