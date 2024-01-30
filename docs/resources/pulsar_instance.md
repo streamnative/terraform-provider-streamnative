@@ -18,7 +18,7 @@ description: |-
 ### Required
 
 - `availability_mode` (String) The availability mode, supporting 'zonal' and 'regional'
-- `name` (String) The service account name
+- `name` (String) The pulsar instance name
 - `organization` (String) The organization name
 - `pool_name` (String) The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'
 - `pool_namespace` (String) The infrastructure pool namespace to use, supported 'streamnative'
