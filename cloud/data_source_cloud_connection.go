@@ -49,7 +49,7 @@ func dataSourceCloudConnection() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: descriptions["name"],
+				Description: descriptions["connection_name"],
 			},
 			"type": {
 				Type:        schema.TypeString,
