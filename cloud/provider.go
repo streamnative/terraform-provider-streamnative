@@ -80,12 +80,12 @@ func init() {
 			"use this mqtt service url",
 		"websocket_service_url": "If you want to connect to the pulsar cluster using the websocket protocol, " +
 			"use this websocket service url",
-		"pulsar_version":     "The version of the pulsar cluster",
-		"bookkeeper_version": "The version of the bookkeeper cluster",
-		"type":               "Type of cloud connection, one of aws or gcp",
-		"aws":                "AWS configuration for the connection",
-		"gcp":                "GCP configuration for the connection",
-		"connection_name":    "Name of the cloud connection",
+		"pulsar_version":        "The version of the pulsar cluster",
+		"bookkeeper_version":    "The version of the bookkeeper cluster",
+		"type":                  "Type of cloud connection, one of aws or gcp",
+		"aws":                   "AWS configuration for the connection",
+		"gcp":                   "GCP configuration for the connection",
+		"cloud_connection_name": "Name of the cloud connection",
 	}
 }
 

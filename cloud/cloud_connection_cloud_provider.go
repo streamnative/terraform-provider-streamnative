@@ -30,7 +30,7 @@ func flattenCloudConnectionAws(in *cloudv1alpha1.AWSCloudConnection) []interface
 func flattenCloudConnectionGcloud(in *cloudv1alpha1.GCloudConnection) []interface{} {
 	att := make(map[string]interface{})
 	if in.ProjectId != "" {
-		att["project"] = in.ProjectId
+		att["project_id"] = in.ProjectId
 	}
 
 	return []interface{}{att}

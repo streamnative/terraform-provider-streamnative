@@ -42,10 +42,8 @@ func resourceCloudConnection() *schema.Resource {
 			}
 			if diff.HasChange("name") ||
 				diff.HasChanges("organization") ||
-				diff.HasChanges("cloud_connection_name") ||
-				diff.HasChanges("region") ||
-				diff.HasChanges("network_id") ||
-				diff.HasChanges("network_cidr") {
+				diff.HasChanges("name") ||
+				diff.HasChanges("type") {
 				return fmt.Errorf("ERROR_UPDATE_CLOUD_CONNECTION: " +
 					"The cloud connection does not support updates, please recreate it")
 			}
@@ -73,7 +71,7 @@ func resourceCloudConnection() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["name"],
+				Description:  descriptions["cloud_connection_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"type": {
@@ -101,7 +99,7 @@ func resourceCloudConnection() *schema.Resource {
 				Description: descriptions["gcp"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"project": {
+						"project_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -153,15 +151,15 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 	if len(gcp) > 0 {
 		for _, gCloudItem := range gcp {
 			gCloudItemMap := gCloudItem.(map[string]interface{})
-			if gCloudItemMap["project"] != nil {
-				project := gCloudItemMap["project"].(string)
-				cloudConnection.Spec.GCloud.ProjectId = project
+			if gCloudItemMap["project_id"] != nil {
+				projectId := gCloudItemMap["project_id"].(string)
+				cloudConnection.Spec.GCloud.ProjectId = projectId
 			}
 		}
 	}
 
 	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCloud == nil {
-		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.accountId or gcp.project must be set"))
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.accountId or gcp.project_id must be set"))
 	}
 
 	cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Create(ctx, cloudConnection, metav1.CreateOptions{
@@ -207,14 +205,6 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION: %w", err))
 	}
-	// _ = d.Set("ready", "False")
-	// if cloudConnection.Status.Conditions != nil {
-	// 	for _, condition := range cloudConnection.Status.Conditions {
-	// 		if condition.Type == "Ready" && condition.Status == "True" {
-	// 			_ = d.Set("ready", "True")
-	// 		}
-	// 	}
-	// }
 
 	if cloudConnection.Spec.AWS != nil {
 		err = d.Set("aws", flattenCloudConnectionAws(cloudConnection.Spec.AWS))
