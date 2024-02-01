@@ -18,24 +18,23 @@
 terraform {
   required_providers {
     streamnative = {
-      version = "0.1.0"
-      source = "streamnative/streamnative"
+      source  = "terraform.local/local/streamnative"
     }
   }
 }
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/tuteng/Downloads/sndev-terraform-ci-test.json"
+  key_file_path = "PATH"
 }
 
 resource "streamnative_cloud_connection" "test-cloud-connection" {
-	organization = "streamnative"
-	name = "aws-connection"
-	type = "aws"
-	aws {
-		account_id = "521752441290"
-	}
+    organization = "streamnative"
+    name = "aws-connection"
+    type = "aws"
+    aws {
+        account_id = "1234567890"
+    }
 }
 data "streamnative_cloud_connection" "test-cloud-connection" {
   depends_on = [streamnative_cloud_connection.test-cloud-connection]
