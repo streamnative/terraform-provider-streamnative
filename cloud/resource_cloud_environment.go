@@ -154,15 +154,15 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
 	}
 
-	pi, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, cloudEnvironment, metav1.CreateOptions{
+	ce, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, cloudEnvironment, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	if pi.Status.Conditions != nil {
+	if ce.Status.Conditions != nil {
 		ready := false
-		for _, condition := range pi.Status.Conditions {
+		for _, condition := range ce.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				ready = true
 			}
@@ -177,10 +177,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		dia := resourceCloudEnvironmentRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_CLOUD_ENVIRONMENT: %s", dia[0].Summary))
-		}
-		ready := d.Get("ready")
-		if ready == "False" {
-			return retry.RetryableError(fmt.Errorf("CONTINUE_RETRY_READ_CLOUD_ENVIRONMENT"))
 		}
 		return nil
 	})
@@ -201,14 +197,7 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
-	_ = d.Set("ready", "False")
-	if cloudEnvironment.Status.Conditions != nil {
-		for _, condition := range cloudEnvironment.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == "True" {
-				_ = d.Set("ready", "True")
-			}
-		}
-	}
+
 	if cloudEnvironment.Spec.Network != nil {
 		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
 		if err != nil {
