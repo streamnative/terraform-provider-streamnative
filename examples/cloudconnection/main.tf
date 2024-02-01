@@ -34,7 +34,7 @@ resource "streamnative_cloud_connection" "test-cloud-connection" {
 	name = "aws-connection"
 	type = "aws"
 	aws {
-		account_id = "test-account"
+		account_id = "521752441290"
 	}
 }
 data "streamnative_cloud_connection" "test-cloud-connection" {
