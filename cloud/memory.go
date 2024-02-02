@@ -69,7 +69,7 @@ func (f *MemoryStore) WhoAmI(audience string) (string, error) {
 }
 
 func (f *MemoryStore) Logout() error {
-	for key, _ := range f.data {
+	for key := range f.data {
 		delete(f.data, key)
 	}
 	return nil
