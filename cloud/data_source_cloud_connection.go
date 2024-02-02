@@ -109,8 +109,8 @@ func dataSourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	if cloudConnection.Spec.GCloud != nil {
-		err = d.Set("gcp", flattenCloudConnectionGcloud(cloudConnection.Spec.GCloud))
+	if cloudConnection.Spec.GCP != nil {
+		err = d.Set("gcp", flattenCloudConnectionGCP(cloudConnection.Spec.GCP))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_CONFIG: %w", err))
 		}
