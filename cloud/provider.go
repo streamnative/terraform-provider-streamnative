@@ -21,11 +21,11 @@ import (
 	"path/filepath"
 
 	"github.com/99designs/keyring"
+	"github.com/apache/pulsar-client-go/oauth2/store"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
 	"github.com/streamnative/cloud-cli/pkg/auth"
-	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
 	"github.com/streamnative/cloud-cli/pkg/plugin"
