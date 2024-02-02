@@ -49,7 +49,7 @@ func dataSourcePulsarInstance() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["name"],
+				Description:  descriptions["instance_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"availability_mode": {
