@@ -24,13 +24,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
 	"github.com/streamnative/cloud-cli/pkg/auth"
-	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
-	"github.com/streamnative/cloud-cli/pkg/plugin"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
@@ -178,29 +174,9 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	apc := &clientcmdapi.AuthProviderConfig{
-		Name: "streamnative",
-	}
-	// Pre-check if the auth provider is already exist for avoid issue
-	// auth Provider Plugin streamnative was registered twice
-	provider, _ := rest.GetAuthProvider("", apc, nil)
-	if provider == nil {
-		err = options.Complete()
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-	} else {
-		options.Store = store.NewMemoryStore()
-		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
-			return issuer, nil
-		})
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-		err = options.ServerOptions.Complete(options)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
+	err = options.Complete()
+	if err != nil {
+		return nil, diag.FromErr(err)
 	}
 	err = options.Store.SaveGrant(issuer.Audience, *grant)
 	if err != nil {
