@@ -20,6 +20,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/99designs/keyring"
+	"github.com/streamnative/cloud-cli/pkg/auth/store"
+	"github.com/streamnative/cloud-cli/pkg/plugin"
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
@@ -36,6 +42,8 @@ const (
 	GlobalDefaultAPIServer                = "https://api.streamnative.cloud"
 	GlobalDefaultCertificateAuthorityData = ``
 	ServiceAccountAdminAnnotation         = "annotations.cloud.streamnative.io/service-account-role"
+	ServiceName                           = "StreamNative"
+	KeychainName                          = "terraform"
 )
 
 var descriptions map[string]string
@@ -175,9 +183,33 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	err = options.Complete()
-	if err != nil {
-		return nil, diag.FromErr(err)
+	apc := &clientcmdapi.AuthProviderConfig{
+		Name: "streamnative",
+	}
+	// Pre-check if the auth provider is already exist for avoid issue
+	// auth Provider Plugin streamnative was registered twice
+	provider, _ := rest.GetAuthProvider("", apc, nil)
+	if provider == nil {
+		err = options.Complete()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+	} else {
+		kr, err := makeKeyring(options.BackendOverride, options.ConfigDir)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		options.Store, err = store.NewKeyringStore(kr)
+		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
+			return issuer, nil
+		})
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		err = options.ServerOptions.Complete(options)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
 	err = options.Store.SaveGrant(issuer.Audience, *grant)
 	if err != nil {
@@ -185,4 +217,24 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	}
 	factory := cmdutil.NewFactory(options)
 	return factory, nil
+}
+
+func makeKeyring(backendOverride string, configDir string) (keyring.Keyring, error) {
+	var backends []keyring.BackendType
+	if backendOverride != "" {
+		backends = append(backends, keyring.BackendType(backendOverride))
+	}
+
+	return keyring.Open(keyring.Config{
+		ServiceName:              ServiceName,
+		KeychainName:             KeychainName,
+		KeychainTrustApplication: true,
+		AllowedBackends:          backends,
+		FileDir:                  filepath.Join(configDir, "credentials"),
+		FilePasswordFunc:         keyringPrompt,
+	})
+}
+
+func keyringPrompt(prompt string) (string, error) {
+	return "", nil
 }
