@@ -20,17 +20,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/99designs/keyring"
+	"github.com/streamnative/cloud-cli/pkg/auth/store"
+	"github.com/streamnative/cloud-cli/pkg/plugin"
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
 	"github.com/streamnative/cloud-cli/pkg/auth"
-	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
-	"github.com/streamnative/cloud-cli/pkg/plugin"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
@@ -40,6 +42,8 @@ const (
 	GlobalDefaultAPIServer                = "https://api.streamnative.cloud"
 	GlobalDefaultCertificateAuthorityData = ``
 	ServiceAccountAdminAnnotation         = "annotations.cloud.streamnative.io/service-account-role"
+	ServiceName                           = "StreamNative"
+	KeychainName                          = "terraform"
 )
 
 var descriptions map[string]string
@@ -191,7 +195,11 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 			return nil, diag.FromErr(err)
 		}
 	} else {
-		options.Store = store.NewMemoryStore()
+		kr, err := makeKeyring(options.BackendOverride, options.ConfigDir)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		options.Store, err = store.NewKeyringStore(kr)
 		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
 			return issuer, nil
 		})
@@ -209,4 +217,24 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	}
 	factory := cmdutil.NewFactory(options)
 	return factory, nil
+}
+
+func makeKeyring(backendOverride string, configDir string) (keyring.Keyring, error) {
+	var backends []keyring.BackendType
+	if backendOverride != "" {
+		backends = append(backends, keyring.BackendType(backendOverride))
+	}
+
+	return keyring.Open(keyring.Config{
+		ServiceName:              ServiceName,
+		KeychainName:             KeychainName,
+		KeychainTrustApplication: true,
+		AllowedBackends:          backends,
+		FileDir:                  filepath.Join(configDir, "credentials"),
+		FilePasswordFunc:         keyringPrompt,
+	})
+}
+
+func keyringPrompt(prompt string) (string, error) {
+	return "", nil
 }
