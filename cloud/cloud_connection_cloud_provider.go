@@ -27,7 +27,7 @@ func flattenCloudConnectionAws(in *cloudv1alpha1.AWSCloudConnection) []interface
 	return []interface{}{att}
 }
 
-func flattenCloudConnectionGcloud(in *cloudv1alpha1.GCloudConnection) []interface{} {
+func flattenCloudConnectionGCP(in *cloudv1alpha1.GCPCloudConnection) []interface{} {
 	att := make(map[string]interface{})
 	if in.ProjectId != "" {
 		att["project_id"] = in.ProjectId
