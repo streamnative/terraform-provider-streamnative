@@ -133,12 +133,13 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 
 		Spec: cloudv1alpha1.CloudConnectionSpec{
 			ConnectionType: cloudv1alpha1.ConnectionType(connectionType),
-			AWS:            &cloudv1alpha1.AWSCloudConnection{},
-			GCloud:         &cloudv1alpha1.GCloudConnection{},
+			AWS:            nil,
+			GCP:            nil,
 		},
 	}
 
 	if len(aws) > 0 {
+		cloudConnection.Spec.AWS = &cloudv1alpha1.AWSCloudConnection{}
 		for _, awsItem := range aws {
 			awsMapItem := awsItem.(map[string]interface{})
 			if awsMapItem["account_id"] != nil {
@@ -149,16 +150,17 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if len(gcp) > 0 {
-		for _, gCloudItem := range gcp {
-			gCloudItemMap := gCloudItem.(map[string]interface{})
-			if gCloudItemMap["project_id"] != nil {
-				projectId := gCloudItemMap["project_id"].(string)
-				cloudConnection.Spec.GCloud.ProjectId = projectId
+		cloudConnection.Spec.GCP = &cloudv1alpha1.GCPCloudConnection{}
+		for _, gcpItem := range gcp {
+			gcpItemMap := gcpItem.(map[string]interface{})
+			if gcpItemMap["project_id"] != nil {
+				projectId := gcpItemMap["project_id"].(string)
+				cloudConnection.Spec.GCP.ProjectId = projectId
 			}
 		}
 	}
 
-	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCloud == nil {
+	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCP == nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.accountId or gcp.project_id must be set"))
 	}
 
@@ -213,10 +215,10 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	if cloudConnection.Spec.GCloud != nil {
-		err = d.Set("gcp", flattenCloudConnectionGcloud(cloudConnection.Spec.GCloud))
+	if cloudConnection.Spec.GCP != nil {
+		err = d.Set("gcp", flattenCloudConnectionGCP(cloudConnection.Spec.GCP))
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_GCLOUD: %w", err))
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_GCP: %w", err))
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", cloudConnection.Namespace, cloudConnection.Name))
