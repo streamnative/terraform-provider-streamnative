@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- `name` (String) The service account name
+- `name` (String) Name of the cloud connection
 - `organization` (String) The organization name
 - `type` (String) Type of cloud connection, one of aws or gcp
 

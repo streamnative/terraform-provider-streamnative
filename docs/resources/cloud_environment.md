@@ -17,8 +17,8 @@ description: |-
 
 ### Required
 
-- `cloud_connection_name` (String)
-- `name` (String) The service account name
+- `cloud_connection_name` (String) Name of the cloud connection
+- `name` (String) Name of the cloud environment
 - `network` (Block List, Min: 1) (see [below for nested schema](#nestedblock--network))
 - `organization` (String) The organization name
 - `region` (String)

@@ -17,12 +17,12 @@ description: |-
 
 ### Required
 
-- `name` (String) The service account name
+- `name` (String) Name of the cloud environment
 - `organization` (String) The organization name
 
 ### Read-Only
 
-- `cloud_connection_name` (String)
+- `cloud_connection_name` (String) Name of the cloud connection
 - `id` (String) The ID of this resource.
 - `network` (List of Object) (see [below for nested schema](#nestedatt--network))
 - `region` (String)

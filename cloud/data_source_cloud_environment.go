@@ -49,7 +49,7 @@ func dataSourceCloudEnvironment() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["name"],
+				Description:  descriptions["cloud_environment_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"region": {
