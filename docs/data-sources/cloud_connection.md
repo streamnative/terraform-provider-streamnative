@@ -40,6 +40,6 @@ Read-Only:
 
 Read-Only:
 
-- `project` (String)
+- `project_id` (String)
 
 
