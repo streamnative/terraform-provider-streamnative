@@ -84,12 +84,13 @@ func init() {
 			"use this mqtt service url",
 		"websocket_service_url": "If you want to connect to the pulsar cluster using the websocket protocol, " +
 			"use this websocket service url",
-		"pulsar_version":        "The version of the pulsar cluster",
-		"bookkeeper_version":    "The version of the bookkeeper cluster",
-		"type":                  "Type of cloud connection, one of aws or gcp",
-		"aws":                   "AWS configuration for the connection",
-		"gcp":                   "GCP configuration for the connection",
-		"cloud_connection_name": "Name of the cloud connection",
+		"pulsar_version":         "The version of the pulsar cluster",
+		"bookkeeper_version":     "The version of the bookkeeper cluster",
+		"type":                   "Type of cloud connection, one of aws or gcp",
+		"aws":                    "AWS configuration for the connection",
+		"gcp":                    "GCP configuration for the connection",
+		"cloud_connection_name":  "Name of the cloud connection",
+		"cloud_environment_name": "Name of the cloud environment",
 	}
 }
 
@@ -104,16 +105,18 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":  resourceServiceAccount(),
-			"streamnative_pulsar_instance":  resourcePulsarInstance(),
-			"streamnative_pulsar_cluster":   resourcePulsarCluster(),
-			"streamnative_cloud_connection": resourceCloudConnection(),
+			"streamnative_service_account":   resourceServiceAccount(),
+			"streamnative_pulsar_instance":   resourcePulsarInstance(),
+			"streamnative_pulsar_cluster":    resourcePulsarCluster(),
+			"streamnative_cloud_connection":  resourceCloudConnection(),
+			"streamnative_cloud_environment": resourceCloudEnvironment(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":  dataSourceServiceAccount(),
-			"streamnative_pulsar_instance":  dataSourcePulsarInstance(),
-			"streamnative_pulsar_cluster":   dataSourcePulsarCluster(),
-			"streamnative_cloud_connection": dataSourceCloudConnection(),
+			"streamnative_service_account":   dataSourceServiceAccount(),
+			"streamnative_pulsar_instance":   dataSourcePulsarInstance(),
+			"streamnative_pulsar_cluster":    dataSourcePulsarCluster(),
+			"streamnative_cloud_connection":  dataSourceCloudConnection(),
+			"streamnative_cloud_environment": dataSourceCloudEnvironment(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
