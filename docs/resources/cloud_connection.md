@@ -24,6 +24,7 @@ description: |-
 ### Optional
 
 - `aws` (Block List) AWS configuration for the connection (see [below for nested schema](#nestedblock--aws))
+- `azure` (Block List) (see [below for nested schema](#nestedblock--azure))
 - `gcp` (Block List) GCP configuration for the connection (see [below for nested schema](#nestedblock--gcp))
 
 ### Read-Only
@@ -36,6 +37,17 @@ description: |-
 Optional:
 
 - `account_id` (String)
+
+
+<a id="nestedblock--azure"></a>
+### Nested Schema for `azure`
+
+Optional:
+
+- `client_id` (String)
+- `subscription_id` (String)
+- `support_client_id` (String)
+- `tenant_id` (String)
 
 
 <a id="nestedblock--gcp"></a>
