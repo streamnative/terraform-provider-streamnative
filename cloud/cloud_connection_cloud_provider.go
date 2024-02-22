@@ -39,7 +39,7 @@ func flattenCloudConnectionGCP(in *cloudv1alpha1.GCPCloudConnection) []interface
 func flattenCloudConnectionAzure(in *cloudv1alpha1.AzureConnection) []interface{} {
 	att := make(map[string]interface{})
 	if in.SubscriptionId != "" {
-		att["project_id"] = in.SubscriptionId
+		att["subscription_id"] = in.SubscriptionId
 	}
 
 	if in.TenantId != "" {
