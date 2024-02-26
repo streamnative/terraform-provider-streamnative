@@ -23,7 +23,7 @@ description: |-
 ### Read-Only
 
 - `aws` (List of Object) AWS configuration for the connection (see [below for nested schema](#nestedatt--aws))
-- `azure` (List of Object) (see [below for nested schema](#nestedatt--azure))
+- `azure` (List of Object) Azure configuration for the connection (see [below for nested schema](#nestedatt--azure))
 - `gcp` (List of Object) GCP configuration for the connection (see [below for nested schema](#nestedatt--gcp))
 - `id` (String) The ID of this resource.
 - `type` (String) Type of cloud connection, one of aws or gcp

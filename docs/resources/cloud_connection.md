@@ -24,7 +24,7 @@ description: |-
 ### Optional
 
 - `aws` (Block List) AWS configuration for the connection (see [below for nested schema](#nestedblock--aws))
-- `azure` (Block List) (see [below for nested schema](#nestedblock--azure))
+- `azure` (Block List) Azure configuration for the connection (see [below for nested schema](#nestedblock--azure))
 - `gcp` (Block List) GCP configuration for the connection (see [below for nested schema](#nestedblock--gcp))
 
 ### Read-Only
