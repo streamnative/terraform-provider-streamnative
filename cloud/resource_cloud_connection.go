@@ -106,6 +106,31 @@ func resourceCloudConnection() *schema.Resource {
 					},
 				},
 			},
+			"azure": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: descriptions["azure"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subscription_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tenant_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"client_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"support_client_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -116,6 +141,7 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 	connectionType := d.Get("type").(string)
 	aws := d.Get("aws").([]interface{})
 	gcp := d.Get("gcp").([]interface{})
+	azure := d.Get("azure").([]interface{})
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_CONNECTION: %w", err))
@@ -135,6 +161,7 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 			ConnectionType: cloudv1alpha1.ConnectionType(connectionType),
 			AWS:            nil,
 			GCP:            nil,
+			Azure:          nil,
 		},
 	}
 
@@ -160,8 +187,27 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCP == nil {
-		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.accountId or gcp.project_id must be set"))
+	if len(azure) > 0 {
+		cloudConnection.Spec.Azure = &cloudv1alpha1.AzureConnection{}
+		for _, azureItem := range azure {
+			azureItemMap := azureItem.(map[string]interface{})
+			if azureItemMap["subscription_id"] != nil {
+				cloudConnection.Spec.Azure.SubscriptionId = azureItemMap["subscription_id"].(string)
+			}
+			if azureItemMap["tenant_id"] != nil {
+				cloudConnection.Spec.Azure.TenantId = azureItemMap["tenant_id"].(string)
+			}
+			if azureItemMap["client_id"] != nil {
+				cloudConnection.Spec.Azure.ClientId = azureItemMap["client_id"].(string)
+			}
+			if azureItemMap["support_client_id"] != nil {
+				cloudConnection.Spec.Azure.SupportClientId = azureItemMap["support_client_id"].(string)
+			}
+		}
+	}
+
+	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCP == nil && cloudConnection.Spec.Azure == nil {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.account_id, gcp.project_id or azure block must be set"))
 	}
 
 	cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Create(ctx, cloudConnection, metav1.CreateOptions{
@@ -221,6 +267,14 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_GCP: %w", err))
 		}
 	}
+
+	if cloudConnection.Spec.Azure != nil {
+		err = d.Set("azure", flattenCloudConnectionAzure(cloudConnection.Spec.Azure))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_AZURE: %w", err))
+		}
+	}
+
 	d.SetId(fmt.Sprintf("%s/%s", cloudConnection.Namespace, cloudConnection.Name))
 	return nil
 }

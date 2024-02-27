@@ -82,6 +82,31 @@ func dataSourceCloudConnection() *schema.Resource {
 					},
 				},
 			},
+			"azure": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["azure"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subscription_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tenant_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"client_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"support_client_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -111,6 +136,13 @@ func dataSourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, 
 
 	if cloudConnection.Spec.GCP != nil {
 		err = d.Set("gcp", flattenCloudConnectionGCP(cloudConnection.Spec.GCP))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_CONFIG: %w", err))
+		}
+	}
+
+	if cloudConnection.Spec.Azure != nil {
+		err = d.Set("azure", flattenCloudConnectionAzure(cloudConnection.Spec.Azure))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_CONFIG: %w", err))
 		}

@@ -35,3 +35,24 @@ func flattenCloudConnectionGCP(in *cloudv1alpha1.GCPCloudConnection) []interface
 
 	return []interface{}{att}
 }
+
+func flattenCloudConnectionAzure(in *cloudv1alpha1.AzureConnection) []interface{} {
+	att := make(map[string]interface{})
+	if in.SubscriptionId != "" {
+		att["subscription_id"] = in.SubscriptionId
+	}
+
+	if in.TenantId != "" {
+		att["tenant_id"] = in.TenantId
+	}
+
+	if in.ClientId != "" {
+		att["client_id"] = in.ClientId
+	}
+
+	if in.SupportClientId != "" {
+		att["support_client_id"] = in.SupportClientId
+	}
+
+	return []interface{}{att}
+}
