@@ -31,7 +31,7 @@ provider "streamnative" {
 
 resource "streamnative_apikey" "test-admin-a" {
   organization = "sndev"
-  name = "test-admin-d"
+  name = "test-admin-a"
   instance_name = "test-apikey"
   service_account_name = "test-tf-admin"
   revoke = false
