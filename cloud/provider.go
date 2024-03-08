@@ -92,6 +92,17 @@ func init() {
 		"azure":                  "Azure configuration for the connection",
 		"cloud_connection_name":  "Name of the cloud connection",
 		"cloud_environment_name": "Name of the cloud environment",
+		"apikey_name":            "The name of the api key",
+		"apikey_description":     "The description of the api key",
+		"revoke":                 "Whether to revoke the api key, if set to true, the api key will be revoked",
+		"apikey_ready":           "Apikey is ready, it will be set to 'True' after the api key is ready",
+		"token":                  "The token of the api key",
+		"issued_at":              "The timestamp of when the key was issued, stored as an epoch in seconds",
+		"expires_at":             "The timestamp of when the key expires",
+		"revoked_at":             "The timestamp of when the key was revoked",
+		"encrypted_token":        "The encrypted security token issued for the key",
+		"key_id":                 "The key id of apikey",
+		"private_key":            "The private key for decrypting the encrypted token",
 	}
 }
 
@@ -111,6 +122,7 @@ func Provider() *schema.Provider {
 			"streamnative_pulsar_cluster":    resourcePulsarCluster(),
 			"streamnative_cloud_connection":  resourceCloudConnection(),
 			"streamnative_cloud_environment": resourceCloudEnvironment(),
+			"streamnative_apikey":            resourceApiKey(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":   dataSourceServiceAccount(),
@@ -118,6 +130,7 @@ func Provider() *schema.Provider {
 			"streamnative_pulsar_cluster":    dataSourcePulsarCluster(),
 			"streamnative_cloud_connection":  dataSourceCloudConnection(),
 			"streamnative_cloud_environment": dataSourceCloudEnvironment(),
+			"streamnative_apikey":            dataSourceApiKey(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
