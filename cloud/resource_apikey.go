@@ -246,19 +246,7 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceApiKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientSet, err := getClientSet(getFactoryFromMeta(m))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_API_KEY: %w", err))
-	}
-	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
-	err = clientSet.CloudV1alpha1().APIKeys(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_DELETE_API_KEY: %w", err))
-	}
-	_ = d.Set("name", "")
-	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
-	return nil
+	return diag.FromErr(fmt.Errorf("ERROR_DELETE_API_KEY: The api key does not support delete"))
 }
 
 func resourceApiKeyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
