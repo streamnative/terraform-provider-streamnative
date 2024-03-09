@@ -176,8 +176,8 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
 			}
 			t = t.Add(ago)
-		} else {
-			layout := "2024-03-08T15:04:05Z"
+		} else if expirationTime != "No expiration date" {
+			layout := "02/01/2006 15:04:05"
 			t, err = time.Parse(layout, expirationTime)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
@@ -190,8 +190,8 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		t = t.Add(defaultExpireTime)
 	}
-	ak.Spec.ExpirationTime = &metav1.Time{
-		Time: t,
+	if expirationTime != "No expiration date" {
+		ak.Spec.ExpirationTime = &metav1.Time{Time: t}
 	}
 	if description != "" {
 		ak.Spec.Description = description
