@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
+	"github.com/xhit/go-str2duration/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strings"
@@ -41,16 +42,6 @@ func resourceApiKey() *schema.Resource {
 			if oldOrg.(string) == "" && oldName.(string) == "" {
 				// This is create event, so we don't need to check the diff.
 				return nil
-			}
-			oldRevoke, _ := diff.GetChange("revoke")
-			if oldRevoke.(bool) && diff.HasChanges("revoke") {
-				return fmt.Errorf("ERROR_UPDATE_API_KEY: " +
-					"Revoked apikey no longer supports updates, please recreate it")
-
-			}
-			if oldRevoke.(bool) && diff.HasChange("description") {
-				return fmt.Errorf("ERROR_UPDATE_API_KEY: " +
-					"Revoked apikey no longer supports update description, please recreate it")
 			}
 			if diff.HasChange("name") ||
 				diff.HasChange("organization") ||
@@ -176,11 +167,11 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			ServiceAccountName: serviceAccountName,
 		},
 	}
-	r1 := regexp.MustCompile(`^-(\d+)(s|m|h)$`)
+	r1 := regexp.MustCompile(`^(\d+.)(s|m|h|d)$`)
 	t := time.Now()
 	if expirationTime != "" {
 		if r1.MatchString(expirationTime) {
-			ago, err := time.ParseDuration(expirationTime)
+			ago, err := str2duration.ParseDuration(expirationTime)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
 			}
@@ -216,6 +207,8 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	ak.Spec.EncryptionKey = &v1alpha1.EncryptionKey{
 		PEM: encryptionKey.PEM,
 	}
+	revoke := d.Get("revoke").(bool)
+	ak.Spec.Revoke = revoke
 	_, err = clientSet.CloudV1alpha1().APIKeys(namespace).Create(ctx, ak, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -281,9 +274,7 @@ func resourceApiKeyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(fmt.Errorf("ERROR_READ_API_KEY: %w", err))
 	}
 	revoke := d.Get("revoke").(bool)
-	if revoke {
-		apiKey.Spec.Revoke = true
-	}
+	apiKey.Spec.Revoke = revoke
 	description := d.Get("description").(string)
 	if description != "" {
 		apiKey.Spec.Description = description
