@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -247,7 +246,26 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceApiKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Info(ctx, "The api key does not support delete, destroy will be skipped")
+	clientSet, err := getClientSet(getFactoryFromMeta(m))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_API_KEY: %w", err))
+	}
+	namespace := d.Get("organization").(string)
+	name := d.Get("name").(string)
+	apikey, err := clientSet.CloudV1alpha1().APIKeys(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_API_KEY: %w", err))
+	}
+	if apikey.Status.RevokedAt == nil {
+		return diag.FromErr(fmt.Errorf(
+			"ERROR_DELETE_API_KEY: no support delete apikey that not revoked, please revoke it first"))
+	}
+	err = clientSet.CloudV1alpha1().APIKeys(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_DELETE_API_KEY: %w", err))
+	}
+	_ = d.Set("name", "")
+	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
 	return nil
 }
 
