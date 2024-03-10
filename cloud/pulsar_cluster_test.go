@@ -79,10 +79,10 @@ func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
-			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_INSTANCE_NOT_FOUND: "%s"`, name)
+			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_NOT_FOUND: "%s"`, name)
 		}
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("ERROR_RESOURCE_PULSAR_INSTANCE_ID_NOT_SET")
+			return fmt.Errorf("ERROR_RESOURCE_PULSAR_CLUSTER_ID_NOT_SET")
 		}
 		meta := testAccProvider.Meta()
 		clientSet, err := getClientSet(getFactoryFromMeta(meta))
