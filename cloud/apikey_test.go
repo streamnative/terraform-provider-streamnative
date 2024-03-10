@@ -36,7 +36,7 @@ func TestApiKey(t *testing.T) {
 				Config: testResourceDataSourceApiKey(
 					"terraform-test-api-key", "terraform-test-api-key"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckApiKeyExists("data.streamnative_api_key.test-terraform-api-key"),
+					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),
 			},
 		},
