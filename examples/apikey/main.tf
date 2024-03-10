@@ -31,11 +31,15 @@ provider "streamnative" {
 
 resource "streamnative_apikey" "test-admin-a" {
   organization = "sndev"
-  name = "test-admin-a"
-  instance_name = "test-apikey"
+  name = "test-admin-i"
+  instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "test-tf-admin"
+  description = "This is a test api key for terraform"
+  # If you want to revoke the api key, you can set revoke to true
   revoke = false
-  description = "This is a test api key"
+#  expiration_time = "01/01/2025 10:00:00"
+  # If you don't want to set expiration time, you can set expiration_time to "No expiration date"
+   expiration_time = "No expiration date"
 }
 
 data "streamnative_apikey" "test-admin-a" {

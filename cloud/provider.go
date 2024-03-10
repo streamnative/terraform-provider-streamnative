@@ -94,15 +94,18 @@ func init() {
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
-		"revoke":                 "Whether to revoke the api key, if set to true, the api key will be revoked",
-		"apikey_ready":           "Apikey is ready, it will be set to 'True' after the api key is ready",
-		"token":                  "The token of the api key",
-		"issued_at":              "The timestamp of when the key was issued, stored as an epoch in seconds",
-		"expires_at":             "The timestamp of when the key expires",
-		"revoked_at":             "The timestamp of when the key was revoked",
-		"encrypted_token":        "The encrypted security token issued for the key",
-		"key_id":                 "The key id of apikey",
-		"private_key":            "The private key for decrypting the encrypted token",
+		"revoke": "Whether to revoke the api key, if set to true, the api key will be revoked," +
+			" if you want delete api key, please revoke this api key first",
+		"apikey_ready":    "Apikey is ready, it will be set to 'True' after the api key is ready",
+		"token":           "The token of the api key",
+		"issued_at":       "The timestamp of when the key was issued, stored as an epoch in seconds",
+		"expires_at":      "The timestamp of when the key expires",
+		"revoked_at":      "The timestamp of when the key was revoked",
+		"encrypted_token": "The encrypted security token issued for the key",
+		"key_id":          "The key id of apikey",
+		"private_key":     "The private key for decrypting the encrypted token",
+		"expiration_time": "The expiration time of the api key, you can set it to 1m, 1h, 1d or this time " +
+			"format 03/08/2024 15:30:00, if you set it 'No Expiration Time', it will never expire",
 	}
 }
 
