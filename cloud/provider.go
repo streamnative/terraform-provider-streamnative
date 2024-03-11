@@ -94,7 +94,9 @@ func init() {
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
-		"revoke": "Whether to revoke the api key, if set to true, the api key will be revoked," +
+		"revoke": "Whether to revoke the api key, if set to true, the api key will be revoked." +
+			" By default, after revoking an apikey object, all connections using that apikey will" +
+			" fail after 1 minute due to an authentication exception." +
 			" if you want delete api key, please revoke this api key first",
 		"apikey_ready":    "Apikey is ready, it will be set to 'True' after the api key is ready",
 		"token":           "The token of the api key",

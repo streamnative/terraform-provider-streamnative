@@ -26,7 +26,7 @@ description: |-
 
 - `description` (String)
 - `expiration_time` (String) The expiration time of the api key, you can set it to 1m(one minute), 1h(one hour), 1d(one day) or this time format 03/08/2024 15:30:00, if you set it '0', it will never expire, if you don't set it, it will be set to 30d(30 days) by default
-- `revoke` (Boolean) Whether to revoke the api key, if set to true, the api key will be revoked, if you want delete api key, please revoke this api key first
+- `revoke` (Boolean) Whether to revoke the api key, if set to true, the api key will be revoked. By default, after revoking an apikey object, all connections using that apikey will fail after 1 minute due to an authentication exception. if you want delete api key, please revoke this api key first
 
 ### Read-Only
 

@@ -36,8 +36,10 @@ resource "streamnative_apikey" "test-admin-a" {
   service_account_name = "test-tf-admin"
   description = "This is a test api key for terraform"
   # If you want to revoke the api key, you can set revoke to true
+  # By default, after revoking an apikey object, all connections using that apikey will
+  # fail after 1 minute due to an authentication exception.
   revoke = false
-#  expiration_time = "2025-01-01T10:00:00Z"
+  # expiration_time = "2025-01-01T10:00:00Z"
   # If you don't want to set expiration time, you can set expiration_time to "0"
    expiration_time = "0"
 }
