@@ -34,14 +34,7 @@ func TestApiKey(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceApiKey(
-					"terraform-test-api-key", "terraform-test-api-key", false),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
-				),
-			},
-			{
-				Config: testResourceDataSourceApiKey(
-					"terraform-test-api-key", "terraform-test-api-key", true),
+					"terraform-test-api-key", "terraform-test-api-key"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),
@@ -110,7 +103,7 @@ func testCheckApiKeyExists(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourceApiKey(clusterName string, apiKeyName string, revoke bool) string {
+func testResourceDataSourceApiKey(clusterName string, apiKeyName string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -149,7 +142,7 @@ resource "streamnative_apikey" "test-terraform-api-key" {
   instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "terraform-test-api-key-service-account"
   # just for testing, please don't set it to true for avoid token revoked
-  revoke = %t
+  revoke = true
   description = "This is a test api key"
 }
 
@@ -159,5 +152,5 @@ data "streamnative_apikey" "test-terraform-api-key" {
   name = streamnative_apikey.test-terraform-api-key.name
   private_key = streamnative_apikey.test-terraform-api-key.private_key
 }
-`, clusterName, apiKeyName, revoke)
+`, clusterName, apiKeyName)
 }

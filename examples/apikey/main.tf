@@ -38,8 +38,8 @@ resource "streamnative_apikey" "test-admin-a" {
   # If you want to revoke the api key, you can set revoke to true
   revoke = false
 #  expiration_time = "2025-01-01T10:00:00Z"
-  # If you don't want to set expiration time, you can set expiration_time to "No expiration date"
-   expiration_time = "No expiration date"
+  # If you don't want to set expiration time, you can set expiration_time to "0"
+   expiration_time = "0"
 }
 
 data "streamnative_apikey" "test-admin-a" {
