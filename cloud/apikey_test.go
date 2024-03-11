@@ -149,7 +149,7 @@ resource "streamnative_apikey" "test-terraform-api-key" {
   instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "terraform-test-api-key-service-account"
   # just for testing, please don't set it to true for avoid token revoked
-  revoke = %b
+  revoke = %t
   description = "This is a test api key"
 }
 
