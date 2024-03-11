@@ -107,7 +107,7 @@ func init() {
 		"key_id":          "The key id of apikey",
 		"private_key":     "The private key for decrypting the encrypted token",
 		"expiration_time": "The expiration time of the api key, you can set it to " +
-			"1m(one minute), 1h(one hour), 1d(one day) or this time format 03/08/2024 15:30:00, " +
+			"1m(one minute), 1h(one hour), 1d(one day) or this time format 2025-05-08T15:30:00Z, " +
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
 	}
