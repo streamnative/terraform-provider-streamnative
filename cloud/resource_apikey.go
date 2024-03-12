@@ -245,17 +245,9 @@ func resourceApiKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	apikey, err := clientSet.CloudV1alpha1().APIKeys(namespace).Get(ctx, name, metav1.GetOptions{})
+	_, err = clientSet.CloudV1alpha1().APIKeys(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_API_KEY: %w", err))
-	}
-	// For an existing healthy apikey, you should make sure it is revoked before you delete it.
-	if apikey.Status.Conditions != nil &&
-		len(apikey.Status.Conditions) == 3 &&
-		apikey.Status.Conditions[0].Status == "True" &&
-		apikey.Status.RevokedAt == nil {
-		return diag.FromErr(fmt.Errorf(
-			"ERROR_DELETE_API_KEY: no support delete apikey that not revoked, please revoke it first"))
 	}
 	err = clientSet.CloudV1alpha1().APIKeys(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
