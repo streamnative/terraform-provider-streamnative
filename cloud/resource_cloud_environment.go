@@ -27,8 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const maxNameLength = 28
-
 func resourceCloudEnvironment() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceCloudEnvironmentCreate,
@@ -76,13 +74,13 @@ func resourceCloudEnvironment() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["cloud_environment_name"],
-				ValidateFunc: validateNotBlank,
+				ValidateFunc: validateCloudEnvionmentName,
 			},
 			"region": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["region"],
-				ValidateFunc: validateNotBlank,
+				ValidateFunc: validateRegion,
 			},
 			"cloud_connection_name": {
 				Type:         schema.TypeString,
@@ -120,10 +118,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
-	}
-
-	if len(name) > maxNameLength {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: name must be less than %d characters", maxNameLength))
 	}
 
 	cloudEnvironment := &cloudv1alpha1.CloudEnvironment{
