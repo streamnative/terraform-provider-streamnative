@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -78,6 +79,25 @@ func validateRegion(val interface{}, key string) (warns []string, errs []error) 
 	if !contains(validRegions, v) {
 		errs = append(errs, fmt.Errorf(
 			"%q must be a valid region, got: %s", key, v))
+	}
+	return
+}
+
+func validateCidrRange(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	parts := strings.Split(v, "/")
+
+	if len(parts) < 2 {
+		//Not valid CIDR notation
+		errs = append(errs, fmt.Errorf(
+			"%q is not valid CIDR notation, must be X.X.X.X/X, got: %s", key, v))
+	} else {
+		prefixLength, err := strconv.Atoi(parts[1])
+
+		if err != nil || (prefixLength < 16 || prefixLength > 28) {
+			errs = append(errs, fmt.Errorf(
+				"%q is not valid CIDR prefix length, must be between /16 and /28, got: %s", key, v))
+		}
 	}
 	return
 }

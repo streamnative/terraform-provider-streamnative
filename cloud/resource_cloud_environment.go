@@ -99,8 +99,9 @@ func resourceCloudEnvironment() *schema.Resource {
 							Optional: true,
 						},
 						"cidr": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateCidrRange,
 						},
 					},
 				},
