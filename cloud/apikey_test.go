@@ -17,14 +17,18 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
-	"testing"
-	"time"
 )
+
+var apiKeyGeneratedName = fmt.Sprintf("terraform-test-pulsar-cluster-%d", rand.Intn(10000))
 
 func TestApiKey(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -34,7 +38,7 @@ func TestApiKey(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceApiKey(
-					"terraform-test-api-key", "terraform-test-api-key"),
+					"terraform-test-api-key", apiKeyGeneratedName),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),
