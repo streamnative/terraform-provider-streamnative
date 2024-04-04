@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var clusterGeneratedName = fmt.Sprintf("terraform-test-pulsar-cluster-%d", rand.Intn(10000))
 
 func TestPulsarCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -38,7 +41,7 @@ func TestPulsarCluster(t *testing.T) {
 			{
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
-					"terraform-test-pulsar-cluster",
+					clusterGeneratedName,
 					"terraform-test-pulsar-instance",
 					"us-central1"),
 				Check: resource.ComposeTestCheckFunc(
@@ -50,7 +53,7 @@ func TestPulsarCluster(t *testing.T) {
 }
 
 func testCheckPulsarClusterDestroy(s *terraform.State) error {
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_pulsar_cluster" {
 			continue
