@@ -106,6 +106,12 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"wait_for_completion": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["wait_for_completion"],
+			},
 		},
 	}
 }
@@ -116,6 +122,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	waitForCompletion := d.Get("wait_for_completion")
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
@@ -161,19 +169,53 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	if ce.Status.Conditions != nil {
-		ready := false
+
+	if ce.Status.Conditions == nil {
+		for {
+			//Wait for conditions to be populated
+			ce, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+			}
+			if ce.Status.Conditions != nil {
+				break
+			}
+		}
+	}
+
+	ready := false
+
+	if waitForCompletion == true {
+		for {
+			if ready {
+				break
+			}
+
+			for _, condition := range ce.Status.Conditions {
+				if condition.Type == "Ready" && condition.Status == "True" {
+					ready = true
+				}
+			}
+
+			ce, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+			}
+		}
+	} else {
 		for _, condition := range ce.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				ready = true
 			}
 		}
-		if ready {
-			_ = d.Set("organization", namespace)
-			_ = d.Set("name", name)
-			return resourceCloudEnvironmentRead(ctx, d, meta)
-		}
 	}
+
+	if ready {
+		_ = d.Set("organization", namespace)
+		_ = d.Set("name", name)
+		return resourceCloudEnvironmentRead(ctx, d, meta)
+	}
+
 	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
 		dia := resourceCloudEnvironmentRead(ctx, d, meta)
 		if dia.HasError() {
