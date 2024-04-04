@@ -187,14 +187,14 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 	if waitForCompletion == true {
 		for {
-			if ready {
-				break
-			}
-
 			for _, condition := range ce.Status.Conditions {
 				if condition.Type == "Ready" && condition.Status == "True" {
 					ready = true
 				}
+			}
+
+			if ready {
+				break
 			}
 
 			ce, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -263,10 +263,31 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	waitForCompletion := d.Get("wait_for_completion")
 	err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
+
+	_, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	if waitForCompletion == true {
+		for {
+			//Loop through checking the resource to see if it's actually deleted or not
+			_, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				if strings.Contains(err.Error(), "not found") {
+					break
+				} else {
+					return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+				}
+			}
+		}
+	}
+
 	_ = d.Set("name", "")
 	return nil
 }
