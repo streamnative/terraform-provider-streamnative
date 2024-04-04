@@ -113,6 +113,10 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description: descriptions["wait_for_completion"],
 			},
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(60 * time.Minute),
+			Delete: schema.DefaultTimeout(60 * time.Minute),
+		},
 	}
 }
 
@@ -180,6 +184,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			if ce.Status.Conditions != nil {
 				break
 			}
+			//Sleep 10 seconds between checks so we don't overload the API
+			time.Sleep(time.Second * 10)
 		}
 	}
 
@@ -285,9 +291,12 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 					return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 				}
 			}
+			//Sleep 10 seconds between checks so we don't overload the API
+			time.Sleep(time.Second * 10)
 		}
 	}
 
 	_ = d.Set("name", "")
+
 	return nil
 }
