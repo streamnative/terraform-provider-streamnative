@@ -40,16 +40,16 @@ func dataSourceCloudEnvironment() *schema.Resource {
 			},
 		},
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["cloud_environment_name"],
+				ValidateFunc: validateNotBlank,
+			},
 			"organization": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["organization"],
-				ValidateFunc: validateNotBlank,
-			},
-			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["cloud_environment_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"region": {
@@ -85,17 +85,16 @@ func dataSourceCloudEnvironment() *schema.Resource {
 
 func dataSourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+	id := d.Get("id").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
-	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, id, metav1.GetOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 
-	_ = d.Set("name", cloudEnvironment.Name)
 	_ = d.Set("organization", cloudEnvironment.Namespace)
 	_ = d.Set("region", cloudEnvironment.Spec.Region)
 	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)

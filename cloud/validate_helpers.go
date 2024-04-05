@@ -64,12 +64,11 @@ func validateAuditLog(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
-func validateCloudEnvionmentName(val interface{}, key string) (warns []string, errs []error) {
-	maxNameLength := 28
+func validateCloudEnvionmentType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
-	if len(v) > maxNameLength || len(v) < 1 {
+	if v != "test" && v != "staging" && v != "production" {
 		errs = append(errs, fmt.Errorf(
-			"%q should be shorter than or equal to %d and greater than 0, got: %s", key, maxNameLength, v))
+			"%q should be one of: test, staging or production, got: %s", key, v))
 	}
 	return
 }
