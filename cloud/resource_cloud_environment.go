@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -192,21 +194,9 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	ready := false
 
 	if waitForCompletion == true {
-		for {
-			for _, condition := range ce.Status.Conditions {
-				if condition.Type == "Ready" && condition.Status == "True" {
-					ready = true
-				}
-			}
-
-			if ready {
-				break
-			}
-
-			ce, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
-			if err != nil {
-				return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
-			}
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, name))
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	} else {
 		for _, condition := range ce.Status.Conditions {
@@ -299,4 +289,25 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	_ = d.Set("name", "")
 
 	return nil
+}
+
+// retryUntilCloudEnvironmentIsProvisioned checks if a given CloudEnvironment has finished provisioning
+func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		ce, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		for _, condition := range ce.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
+				return nil
+			}
+		}
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
 }
