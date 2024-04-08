@@ -35,13 +35,11 @@ func resourceCloudEnvironment() *schema.Resource {
 		DeleteContext: resourceCloudEnvironmentDelete,
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
 			oldOrg, _ := diff.GetChange("organization")
-			oldName, _ := diff.GetChange("name")
-			if oldOrg.(string) == "" && oldName.(string) == "" {
+			if oldOrg.(string) == "" {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChanges("organization") ||
+			if diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
@@ -55,7 +53,6 @@ func resourceCloudEnvironment() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationInstance := strings.Split(d.Id(), "/")
 				_ = d.Set("organization", organizationInstance[0])
-				_ = d.Set("name", organizationInstance[1])
 				err := resourceCloudEnvironmentRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
@@ -230,6 +227,5 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	_ = d.Set("name", "")
 	return nil
 }
