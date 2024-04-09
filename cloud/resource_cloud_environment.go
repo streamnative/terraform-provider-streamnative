@@ -160,6 +160,9 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
+
+	d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
+
 	if ce.Status.Conditions != nil {
 		ready := false
 		for _, condition := range ce.Status.Conditions {
@@ -169,7 +172,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		}
 		if ready {
 			_ = d.Set("organization", namespace)
-			d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
 			return resourceCloudEnvironmentRead(ctx, d, meta)
 		}
 	}
