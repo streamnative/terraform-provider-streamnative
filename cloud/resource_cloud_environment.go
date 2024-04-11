@@ -176,21 +176,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
 
-	if ce.Status.Conditions == nil {
-		for {
-			//Wait for conditions to be populated
-			ce, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
-			if err != nil {
-				return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
-			}
-			if ce.Status.Conditions != nil {
-				break
-			}
-			//Sleep 10 seconds between checks so we don't overload the API
-			time.Sleep(time.Second * 10)
-		}
-	}
-
 	ready := false
 
 	if waitForCompletion == true {
