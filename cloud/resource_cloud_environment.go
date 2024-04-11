@@ -271,18 +271,9 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if waitForCompletion == true {
-		for {
-			//Loop through checking the resource to see if it's actually deleted or not
-			_, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
-			if err != nil {
-				if strings.Contains(err.Error(), "not found") {
-					break
-				} else {
-					return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
-				}
-			}
-			//Sleep 10 seconds between checks so we don't overload the API
-			time.Sleep(time.Second * 10)
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), retryUntilCloudEnvironmentIsDeleted(ctx, clientSet, namespace, name))
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -308,6 +299,31 @@ func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *clo
 			}
 		}
 
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
 		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
+}
+
+// retryUntilCloudEnvironmentIsDeleted checks if a given CloudEnvironment has finished deleting
+func retryUntilCloudEnvironmentIsDeleted(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
+		_, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		} else {
+			if strings.Contains(err.Error(), "not found") {
+				return nil
+			} else {
+				return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+			}
+		}
 	}
 }
