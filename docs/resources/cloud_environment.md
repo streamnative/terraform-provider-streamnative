@@ -18,10 +18,10 @@ description: |-
 ### Required
 
 - `cloud_connection_name` (String) Name of the cloud connection
-- `name` (String) Name of the cloud environment
 - `network` (Block List, Min: 1) (see [below for nested schema](#nestedblock--network))
 - `organization` (String) The organization name
 - `region` (String)
+- `type` (String) Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc
 
 ### Read-Only
 
