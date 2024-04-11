@@ -121,7 +121,7 @@ func resourceCloudEnvironment() *schema.Resource {
 
 func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+	cloudEnvironmentType := d.Get("environment_type").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
@@ -138,8 +138,10 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				"cloud.streamnative.io/environment-type": cloudEnvironmentType,
+			},
 		},
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
 			CloudConnectionName: cloudConnectionName,
@@ -177,7 +179,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
 
 	if waitForCompletion == true {
-		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, name))
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, ce.GetObjectMeta().GetName()))
 		if err != nil {
 			return diag.FromErr(err)
 		}
