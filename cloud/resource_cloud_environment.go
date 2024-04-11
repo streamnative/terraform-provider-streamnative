@@ -250,11 +250,6 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
 
-	_, err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
-	}
-
 	if waitForCompletion == true {
 		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), retryUntilCloudEnvironmentIsDeleted(ctx, clientSet, namespace, name))
 		if err != nil {
