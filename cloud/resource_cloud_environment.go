@@ -314,16 +314,13 @@ func retryUntilCloudEnvironmentIsDeleted(ctx context.Context, clientSet *cloudcl
 
 		_, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
-				return nil
-			}
-			return retry.NonRetryableError(err)
-		} else {
 			if strings.Contains(err.Error(), "not found") {
 				return nil
 			} else {
 				return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
 			}
 		}
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
 	}
 }
