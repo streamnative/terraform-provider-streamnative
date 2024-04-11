@@ -67,7 +67,7 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
-			"type": {
+			"environment_type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["cloud_environment_type"],
@@ -109,7 +109,7 @@ func resourceCloudEnvironment() *schema.Resource {
 
 func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	cloudEnvironmentType := d.Get("type").(string)
+	cloudEnvironmentType := d.Get("environment_type").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
