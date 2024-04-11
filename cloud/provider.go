@@ -91,7 +91,7 @@ func init() {
 		"gcp":                    "GCP configuration for the connection",
 		"azure":                  "Azure configuration for the connection",
 		"cloud_connection_name":  "Name of the cloud connection",
-		"cloud_environment_type": "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
+		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
