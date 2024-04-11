@@ -40,16 +40,16 @@ func dataSourceCloudEnvironment() *schema.Resource {
 			},
 		},
 		Schema: map[string]*schema.Schema{
-			"organization": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["organization"],
-				ValidateFunc: validateNotBlank,
-			},
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["cloud_environment_name"],
+				ValidateFunc: validateNotBlank,
+			},
+			"organization": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
 			"region": {

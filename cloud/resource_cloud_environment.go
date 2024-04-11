@@ -37,13 +37,11 @@ func resourceCloudEnvironment() *schema.Resource {
 		DeleteContext: resourceCloudEnvironmentDelete,
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
 			oldOrg, _ := diff.GetChange("organization")
-			oldName, _ := diff.GetChange("name")
-			if oldOrg.(string) == "" && oldName.(string) == "" {
+			if oldOrg.(string) == "" {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChanges("organization") ||
+			if diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
@@ -57,7 +55,6 @@ func resourceCloudEnvironment() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationInstance := strings.Split(d.Id(), "/")
 				_ = d.Set("organization", organizationInstance[0])
-				_ = d.Set("name", organizationInstance[1])
 				err := resourceCloudEnvironmentRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
@@ -72,11 +69,11 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
-			"name": {
+			"environment_type": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["cloud_environment_name"],
-				ValidateFunc: validateCloudEnvionmentName,
+				Description:  descriptions["environment_type"],
+				ValidateFunc: validateCloudEnvionmentType,
 			},
 			"region": {
 				Type:         schema.TypeString,
@@ -177,6 +174,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	ready := false
+	d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
 
 	if waitForCompletion == true {
 		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, name))
@@ -193,7 +191,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 	if ready {
 		_ = d.Set("organization", namespace)
-		_ = d.Set("name", name)
 		return resourceCloudEnvironmentRead(ctx, d, meta)
 	}
 
@@ -212,7 +209,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+	name := strings.Split(d.Id(), "/")[1]
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
@@ -239,12 +237,14 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	namespace := d.Get("organization").(string)
+	name := strings.Split(d.Id(), "/")[1]
+	waitForCompletion := d.Get("wait_for_completion")
+
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
-	waitForCompletion := d.Get("wait_for_completion")
+
 	err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
@@ -256,8 +256,6 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 			return diag.FromErr(err)
 		}
 	}
-
-	_ = d.Set("name", "")
 
 	return nil
 }
