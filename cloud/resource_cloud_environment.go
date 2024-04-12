@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -103,6 +105,16 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"wait_for_completion": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["wait_for_completion"],
+			},
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(60 * time.Minute),
+			Delete: schema.DefaultTimeout(60 * time.Minute),
 		},
 	}
 }
@@ -113,6 +125,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	waitForCompletion := d.Get("wait_for_completion")
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
@@ -161,20 +175,27 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
 
+	ready := false
 	d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
 
-	if ce.Status.Conditions != nil {
-		ready := false
+	if waitForCompletion == true {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, ce.GetObjectMeta().GetName()))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
 		for _, condition := range ce.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				ready = true
 			}
 		}
-		if ready {
-			_ = d.Set("organization", namespace)
-			return resourceCloudEnvironmentRead(ctx, d, meta)
-		}
 	}
+
+	if ready {
+		_ = d.Set("organization", namespace)
+		return resourceCloudEnvironmentRead(ctx, d, meta)
+	}
+
 	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
 		dia := resourceCloudEnvironmentRead(ctx, d, meta)
 		if dia.HasError() {
@@ -218,8 +239,9 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	name := strings.Split(d.Id(), "/")[1]
 	namespace := d.Get("organization").(string)
+	name := strings.Split(d.Id(), "/")[1]
+	waitForCompletion := d.Get("wait_for_completion")
 
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_CLOUD_ENVIRONMENT: %w", err))
@@ -229,5 +251,56 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
+
+	if waitForCompletion == true {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), retryUntilCloudEnvironmentIsDeleted(ctx, clientSet, namespace, name))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return nil
+}
+
+// retryUntilCloudEnvironmentIsProvisioned checks if a given CloudEnvironment has finished provisioning
+func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		ce, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		for _, condition := range ce.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
+				return nil
+			}
+		}
+
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
+}
+
+// retryUntilCloudEnvironmentIsDeleted checks if a given CloudEnvironment has finished deleting
+func retryUntilCloudEnvironmentIsDeleted(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
+		_, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return nil
+			} else {
+				return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+			}
+		}
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
 }
