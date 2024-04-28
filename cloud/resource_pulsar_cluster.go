@@ -89,7 +89,7 @@ func resourcePulsarCluster() *schema.Resource {
 				Optional:     true,
 				Default:      "rapid",
 				Description:  descriptions["release_channel"],
-				ValidateFunc: validateNotBlank,
+				ValidateFunc: validateReleaseChannel,
 			},
 			"bookie_replicas": {
 				Type:         schema.TypeInt,
