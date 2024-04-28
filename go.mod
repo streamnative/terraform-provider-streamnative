@@ -8,7 +8,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.17.1-0.20240201114855-a7d3a65094e8
+	github.com/streamnative/cloud-api-server v1.25.3
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
@@ -160,7 +160,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.28.4 // indirect
-	k8s.io/apiserver v0.23.17 // indirect
+	k8s.io/apiserver v0.24.0 // indirect
 	k8s.io/component-base v0.28.4 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
