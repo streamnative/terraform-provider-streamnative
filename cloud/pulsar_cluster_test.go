@@ -43,7 +43,7 @@ func TestPulsarCluster(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"terraform-test-pulsar-instance",
-					"us-central1"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
@@ -114,7 +114,7 @@ func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourcePulsarCluster(organization, name, instanceName, location string) string {
+func testResourceDataSourcePulsarCluster(organization, name, instanceName, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -123,6 +123,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	name = "%s"
   	instance_name = "%s"
   	location = "%s"
+    release_channel = "%s"
 	config {
 		websocket_enabled = true
 		function_enabled = false
@@ -146,5 +147,5 @@ data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, instanceName, location)
+`, organization, name, instanceName, location, releaseChannel)
 }
