@@ -62,6 +62,11 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Description: descriptions["location"],
 				Computed:    true,
 			},
+			"release_channel": {
+				Type:        schema.TypeString,
+				Description: descriptions["release_channel"],
+				Computed:    true,
+			},
 			"bookie_replicas": {
 				Type:        schema.TypeInt,
 				Description: descriptions["bookie_replicas"],
@@ -238,6 +243,10 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	_ = d.Set("pulsar_version", brokerImage[1])
 	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
 	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	releaseChannel := pulsarCluster.Spec.ReleaseChannel
+	if releaseChannel != "" {
+		_ = d.Set("release_channel", releaseChannel)
+	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
