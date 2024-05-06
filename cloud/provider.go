@@ -62,6 +62,7 @@ func init() {
 		"instance_name":        "The pulsar instance name",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
+		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
 		"bookie_replicas":     "The number of bookie replicas",
 		"broker_replicas":     "The number of broker replicas",
 		"compute_unit":        "compute unit, 1 compute unit is 2 cpu and 8gb memory",

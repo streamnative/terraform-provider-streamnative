@@ -521,6 +521,8 @@ github.com/streamnative/apiserver-builder-alpha v0.0.0-20230717175906-0f92408874
 github.com/streamnative/apiserver-builder-alpha v0.0.0-20230717175906-0f9240887463/go.mod h1:W1q2VCPvT9GjMUsFX4JYmdXfSAYsrmLVLALfutt5LsE=
 github.com/streamnative/cloud-api-server v1.17.1-0.20240201114855-a7d3a65094e8 h1:xBeOFWaVodZLoF0G9suB+XcV1wts3bWAyQII0bjCwSk=
 github.com/streamnative/cloud-api-server v1.17.1-0.20240201114855-a7d3a65094e8/go.mod h1:rnneB8IS0MtXXwi/HAXxBojs2qQj8w2taq48WCrYhv8=
+github.com/streamnative/cloud-api-server v1.25.3 h1:Dvr7H7tyOKCKGwj5JmO7KGN2TVlu9KrsF/Ih3zBce1c=
+github.com/streamnative/cloud-api-server v1.25.3/go.mod h1:GX9siEefhX5wq6u3ay3lh8taVVvM7TTTGnXuJrWksWw=
 github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680 h1:PRqjyTsfwTCAd3SGDjgPT4Nmbczeegdm/ApyDGr14PA=
 github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680/go.mod h1:48XuDAuu3upsbndxqN+grxz9yPSklZk9ycxKB235dGs=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

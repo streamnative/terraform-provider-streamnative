@@ -28,6 +28,14 @@ func validateNotBlank(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
+func validateReleaseChannel(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if v != "lts" && v != "rapid" {
+		errs = append(errs, fmt.Errorf("%q must be tls or rapid", key))
+	}
+	return
+}
+
 func validateBookieReplicas(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(int)
 	if v < 3 || v > 15 {

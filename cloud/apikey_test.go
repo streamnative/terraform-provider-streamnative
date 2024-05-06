@@ -131,6 +131,7 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 		custom = {
 			"allowAutoTopicCreation" = "true"
 			"bookkeeper.journalSyncData" = "false"
+			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
 }
