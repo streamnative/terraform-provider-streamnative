@@ -215,7 +215,7 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {

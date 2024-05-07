@@ -9,7 +9,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.25.3
+	github.com/streamnative/cloud-api-server v1.25.2-0.20240507033804-3baaa1fdb934
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
@@ -53,7 +53,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/fvbommel/sortorder v1.0.1 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -157,10 +157,10 @@ require (
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/oauth2 v0.13.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
