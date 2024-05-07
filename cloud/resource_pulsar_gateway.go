@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -147,7 +148,7 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 			},
 		},
 	}
-	if access == "private" {
+	if access == string(cloud.PrivateAccess) {
 		privateService := d.Get("private_service").(map[string]interface{})
 		allowedIds := privateService["allowed_ids"].([]string)
 		pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
@@ -229,7 +230,7 @@ func resourcePulsarGatewayUpdate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_GATEWAY: %w", err))
 	}
-	if access != "private" || !d.HasChange("private_service") {
+	if access != string(cloud.PrivateAccess) || !d.HasChange("private_service") {
 		return nil
 	}
 
