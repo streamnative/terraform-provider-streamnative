@@ -87,7 +87,6 @@ func dataSourcePulsarGateway() *schema.Resource {
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
-							ValidateFunc: validation.ListOfUniqueStrings,
 						},
 					},
 				},
@@ -100,7 +99,6 @@ func dataSourcePulsarGateway() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				ValidateFunc: validation.ListOfUniqueStrings,
 			},
 			"ready": {
 				Type:        schema.TypeString,

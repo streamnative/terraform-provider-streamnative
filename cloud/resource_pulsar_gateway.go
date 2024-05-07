@@ -107,7 +107,6 @@ func resourcePulsarGateway() *schema.Resource {
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
-							ValidateFunc: validation.ListOfUniqueStrings,
 						},
 					},
 				},
