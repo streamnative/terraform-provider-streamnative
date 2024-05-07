@@ -81,19 +81,25 @@ func dataSourcePulsarGateway() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_ids": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							Description:  descriptions["allowed_ids"],
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: descriptions["allowed_ids"],
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 							ValidateFunc: validation.ListOfUniqueStrings,
 						},
 					},
 				},
 			},
 			"private_service_ids": {
-				Type:         schema.TypeList,
-				Optional:     true,
-				Computed:     true,
-				Description:  descriptions["private_service_ids"],
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: descriptions["private_service_ids"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 				ValidateFunc: validation.ListOfUniqueStrings,
 			},
 			"ready": {

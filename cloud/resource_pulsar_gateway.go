@@ -101,9 +101,12 @@ func resourcePulsarGateway() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_ids": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							Description:  descriptions["allowed_ids"],
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: descriptions["allowed_ids"],
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 							ValidateFunc: validation.ListOfUniqueStrings,
 						},
 					},
