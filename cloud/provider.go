@@ -122,7 +122,7 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"key_file_path": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KEY_FILE_PATH", nil),
 				Description: descriptions["key_file_path"],
 			},
