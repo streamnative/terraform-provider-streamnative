@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"encoding/base64"
+	"k8s.io/utils/clock"
 	"os"
 	"path/filepath"
 
@@ -152,8 +153,6 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
 
-	keyFilePath := d.Get("key_file_path").(string)
-
 	home, err := homedir.Dir()
 	if err != nil {
 		return nil, diag.FromErr(err)
@@ -176,23 +175,56 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultAPIServer == "" {
 		defaultAPIServer = GlobalDefaultAPIServer
 	}
-	credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
-	keyFile, err := credsProvider.GetClientCredentials()
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	issuer := auth.Issuer{
-		IssuerEndpoint: defaultIssuer,
-		ClientID:       keyFile.ClientID,
-		Audience:       defaultAudience,
-	}
-	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	grant, err := flow.Authorize()
-	if err != nil {
-		return nil, diag.FromErr(err)
+	defaultClientId := os.Getenv("GLOBAL_DEFAULT_CLIENT_ID")
+	defaultClientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
+	defaultClientEmail := os.Getenv("GLOBAL_DEFAULT_CLIENT_EMAIL")
+	var keyFile *auth.KeyFile
+	var flow *auth.ClientCredentialsFlow
+	var grant *auth.AuthorizationGrant
+	var issuer auth.Issuer
+	if defaultClientId != "" && defaultClientSecret != "" && defaultClientEmail != "" {
+		keyFile = &auth.KeyFile{
+			ClientID:     defaultClientId,
+			ClientSecret: defaultClientSecret,
+		}
+		issuer = auth.Issuer{
+			IssuerEndpoint: defaultIssuer,
+			ClientID:       keyFile.ClientID,
+			Audience:       defaultAudience,
+		}
+		authorizationGrant := &auth.AuthorizationGrant{
+			Type:              auth.GrantTypeClientCredentials,
+			ClientCredentials: keyFile,
+		}
+
+		refresher, err := auth.NewDefaultClientCredentialsGrantRefresher(issuer, clock.RealClock{})
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		grant, err = refresher.Refresh(authorizationGrant)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+	} else {
+		keyFilePath := d.Get("key_file_path").(string)
+		credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
+		keyFile, err = credsProvider.GetClientCredentials()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		issuer = auth.Issuer{
+			IssuerEndpoint: defaultIssuer,
+			ClientID:       keyFile.ClientID,
+			Audience:       defaultAudience,
+		}
+		flow, err = auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		grant, err = flow.Authorize()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
 	streams := genericclioptions.IOStreams{
 		In:     os.Stdin,
