@@ -51,6 +51,6 @@ func testAccPreCheck(t *testing.T) {
 	clientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
 	if keyFilePath == "" && clientId == "" && clientSecret == "" {
 		t.Fatal("KEY_FILE_PATH or GLOBAL_DEFAULT_CLIENT_ID," +
-			"GLOBAL_DEFAULT_CLIENT_SECRET, GLOBAL_DEFAULT_CLIENT_EMAIL must be set for acceptance tests")
+			"GLOBAL_DEFAULT_CLIENT_SECRET must be set for acceptance tests")
 	}
 }
