@@ -36,6 +36,7 @@ description: |-
 - `pulsar_tls_service_url` (String) The service url of the pulsar cluster, use it to produce and consume message
 - `pulsar_version` (String) The version of the pulsar cluster
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
+- `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url
 
