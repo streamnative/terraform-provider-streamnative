@@ -7,8 +7,10 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/streamnative/cloud-api-server v1.17.1-0.20240201114855-a7d3a65094e8
+	github.com/pkg/errors v0.9.1
+	github.com/streamnative/cloud-api-server v1.25.3
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
+	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
 	k8s.io/cli-runtime v0.24.3
 	k8s.io/client-go v12.0.0+incompatible
@@ -110,7 +112,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
@@ -125,7 +126,6 @@ require (
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.1 // indirect
@@ -160,7 +160,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.28.4 // indirect
-	k8s.io/apiserver v0.23.17 // indirect
+	k8s.io/apiserver v0.24.0 // indirect
 	k8s.io/component-base v0.28.4 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect

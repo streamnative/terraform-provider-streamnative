@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,13 +37,11 @@ func resourceCloudEnvironment() *schema.Resource {
 		DeleteContext: resourceCloudEnvironmentDelete,
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
 			oldOrg, _ := diff.GetChange("organization")
-			oldName, _ := diff.GetChange("name")
-			if oldOrg.(string) == "" && oldName.(string) == "" {
+			if oldOrg.(string) == "" {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChanges("organization") ||
+			if diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
@@ -55,7 +55,6 @@ func resourceCloudEnvironment() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationInstance := strings.Split(d.Id(), "/")
 				_ = d.Set("organization", organizationInstance[0])
-				_ = d.Set("name", organizationInstance[1])
 				err := resourceCloudEnvironmentRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
@@ -70,11 +69,11 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
-			"name": {
+			"environment_type": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["cloud_environment_name"],
-				ValidateFunc: validateCloudEnvionmentName,
+				Description:  descriptions["environment_type"],
+				ValidateFunc: validateCloudEnvionmentType,
 			},
 			"region": {
 				Type:         schema.TypeString,
@@ -99,22 +98,35 @@ func resourceCloudEnvironment() *schema.Resource {
 							Optional: true,
 						},
 						"cidr": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateCidrRange,
 						},
 					},
 				},
 			},
+			"wait_for_completion": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["wait_for_completion"],
+			},
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(60 * time.Minute),
+			Delete: schema.DefaultTimeout(60 * time.Minute),
 		},
 	}
 }
 
 func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+	cloudEnvironmentType := d.Get("environment_type").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	waitForCompletion := d.Get("wait_for_completion")
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
@@ -126,8 +138,10 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				"cloud.streamnative.io/environment-type": cloudEnvironmentType,
+			},
 		},
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
 			CloudConnectionName: cloudConnectionName,
@@ -160,19 +174,28 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	if ce.Status.Conditions != nil {
-		ready := false
+
+	ready := false
+	d.SetId(fmt.Sprintf("%s/%s", ce.ObjectMeta.Namespace, ce.ObjectMeta.Name))
+
+	if waitForCompletion == true {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, ce.GetObjectMeta().GetName()))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
 		for _, condition := range ce.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
 				ready = true
 			}
 		}
-		if ready {
-			_ = d.Set("organization", namespace)
-			_ = d.Set("name", name)
-			return resourceCloudEnvironmentRead(ctx, d, meta)
-		}
 	}
+
+	if ready {
+		_ = d.Set("organization", namespace)
+		return resourceCloudEnvironmentRead(ctx, d, meta)
+	}
+
 	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
 		dia := resourceCloudEnvironmentRead(ctx, d, meta)
 		if dia.HasError() {
@@ -188,7 +211,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+	name := strings.Split(d.Id(), "/")[1]
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_SERVICE_ACCOUNT: %w", err))
@@ -215,15 +239,68 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	namespace := d.Get("organization").(string)
+	name := strings.Split(d.Id(), "/")[1]
+	waitForCompletion := d.Get("wait_for_completion")
+
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	namespace := d.Get("organization").(string)
-	name := d.Get("name").(string)
+
 	err = clientSet.CloudV1alpha1().CloudEnvironments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_CLOUD_ENVIRONMENT: %w", err))
 	}
-	_ = d.Set("name", "")
+
+	if waitForCompletion == true {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), retryUntilCloudEnvironmentIsDeleted(ctx, clientSet, namespace, name))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return nil
+}
+
+// retryUntilCloudEnvironmentIsProvisioned checks if a given CloudEnvironment has finished provisioning
+func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		ce, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		for _, condition := range ce.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
+				return nil
+			}
+		}
+
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
+}
+
+// retryUntilCloudEnvironmentIsDeleted checks if a given CloudEnvironment has finished deleting
+func retryUntilCloudEnvironmentIsDeleted(ctx context.Context, clientSet *cloudclient.Clientset, ns string, name string) retry.RetryFunc {
+	return func() *retry.RetryError {
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
+		_, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return nil
+			} else {
+				return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+			}
+		}
+
+		return retry.RetryableError(fmt.Errorf("cloudenvironment: %s/%s is not in complete state", ns, name))
+	}
 }

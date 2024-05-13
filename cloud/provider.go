@@ -65,6 +65,7 @@ func init() {
 		"instance_name":                "The pulsar instance name",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
+		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
 		"bookie_replicas":     "The number of bookie replicas",
 		"broker_replicas":     "The number of broker replicas",
 		"compute_unit":        "compute unit, 1 compute unit is 2 cpu and 8gb memory",
@@ -94,6 +95,7 @@ func init() {
 		"gcp":                    "GCP configuration for the connection",
 		"azure":                  "Azure configuration for the connection",
 		"cloud_connection_name":  "Name of the cloud connection",
+		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
@@ -113,6 +115,7 @@ func init() {
 			"1m(one minute), 1h(one hour), 1d(one day) or this time format 2025-05-08T15:30:00Z, " +
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
+		"wait_for_completion": "If true, will block until the status of CloudEnvironment has a Ready condition",
 	}
 }
 

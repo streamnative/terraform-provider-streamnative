@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -23,6 +24,14 @@ func validateNotBlank(val interface{}, key string) (warns []string, errs []error
 	v := val.(string)
 	if len(strings.Trim(strings.TrimSpace(v), "\"")) == 0 {
 		errs = append(errs, fmt.Errorf("%q must not be empty", key))
+	}
+	return
+}
+
+func validateReleaseChannel(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if v != "lts" && v != "rapid" {
+		errs = append(errs, fmt.Errorf("%q must be tls or rapid", key))
 	}
 	return
 }
@@ -63,12 +72,11 @@ func validateAuditLog(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
-func validateCloudEnvionmentName(val interface{}, key string) (warns []string, errs []error) {
-	maxNameLength := 28
+func validateCloudEnvionmentType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
-	if len(v) > maxNameLength || len(v) < 1 {
+	if v != "dev" && v != "test" && v != "staging" && v != "production" && v != "acc" && v != "qa" && v != "poc" {
 		errs = append(errs, fmt.Errorf(
-			"%q should be shorter than or equal to %d and greater than 0, got: %s", key, maxNameLength, v))
+			"%q should be one of: dev, test, staging, production, acc, qa or poc, got: %s", key, v))
 	}
 	return
 }
@@ -78,6 +86,25 @@ func validateRegion(val interface{}, key string) (warns []string, errs []error) 
 	if !contains(validRegions, v) {
 		errs = append(errs, fmt.Errorf(
 			"%q must be a valid region, got: %s", key, v))
+	}
+	return
+}
+
+func validateCidrRange(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	parts := strings.Split(v, "/")
+
+	if len(parts) < 2 {
+		//Not valid CIDR notation
+		errs = append(errs, fmt.Errorf(
+			"%q is not valid CIDR notation, must be X.X.X.X/X, got: %s", key, v))
+	} else {
+		prefixLength, err := strconv.Atoi(parts[1])
+
+		if err != nil || (prefixLength < 16 || prefixLength > 28) {
+			errs = append(errs, fmt.Errorf(
+				"%q is not valid CIDR prefix length, must be between /16 and /28, got: %s", key, v))
+		}
 	}
 	return
 }

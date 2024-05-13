@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var clusterGeneratedName = fmt.Sprintf("terraform-test-pulsar-cluster-%d", rand.Intn(10000))
 
 func TestPulsarCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -38,9 +41,9 @@ func TestPulsarCluster(t *testing.T) {
 			{
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
-					"terraform-test-pulsar-cluster",
+					clusterGeneratedName,
 					"terraform-test-pulsar-instance",
-					"us-central1"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
@@ -50,7 +53,7 @@ func TestPulsarCluster(t *testing.T) {
 }
 
 func testCheckPulsarClusterDestroy(s *terraform.State) error {
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "streamnative_pulsar_cluster" {
 			continue
@@ -111,7 +114,7 @@ func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourcePulsarCluster(organization, name, instanceName, location string) string {
+func testResourceDataSourcePulsarCluster(organization, name, instanceName, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -120,6 +123,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	name = "%s"
   	instance_name = "%s"
   	location = "%s"
+    release_channel = "%s"
 	config {
 		websocket_enabled = true
 		function_enabled = false
@@ -135,6 +139,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 		custom = {
 			"allowAutoTopicCreation" = "true"
 			"bookkeeper.journalSyncData" = "false"
+			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
 }
@@ -143,5 +148,5 @@ data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, instanceName, location)
+`, organization, name, instanceName, location, releaseChannel)
 }

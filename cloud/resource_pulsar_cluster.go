@@ -84,6 +84,13 @@ func resourcePulsarCluster() *schema.Resource {
 				Description:  descriptions["location"],
 				ValidateFunc: validateNotBlank,
 			},
+			"release_channel": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "rapid",
+				Description:  descriptions["release_channel"],
+				ValidateFunc: validateReleaseChannel,
+			},
 			"bookie_replicas": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -232,6 +239,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	name := d.Get("name").(string)
 	instanceName := d.Get("instance_name").(string)
 	location := d.Get("location").(string)
+	releaseChannel := d.Get("release_channel").(string)
 	bookieReplicas := int32(d.Get("bookie_replicas").(int))
 	brokerReplicas := int32(d.Get("broker_replicas").(int))
 	computeUnit := d.Get("compute_unit").(float64)
@@ -272,8 +280,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			Namespace: namespace,
 		},
 		Spec: cloudv1alpha1.PulsarClusterSpec{
-			InstanceName: instanceName,
-			Location:     location,
+			InstanceName:   instanceName,
+			Location:       location,
+			ReleaseChannel: releaseChannel,
 			BookKeeper: &cloudv1alpha1.BookKeeper{
 				Replicas: &bookieReplicas,
 				Resources: &cloudv1alpha1.BookkeeperNodeResource{
@@ -375,6 +384,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	_ = d.Set("pulsar_version", brokerImage[1])
 	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
 	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	releaseChannel := pulsarCluster.Spec.ReleaseChannel
+	if releaseChannel != "" {
+		_ = d.Set("release_channel", releaseChannel)
+	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
@@ -395,6 +408,10 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	if d.HasChange("location") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 			"The pulsar cluster location does not support updates"))
+	}
+	if d.HasChange("release_channel") {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+			"The pulsar cluster release channel does not support updates"))
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
