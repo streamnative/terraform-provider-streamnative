@@ -177,12 +177,12 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	}
 	defaultClientId := os.Getenv("GLOBAL_DEFAULT_CLIENT_ID")
 	defaultClientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
-	defaultClientEmail := os.Getenv("GLOBAL_DEFAULT_CLIENT_EMAIL")
+	//defaultClientEmail := os.Getenv("GLOBAL_DEFAULT_CLIENT_EMAIL")
 	var keyFile *auth.KeyFile
 	var flow *auth.ClientCredentialsFlow
 	var grant *auth.AuthorizationGrant
 	var issuer auth.Issuer
-	if defaultClientId != "" && defaultClientSecret != "" && defaultClientEmail != "" {
+	if defaultClientId != "" && defaultClientSecret != "" {
 		keyFile = &auth.KeyFile{
 			ClientID:     defaultClientId,
 			ClientSecret: defaultClientSecret,
