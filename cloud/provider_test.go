@@ -46,7 +46,11 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("KEY_FILE_PATH"); v == "" {
-		t.Fatal("KEY_FILE_PATH must be set for acceptance tests")
+	keyFilePath := os.Getenv("KEY_FILE_PATH")
+	clientId := os.Getenv("GLOBAL_DEFAULT_CLIENT_ID")
+	clientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
+	if keyFilePath == "" && clientId == "" && clientSecret == "" {
+		t.Fatal("KEY_FILE_PATH or GLOBAL_DEFAULT_CLIENT_ID," +
+			"GLOBAL_DEFAULT_CLIENT_SECRET must be set for acceptance tests")
 	}
 }
