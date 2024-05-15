@@ -41,7 +41,7 @@ resource "streamnative_cloud_connection" "test-cloud-connection" {
 resource "streamnative_cloud_environment" "test-cloud-environment" {
 	organization = "streamnative"
 	name = "aws-cloud-environment"
-	region = "us-west1"
+	region = "us-west-1"
 	cloud_connection_name = "aws-connection"
 	network {
 		cidr = "10.0.0.0/16"
