@@ -27,5 +27,3 @@ description: |-
 
 - `id` (String) The ID of this resource.
 - `ready` (String) Pulsar instance is ready, it will be set to 'True' after the instance is ready
-
-

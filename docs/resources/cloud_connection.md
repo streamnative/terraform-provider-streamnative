@@ -56,5 +56,3 @@ Optional:
 Optional:
 
 - `project_id` (String)
-
-

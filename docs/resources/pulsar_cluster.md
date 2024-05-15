@@ -70,5 +70,3 @@ Optional:
 
 - `kafka` (Map of String) Controls the kafka protocol config of pulsar cluster
 - `mqtt` (Map of String) Controls the mqtt protocol config of pulsar cluster
-
-
