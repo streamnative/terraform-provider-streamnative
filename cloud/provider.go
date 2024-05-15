@@ -51,7 +51,12 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"key_file_path":                "The path of the private key file",
+		"key_file_path": "The path of the private key file, you can set it to 'KEY_FILE_PATH' " +
+			"environment variable, find it in the cloud console under the service account with admin permission",
+		"client_id": "Client ID of the service account, " +
+			"you can set it to 'GLOBAL_DEFAULT_CLIENT_ID' environment variable",
+		"client_secret": "Client Secret of the service account, " +
+			"you can set it to 'GLOBAL_DEFAULT_CLIENT_SECRET' environment variable",
 		"organization":                 "The organization name",
 		"service_account_name":         "The service account name",
 		"service_account_binding_name": "The service account binding name",
@@ -129,6 +134,18 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("KEY_FILE_PATH", nil),
 				Description: descriptions["key_file_path"],
 			},
+			"client_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GLOBAL_DEFAULT_CLIENT_ID", nil),
+				Description: descriptions["client_id"],
+			},
+			"client_secret": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GLOBAL_DEFAULT_CLIENT_SECRET", nil),
+				Description: descriptions["client_secret"],
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         resourceServiceAccount(),
@@ -180,17 +197,16 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultAPIServer == "" {
 		defaultAPIServer = GlobalDefaultAPIServer
 	}
-	defaultClientId := os.Getenv("GLOBAL_DEFAULT_CLIENT_ID")
-	defaultClientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
-	//defaultClientEmail := os.Getenv("GLOBAL_DEFAULT_CLIENT_EMAIL")
+	clientId := d.Get("client_id").(string)
+	clientSecret := d.Get("client_secret").(string)
 	var keyFile *auth.KeyFile
 	var flow *auth.ClientCredentialsFlow
 	var grant *auth.AuthorizationGrant
 	var issuer auth.Issuer
-	if defaultClientId != "" && defaultClientSecret != "" {
+	if clientId != "" && clientSecret != "" {
 		keyFile = &auth.KeyFile{
-			ClientID:     defaultClientId,
-			ClientSecret: defaultClientSecret,
+			ClientID:     clientId,
+			ClientSecret: clientSecret,
 		}
 		issuer = auth.Issuer{
 			IssuerEndpoint: defaultIssuer,
