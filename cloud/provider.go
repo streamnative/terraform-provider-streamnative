@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"encoding/base64"
+	"k8s.io/utils/clock"
 	"os"
 	"path/filepath"
 
@@ -50,18 +51,22 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"key_file_path":        "The path of the private key file",
-		"organization":         "The organization name",
-		"service_account_name": "The service account name",
-		"cluster_name":         "The pulsar cluster name",
-		"admin":                "Whether the service account is admin",
-		"private_key_data":     "The private key data",
-		"availability-mode":    "The availability mode, supporting 'zonal' and 'regional'",
-		"pool_name":            "The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'",
-		"pool_namespace":       "The infrastructure pool namespace to use, supported 'streamnative'",
-		"instance_name":        "The pulsar instance name",
+		"key_file_path":                "The path of the private key file",
+		"organization":                 "The organization name",
+		"service_account_name":         "The service account name",
+		"service_account_binding_name": "The service account binding name",
+		"cluster_name":                 "The pulsar cluster name",
+		"admin":                        "Whether the service account is admin",
+		"private_key_data":             "The private key data",
+		"availability-mode":            "The availability mode, supporting 'zonal' and 'regional'",
+		"pool_name":                    "The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'",
+		"pool_namespace":               "The infrastructure pool namespace to use, supported 'streamnative'",
+		"pool_member_name":             "The infrastructure pool member name to use, can be got from the PulsarCluster resource",
+		"pool_member_namespace":        "The infrastructure pool member namespace to use, supported 'streamnative'",
+		"instance_name":                "The pulsar instance name",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
+		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
 		"bookie_replicas":     "The number of bookie replicas",
 		"broker_replicas":     "The number of broker replicas",
 		"compute_unit":        "compute unit, 1 compute unit is 2 cpu and 8gb memory",
@@ -91,6 +96,7 @@ func init() {
 		"gcp":                    "GCP configuration for the connection",
 		"azure":                  "Azure configuration for the connection",
 		"cloud_connection_name":  "Name of the cloud connection",
+		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
@@ -110,6 +116,7 @@ func init() {
 			"1m(one minute), 1h(one hour), 1d(one day) or this time format 2025-05-08T15:30:00Z, " +
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
+		"wait_for_completion": "If true, will block until the status of CloudEnvironment has a Ready condition",
 	}
 }
 
@@ -118,26 +125,28 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"key_file_path": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KEY_FILE_PATH", nil),
 				Description: descriptions["key_file_path"],
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":   resourceServiceAccount(),
-			"streamnative_pulsar_instance":   resourcePulsarInstance(),
-			"streamnative_pulsar_cluster":    resourcePulsarCluster(),
-			"streamnative_cloud_connection":  resourceCloudConnection(),
-			"streamnative_cloud_environment": resourceCloudEnvironment(),
-			"streamnative_apikey":            resourceApiKey(),
+			"streamnative_service_account":         resourceServiceAccount(),
+			"streamnative_service_account_binding": resourceServiceAccountBinding(),
+			"streamnative_pulsar_instance":         resourcePulsarInstance(),
+			"streamnative_pulsar_cluster":          resourcePulsarCluster(),
+			"streamnative_cloud_connection":        resourceCloudConnection(),
+			"streamnative_cloud_environment":       resourceCloudEnvironment(),
+			"streamnative_apikey":                  resourceApiKey(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":   dataSourceServiceAccount(),
-			"streamnative_pulsar_instance":   dataSourcePulsarInstance(),
-			"streamnative_pulsar_cluster":    dataSourcePulsarCluster(),
-			"streamnative_cloud_connection":  dataSourceCloudConnection(),
-			"streamnative_cloud_environment": dataSourceCloudEnvironment(),
-			"streamnative_apikey":            dataSourceApiKey(),
+			"streamnative_service_account":         dataSourceServiceAccount(),
+			"streamnative_service_account_binding": dataSourceServiceAccountBinding(),
+			"streamnative_pulsar_instance":         dataSourcePulsarInstance(),
+			"streamnative_pulsar_cluster":          dataSourcePulsarCluster(),
+			"streamnative_cloud_connection":        dataSourceCloudConnection(),
+			"streamnative_cloud_environment":       dataSourceCloudEnvironment(),
+			"streamnative_apikey":                  dataSourceApiKey(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -148,8 +157,6 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
-
-	keyFilePath := d.Get("key_file_path").(string)
 
 	home, err := homedir.Dir()
 	if err != nil {
@@ -173,23 +180,56 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if defaultAPIServer == "" {
 		defaultAPIServer = GlobalDefaultAPIServer
 	}
-	credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
-	keyFile, err := credsProvider.GetClientCredentials()
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	issuer := auth.Issuer{
-		IssuerEndpoint: defaultIssuer,
-		ClientID:       keyFile.ClientID,
-		Audience:       defaultAudience,
-	}
-	flow, err := auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	grant, err := flow.Authorize()
-	if err != nil {
-		return nil, diag.FromErr(err)
+	defaultClientId := os.Getenv("GLOBAL_DEFAULT_CLIENT_ID")
+	defaultClientSecret := os.Getenv("GLOBAL_DEFAULT_CLIENT_SECRET")
+	//defaultClientEmail := os.Getenv("GLOBAL_DEFAULT_CLIENT_EMAIL")
+	var keyFile *auth.KeyFile
+	var flow *auth.ClientCredentialsFlow
+	var grant *auth.AuthorizationGrant
+	var issuer auth.Issuer
+	if defaultClientId != "" && defaultClientSecret != "" {
+		keyFile = &auth.KeyFile{
+			ClientID:     defaultClientId,
+			ClientSecret: defaultClientSecret,
+		}
+		issuer = auth.Issuer{
+			IssuerEndpoint: defaultIssuer,
+			ClientID:       keyFile.ClientID,
+			Audience:       defaultAudience,
+		}
+		authorizationGrant := &auth.AuthorizationGrant{
+			Type:              auth.GrantTypeClientCredentials,
+			ClientCredentials: keyFile,
+		}
+
+		refresher, err := auth.NewDefaultClientCredentialsGrantRefresher(issuer, clock.RealClock{})
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		grant, err = refresher.Refresh(authorizationGrant)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+	} else {
+		keyFilePath := d.Get("key_file_path").(string)
+		credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
+		keyFile, err = credsProvider.GetClientCredentials()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		issuer = auth.Issuer{
+			IssuerEndpoint: defaultIssuer,
+			ClientID:       keyFile.ClientID,
+			Audience:       defaultAudience,
+		}
+		flow, err = auth.NewDefaultClientCredentialsFlow(issuer, keyFilePath)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		grant, err = flow.Authorize()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
 	streams := genericclioptions.IOStreams{
 		In:     os.Stdin,

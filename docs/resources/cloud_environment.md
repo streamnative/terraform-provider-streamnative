@@ -18,10 +18,15 @@ description: |-
 ### Required
 
 - `cloud_connection_name` (String) Name of the cloud connection
-- `name` (String) Name of the cloud environment
+- `environment_type` (String) Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc
 - `network` (Block List, Min: 1) (see [below for nested schema](#nestedblock--network))
 - `organization` (String) The organization name
 - `region` (String)
+
+### Optional
+
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `wait_for_completion` (Boolean) If true, will block until the status of CloudEnvironment has a Ready condition
 
 ### Read-Only
 
@@ -37,5 +42,14 @@ Optional:
 Read-Only:
 
 - `id` (String) The ID of this resource.
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
 
 

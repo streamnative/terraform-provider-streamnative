@@ -28,6 +28,7 @@ description: |-
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
 - `config` (Block List) (see [below for nested schema](#nestedblock--config))
+- `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
 
 ### Read-Only
