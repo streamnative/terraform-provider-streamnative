@@ -17,4 +17,6 @@ description: |-
 
 ### Optional
 
-- `key_file_path` (String) The path of the private key file
+- `client_id` (String) Client ID of the service account, you can set it to 'GLOBAL_DEFAULT_CLIENT_ID' environment variable
+- `client_secret` (String) Client Secret of the service account, you can set it to 'GLOBAL_DEFAULT_CLIENT_SECRET' environment variable
+- `key_file_path` (String) The path of the private key file, you can set it to 'KEY_FILE_PATH' environment variable, find it in the cloud console under the service account with admin permission

@@ -26,3 +26,5 @@ description: |-
 
 - `id` (String) The ID of this resource.
 - `name` (String) The service account binding name
+
+
