@@ -37,5 +37,3 @@ description: |-
 - `private_key` (String) The private key for decrypting the encrypted token
 - `ready` (String) Apikey is ready, it will be set to 'True' after the api key is ready
 - `revoked_at` (String) The timestamp of when the key was revoked
-
-

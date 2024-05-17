@@ -34,5 +34,3 @@ Read-Only:
 
 - `cidr` (String)
 - `id` (String)
-
-
