@@ -2,7 +2,7 @@
 layout: ""
 page_title: "Provider: StreamNative Cloud"
 description: |-
-  The Datadog provider allows you to interact with the Datadog API.
+  The StreamNative Cloud provider allows you to interact with the StreamNative Cloud API.
 ---
 
 # StreamNative Cloud Provider
