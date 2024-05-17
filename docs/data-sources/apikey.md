@@ -36,5 +36,3 @@ description: |-
 - `revoked_at` (String) The timestamp of when the key was revoked
 - `service_account_name` (String) The service account name
 - `token` (String) The token of the api key
-
-

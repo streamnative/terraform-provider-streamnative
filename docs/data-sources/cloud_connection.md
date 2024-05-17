@@ -53,5 +53,3 @@ Read-Only:
 Read-Only:
 
 - `project_id` (String)
-
-

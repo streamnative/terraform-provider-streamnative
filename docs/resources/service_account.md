@@ -28,5 +28,3 @@ description: |-
 
 - `id` (String) The ID of this resource.
 - `private_key_data` (String) The private key data
-
-

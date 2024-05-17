@@ -58,5 +58,9 @@ lint:
 tools:
 	go install github.com/bflad/tfproviderlint/cmd/tfproviderlint@v0.29.0
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.0
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
+docs:
+	tfplugindocs
 
 .PHONY: build

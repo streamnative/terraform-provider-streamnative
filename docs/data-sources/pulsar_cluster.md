@@ -67,5 +67,3 @@ Read-Only:
 
 - `kafka` (Map of String)
 - `mqtt` (Map of String)
-
-
