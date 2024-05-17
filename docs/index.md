@@ -15,7 +15,6 @@ Use the StreamNative Cloud provider to interact with the many resources supporte
 terraform {
   required_providers {
     streamnative = {
-      version = "0.4.0"
       source  = "streamnative/streamnative"
     }
   }
