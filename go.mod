@@ -9,7 +9,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.25.2-0.20240507033804-3baaa1fdb934
+	github.com/streamnative/cloud-api-server v1.25.4
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
