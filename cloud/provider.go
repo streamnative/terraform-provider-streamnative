@@ -154,13 +154,14 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"streamnative_service_account":   resourceServiceAccount(),
-			"streamnative_pulsar_instance":   resourcePulsarInstance(),
-			"streamnative_pulsar_cluster":    resourcePulsarCluster(),
-			"streamnative_cloud_connection":  resourceCloudConnection(),
-			"streamnative_cloud_environment": resourceCloudEnvironment(),
-			"streamnative_apikey":            resourceApiKey(),
-			"streamNative_pulsar_gateway":    resourcePulsarGateway(),
+			"streamnative_service_account":         resourceServiceAccount(),
+			"streamnative_service_account_binding": resourceServiceAccountBinding(),
+			"streamnative_pulsar_instance":         resourcePulsarInstance(),
+			"streamnative_pulsar_cluster":          resourcePulsarCluster(),
+			"streamnative_cloud_connection":        resourceCloudConnection(),
+			"streamnative_cloud_environment":       resourceCloudEnvironment(),
+			"streamnative_apikey":                  resourceApiKey(),
+			"streamnative_pulsar_gateway":          resourcePulsarGateway(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         dataSourceServiceAccount(),
@@ -173,6 +174,7 @@ func Provider() *schema.Provider {
 			"streamnative_pool":                    dataSourcePool(),
 			"streamnative_pool_member":             dataSourcePoolMember(),
 			"streamnative_resources":               dataSourceResources(),
+			"streamnative_pulsar_gateway":          dataSourcePulsarGateway(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -295,6 +297,9 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 			return nil, diag.FromErr(err)
 		}
 		options.Store, err = store.NewKeyringStore(kr)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 		options.Factory, err = plugin.NewDefaultFactory(options.Store, func() (auth.Issuer, error) {
 			return issuer, nil
 		})
