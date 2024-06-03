@@ -102,6 +102,7 @@ func init() {
 		"azure":                  "Azure configuration for the connection",
 		"cloud_connection_name":  "Name of the cloud connection",
 		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
+		"support_email":          "The support email use for receive notification of cloud environment creation status",
 		"cloud_environment_name": "Name of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",

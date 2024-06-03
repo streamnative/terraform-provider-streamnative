@@ -105,6 +105,12 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"support_email": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  descriptions["support_email"],
+				ValidateFunc: validateCloudEnvionmentType,
+			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -122,6 +128,7 @@ func resourceCloudEnvironment() *schema.Resource {
 func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	cloudEnvironmentType := d.Get("environment_type").(string)
+	supportEmail := d.Get("supportEmail").(string)
 	region := d.Get("region").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
@@ -141,6 +148,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			Namespace: namespace,
 			Annotations: map[string]string{
 				"cloud.streamnative.io/environment-type": cloudEnvironmentType,
+				"cloud.streamnative.io/support-email":    supportEmail,
 			},
 		},
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
