@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -77,6 +78,18 @@ func validateCloudEnvionmentType(val interface{}, key string) (warns []string, e
 	if v != "dev" && v != "test" && v != "staging" && v != "production" && v != "acc" && v != "qa" && v != "poc" {
 		errs = append(errs, fmt.Errorf(
 			"%q should be one of: dev, test, staging, production, acc, qa or poc, got: %s", key, v))
+	}
+	return
+}
+
+func validateEmail(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if v != "" {
+		r := regexp.MustCompile(`^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$`)
+		if !r.MatchString(v) {
+			errs = append(errs, fmt.Errorf(
+				"the format of %q is invalid: %s", key, v))
+		}
 	}
 	return
 }

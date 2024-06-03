@@ -109,7 +109,7 @@ func resourceCloudEnvironment() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["support_email"],
-				ValidateFunc: validateCloudEnvionmentType,
+				ValidateFunc: validateEmail,
 			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
