@@ -17,31 +17,18 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func dataSourcePulsarGateway() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourcePulsarGatewayRead,
-		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				organizationInstance := strings.Split(d.Id(), "/")
-				_ = d.Set("organization", organizationInstance[0])
-				_ = d.Set("name", organizationInstance[1])
-				err := resourcePulsarGatewayRead(ctx, d, meta)
-				if err.HasError() {
-					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
-				}
-				return []*schema.ResourceData{d}, nil
-			},
-		},
 		Schema: map[string]*schema.Schema{
 			"organization": {
 				Type:         schema.TypeString,
@@ -52,38 +39,34 @@ func dataSourcePulsarGateway() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["instance_name"],
+				Description:  descriptions["gateway_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"access": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["access"],
-				ValidateFunc: validation.StringInSlice([]string{"public", "private"}, false),
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["gateway_access"],
 			},
 			"poolmember_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["poolmember_name"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["pool_member_name"],
 			},
 			"poolmember_namespace": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["poolmember_namespace"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["pool_member_namespace"],
 			},
 			"private_service": {
 				Type:        schema.TypeSet,
-				Optional:    true,
 				Computed:    true,
-				Description: descriptions["private_service"],
+				Description: descriptions["gateway_private_service"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_ids": {
 							Type:        schema.TypeList,
-							Optional:    true,
-							Description: descriptions["allowed_ids"],
+							Computed:    true,
+							Description: descriptions["gateway_allowed_ids"],
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -95,7 +78,7 @@ func dataSourcePulsarGateway() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: descriptions["private_service_ids"],
+				Description: descriptions["gateway_private_service_ids"],
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

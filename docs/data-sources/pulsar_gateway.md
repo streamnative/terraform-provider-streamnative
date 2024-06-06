@@ -17,25 +17,25 @@ description: |-
 
 ### Required
 
-- `access` (String)
-- `name` (String) The pulsar instance name
+- `name` (String) The name of the pulsar gateway
 - `organization` (String) The organization name
-- `poolmember_name` (String)
-- `poolmember_namespace` (String)
 
 ### Optional
 
-- `private_service` (Block Set) (see [below for nested schema](#nestedblock--private_service))
-- `private_service_ids` (List of String)
+- `private_service_ids` (List of String) The private service ids are ids are service names of PrivateLink in AWS, the ids of Private Service Attachment in GCP, and the aliases of PrivateLinkService in Azure.
 
 ### Read-Only
 
+- `access` (String) The access type of the pulsar gateway, valid values are 'public' and 'private'
 - `id` (String) The ID of this resource.
-- `ready` (String)
+- `poolmember_name` (String) The infrastructure pool member name to use, can be got from the PulsarCluster resource
+- `poolmember_namespace` (String) The infrastructure pool member namespace to use, supported 'streamnative'
+- `private_service` (Set of Object) The private service configuration of the pulsar gateway, only can be configured when access is private (see [below for nested schema](#nestedatt--private_service))
+- `ready` (String) Pulsar gateway is ready, it will be set to 'True' after the gateway is ready
 
-<a id="nestedblock--private_service"></a>
+<a id="nestedatt--private_service"></a>
 ### Nested Schema for `private_service`
 
-Optional:
+Read-Only:
 
 - `allowed_ids` (List of String)

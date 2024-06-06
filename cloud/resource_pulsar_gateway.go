@@ -24,11 +24,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func resourcePulsarGateway() *schema.Resource {
@@ -73,37 +74,31 @@ func resourcePulsarGateway() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["instance_name"],
+				Description:  descriptions["gateway_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"access": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["access"],
+				Description:  descriptions["gateway_access"],
 				ValidateFunc: validation.StringInSlice([]string{"public", "private"}, false),
 			},
 			"poolmember_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["poolmember_name"],
-				ValidateFunc: validateNotBlank,
-			},
-			"poolmember_namespace": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["poolmember_namespace"],
+				Description:  descriptions["pool_member_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"private_service": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: descriptions["private_service"],
+				Description: descriptions["gateway_private_service"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_ids": {
 							Type:        schema.TypeList,
 							Optional:    true,
-							Description: descriptions["allowed_ids"],
+							Description: descriptions["gateway_allowed_ids"],
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -130,9 +125,16 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 	name := d.Get("name").(string)
 	access := d.Get("access").(string)
 	poolMemberName := d.Get("poolmember_name").(string)
-	poolMemberNamespace := d.Get("poolmember_namespace").(string)
 	waitForCompletion := d.Get("wait_for_completion").(bool)
 
+	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_GATEWAY: %w", err))
+	}
+	_, err = clientSet.CloudV1alpha1().PoolMembers(namespace).Get(ctx, poolMemberName, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_MEMBER_ON_CREATE_PULSAR_CLUSTER: %w", err))
+	}
 	pulsarGateway := &cloudv1alpha1.PulsarGateway{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PulsarGateway",
@@ -145,22 +147,22 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 		Spec: cloudv1alpha1.PulsarGatewaySpec{
 			Access: cloudv1alpha1.AccessType(access),
 			PoolMemberRef: cloudv1alpha1.PoolMemberReference{
-				Namespace: poolMemberNamespace,
+				Namespace: namespace,
 				Name:      poolMemberName,
 			},
 		},
 	}
 	if access == string(cloud.PrivateAccess) {
-		privateService := d.Get("private_service").(map[string]interface{})
-		allowedIds := privateService["allowed_ids"].([]string)
-		pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
-			AllowedIds: allowedIds,
+		privateService, ok := d.Get("private_service").(map[string]interface{})
+		if !ok {
+			return diag.FromErr(fmt.Errorf("ERROR_PRIVATE_SERVICE_INVALID: "))
 		}
-	}
-
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_GATEWAY: %w", err))
+		if privateService != nil {
+			allowedIds := privateService["allowed_ids"].([]string)
+			pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
+				AllowedIds: allowedIds,
+			}
+		}
 	}
 
 	pg, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Create(ctx, pulsarGateway, metav1.CreateOptions{

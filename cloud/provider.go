@@ -126,8 +126,17 @@ func init() {
 			"1m(one minute), 1h(one hour), 1d(one day) or this time format 2025-05-08T15:30:00Z, " +
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
-		"wait_for_completion": "If true, will block until the status of CloudEnvironment has a Ready condition",
-		"resource_name":       fmt.Sprintf("The name of StreamNative Cloud resource, should be plural format, valid values are %q.", strings.Join(validResourceNames, ", ")),
+		"wait_for_completion":     "If true, will block until the status of CloudEnvironment has a Ready condition",
+		"resource_name":           fmt.Sprintf("The name of StreamNative Cloud resource, should be plural format, valid values are %q.", strings.Join(validResourceNames, ", ")),
+		"gateway_name":            "The name of the pulsar gateway",
+		"gateway_access":          "The access type of the pulsar gateway, valid values are 'public' and 'private'",
+		"gateway_private_service": "The private service configuration of the pulsar gateway, only can be configured when access is private",
+		"gateway_allowed_ids": "The whitelist of the private service, only can be configured when access is private." +
+			"They are account ids in AWS, the project names in GCP, and the subscription ids in Azure",
+		"gateway_private_service_ids": "The private service ids are ids are service names of PrivateLink in AWS, " +
+			"the ids of Private Service Attachment in GCP, " +
+			"and the aliases of PrivateLinkService in Azure.",
+		"gateway_ready": "Pulsar gateway is ready, it will be set to 'True' after the gateway is ready",
 	}
 }
 

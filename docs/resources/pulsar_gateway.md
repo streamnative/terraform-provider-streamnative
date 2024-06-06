@@ -17,15 +17,14 @@ description: |-
 
 ### Required
 
-- `access` (String)
-- `name` (String) The pulsar instance name
+- `access` (String) The access type of the pulsar gateway, valid values are 'public' and 'private'
+- `name` (String) The name of the pulsar gateway
 - `organization` (String) The organization name
-- `poolmember_name` (String)
-- `poolmember_namespace` (String)
+- `poolmember_name` (String) The infrastructure pool member name to use, can be got from the PulsarCluster resource
 
 ### Optional
 
-- `private_service` (Block Set) (see [below for nested schema](#nestedblock--private_service))
+- `private_service` (Block Set) The private service configuration of the pulsar gateway, only can be configured when access is private (see [below for nested schema](#nestedblock--private_service))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `wait_for_completion` (Boolean) If true, will block until the status of CloudEnvironment has a Ready condition
 
@@ -38,7 +37,7 @@ description: |-
 
 Optional:
 
-- `allowed_ids` (List of String)
+- `allowed_ids` (List of String) The whitelist of the private service, only can be configured when access is private.They are account ids in AWS, the project names in GCP, and the subscription ids in Azure
 
 
 <a id="nestedblock--timeouts"></a>
