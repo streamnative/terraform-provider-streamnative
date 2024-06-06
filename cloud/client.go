@@ -17,9 +17,19 @@ package cloud
 import (
 	"fmt"
 
-	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 )
+
+func init() {
+	if err := cloudv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		panic(err)
+	}
+}
 
 func getFactoryFromMeta(meta interface{}) cmdutil.Factory {
 	return meta.(cmdutil.Factory)
@@ -32,7 +42,20 @@ func getClientSet(factory cmdutil.Factory) (*cloudclient.Clientset, error) {
 	}
 	clientSet, err := cloudclient.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("NewForConfig: %v", err)
+		return nil, fmt.Errorf("ClientSet NewForConfig: %v", err)
 	}
 	return clientSet, nil
+}
+
+func getDynamicClient(factory cmdutil.Factory) (dynamic.Interface, error) {
+	config, err := factory.ToRESTConfig()
+	if err != nil {
+		return nil, fmt.Errorf("ToRESTConfig: %v", err)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("DynamicClient NewForConfig: %v", err)
+	}
+	return dynamicClient, nil
 }
