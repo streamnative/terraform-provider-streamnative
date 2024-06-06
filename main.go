@@ -15,12 +15,28 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"github.com/streamnative/terraform-provider-streamnative/cloud"
 )
 
+var (
+	debugMode bool
+)
+
+func init() {
+	flag.BoolVar(&debugMode, "debug", false, "Enable debug mode")
+	flag.Parse()
+}
+
 func main() {
-	plugin.Serve(&plugin.ServeOpts{
+	opts := &plugin.ServeOpts{
 		ProviderFunc: cloud.Provider,
-	})
+	}
+	if debugMode {
+		opts.Debug = true
+		opts.ProviderAddr = "registry.terraform.io/streamnative/streamnative"
+	}
+	plugin.Serve(opts)
 }
