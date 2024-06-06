@@ -41,9 +41,9 @@ func resourcePulsarCluster() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChanges([]string{"organization", "name", "instance_name", "location"}...) {
+			if diff.HasChanges([]string{"organization", "name", "instance_name", "location", "pool_member_name"}...) {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
-					"The pulsar cluster organization, name, instance_name, location does not support updates, please recreate it")
+					"The pulsar cluster organization, name, instance_name, location, pool_member_name does not support updates, please recreate it")
 			}
 			return nil
 		},
@@ -80,8 +80,14 @@ func resourcePulsarCluster() *schema.Resource {
 			},
 			"location": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				Description:  descriptions["location"],
+				ValidateFunc: validateNotBlank,
+			},
+			"pool_member_name": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  descriptions["pool_member_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"release_channel": {
@@ -238,7 +244,12 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	instanceName := d.Get("instance_name").(string)
+	pool_member_name := d.Get("pool_member_name").(string)
 	location := d.Get("location").(string)
+	if pool_member_name == "" && location == "" {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+			"either pool_member_name or location must be provided"))
+	}
 	releaseChannel := d.Get("release_channel").(string)
 	bookieReplicas := int32(d.Get("bookie_replicas").(int))
 	brokerReplicas := int32(d.Get("broker_replicas").(int))
@@ -250,7 +261,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 	pulsarInstance, err := clientSet.CloudV1alpha1().
 		PulsarInstances(namespace).
-		Get(context.Background(), instanceName, metav1.GetOptions{
+		Get(ctx, instanceName, metav1.GetOptions{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PulsarInstance",
 				APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
@@ -269,6 +280,20 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	brokerCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
 	brokerMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
 	bookieMem := resource.NewQuantity(int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
+
+	if pool_member_name != "" {
+		// only allow BYOC user to select specific pool member
+		poolMember, err := clientSet.CloudV1alpha1().
+			PoolMembers(namespace).
+			Get(ctx, pool_member_name, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_MEMBER_ON_CREATE_PULSAR_CLUSTER: %w", err))
+		}
+		if poolMember.Spec.PoolName != pulsarInstance.Spec.PoolRef.Name {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"the pool member does not belong to the pool which pulsar instance is attached"))
+		}
+	}
 
 	pulsarCluster := &cloudv1alpha1.PulsarCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -300,6 +325,14 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				},
 			},
 		},
+	}
+	if pool_member_name != "" {
+		pulsarCluster.Spec.PoolMemberRef = cloudv1alpha1.PoolMemberReference{
+			Name:      pool_member_name,
+			Namespace: namespace,
+		}
+	} else {
+		pulsarCluster.Spec.Location = location
 	}
 	getPulsarClusterChanged(pulsarCluster, d)
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
