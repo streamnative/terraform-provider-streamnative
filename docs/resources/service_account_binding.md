@@ -18,8 +18,8 @@ description: |-
 ### Required
 
 - `organization` (String) The organization name
-- `pool_member_name` (String) The infrastructure pool member name to use, can be got from the PulsarCluster resource
-- `pool_member_namespace` (String) The infrastructure pool member namespace to use, supported 'streamnative'
+- `pool_member_name` (String) The infrastructure pool member name
+- `pool_member_namespace` (String) The infrastructure pool member namespace
 - `service_account_name` (String) The service account name
 
 ### Read-Only

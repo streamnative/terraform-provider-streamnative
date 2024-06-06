@@ -63,4 +63,4 @@ tools:
 docs:
 	tfplugindocs
 
-.PHONY: build
+.PHONY: build tools docs fmt fmtcheck lint testacc
