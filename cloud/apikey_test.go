@@ -114,8 +114,9 @@ provider "streamnative" {
 resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	organization = "sndev"
 	name = "%s"
-  	instance_name = "terraform-test-api-key-pulsar-instance"
-  	location = "us-central1"
+	instance_name = "terraform-test-api-key-pulsar-instance"
+	location = "us-central1"
+	release_channel = "lts"
 	config {
 		websocket_enabled = true
 		function_enabled = false

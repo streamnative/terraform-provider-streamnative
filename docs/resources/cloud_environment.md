@@ -26,7 +26,7 @@ description: |-
 ### Optional
 
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `wait_for_completion` (Boolean) If true, will block until the status of CloudEnvironment has a Ready condition
+- `wait_for_completion` (Boolean) If true, will block until the status of resource has a Ready condition
 
 ### Read-Only
 
