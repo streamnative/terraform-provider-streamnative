@@ -155,23 +155,6 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 	if access == string(cloud.PrivateAccess) {
 		pulsarGateway.Spec.PrivateService = convertPrivateService(d.Get("private_service"))
-		// privateService := d.Get("private_service").([]interface{})
-		// if len(privateService) > 0 {
-		// 	for _, privateServiceItem := range privateService {
-		// 		privateServiceItemMap, ok := privateServiceItem.(map[string]interface{})
-		// 		pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{}
-		// 		if ok && privateServiceItemMap["allowed_ids"] != nil {
-		// 			allowedIdsRaw := privateServiceItemMap["allowed_ids"].([]interface{})
-		// 			allowedIds := make([]string, len(allowedIdsRaw))
-		// 			for i, v := range allowedIdsRaw {
-		// 				allowedIds[i] = v.(string)
-		// 			}
-		// 			pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
-		// 				AllowedIds: allowedIds,
-		// 			}
-		// 		}
-		// 	}
-		// }
 	}
 
 	pg, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Create(ctx, pulsarGateway, metav1.CreateOptions{
