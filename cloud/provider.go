@@ -126,7 +126,7 @@ func init() {
 			"1m(one minute), 1h(one hour), 1d(one day) or this time format 2025-05-08T15:30:00Z, " +
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
-		"wait_for_completion":     "If true, will block until the status of CloudEnvironment has a Ready condition",
+		"wait_for_completion":     "If true, will block until the status of resource has a Ready condition",
 		"resource_name":           fmt.Sprintf("The name of StreamNative Cloud resource, should be plural format, valid values are %q.", strings.Join(validResourceNames, ", ")),
 		"gateway_name":            "The name of the pulsar gateway",
 		"gateway_access":          "The access type of the pulsar gateway, valid values are 'public' and 'private'",

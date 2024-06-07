@@ -45,8 +45,9 @@ func resourcePulsarGateway() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChanges("access") {
+			fmt.Println(diff.GetChange("name"))
+			fmt.Println(diff.GetChange("access"))
+			if diff.HasChanges("name", "access") {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_GATEWAY: " +
 					"The pulsar gateway does not support updates name and access, please recreate it")
 			}
@@ -54,10 +55,10 @@ func resourcePulsarGateway() *schema.Resource {
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				organizationInstance := strings.Split(d.Id(), "/")
-				_ = d.Set("organization", organizationInstance[0])
-				_ = d.Set("name", organizationInstance[1])
-				err := resourcePulsarInstanceRead(ctx, d, meta)
+				organizationName := strings.Split(d.Id(), "/")
+				_ = d.Set("organization", organizationName[0])
+				_ = d.Set("name", organizationName[1])
+				err := dataSourcePulsarGatewayRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
 				}
@@ -83,14 +84,14 @@ func resourcePulsarGateway() *schema.Resource {
 				Description:  descriptions["gateway_access"],
 				ValidateFunc: validation.StringInSlice([]string{"public", "private"}, false),
 			},
-			"poolmember_name": {
+			"pool_member_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["pool_member_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"private_service": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: descriptions["gateway_private_service"],
 				Elem: &schema.Resource{
@@ -124,7 +125,7 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	access := d.Get("access").(string)
-	poolMemberName := d.Get("poolmember_name").(string)
+	poolMemberName := d.Get("pool_member_name").(string)
 	waitForCompletion := d.Get("wait_for_completion").(bool)
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -133,7 +134,7 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 	_, err = clientSet.CloudV1alpha1().PoolMembers(namespace).Get(ctx, poolMemberName, metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_MEMBER_ON_CREATE_PULSAR_CLUSTER: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_MEMBER_ON_CREATE_PULSAR_GATEWAY: %w", err))
 	}
 	pulsarGateway := &cloudv1alpha1.PulsarGateway{
 		TypeMeta: metav1.TypeMeta{
@@ -153,16 +154,24 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 		},
 	}
 	if access == string(cloud.PrivateAccess) {
-		privateService, ok := d.Get("private_service").(map[string]interface{})
-		if !ok {
-			return diag.FromErr(fmt.Errorf("ERROR_PRIVATE_SERVICE_INVALID: "))
-		}
-		if privateService != nil {
-			allowedIds := privateService["allowed_ids"].([]string)
-			pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
-				AllowedIds: allowedIds,
-			}
-		}
+		pulsarGateway.Spec.PrivateService = convertPrivateService(d.Get("private_service"))
+		// privateService := d.Get("private_service").([]interface{})
+		// if len(privateService) > 0 {
+		// 	for _, privateServiceItem := range privateService {
+		// 		privateServiceItemMap, ok := privateServiceItem.(map[string]interface{})
+		// 		pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{}
+		// 		if ok && privateServiceItemMap["allowed_ids"] != nil {
+		// 			allowedIdsRaw := privateServiceItemMap["allowed_ids"].([]interface{})
+		// 			allowedIds := make([]string, len(allowedIdsRaw))
+		// 			for i, v := range allowedIdsRaw {
+		// 				allowedIds[i] = v.(string)
+		// 			}
+		// 			pulsarGateway.Spec.PrivateService = &cloudv1alpha1.PrivateService{
+		// 				AllowedIds: allowedIds,
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	pg, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Create(ctx, pulsarGateway, metav1.CreateOptions{
@@ -230,19 +239,16 @@ func resourcePulsarGatewayUpdate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_UPDATE_PULSAR_GATEWAY: %w", err))
 	}
+	if access != string(cloud.PrivateAccess) || !d.HasChange("private_service") {
+		return nil
+	}
 	pg, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_GATEWAY: %w", err))
 	}
-	if access != string(cloud.PrivateAccess) || !d.HasChange("private_service") {
-		return nil
-	}
 
-	privateService := d.Get("private_service").(map[string]interface{})
-	allowedIds := privateService["allowed_ids"].([]string)
-	pg.Spec.PrivateService = &cloudv1alpha1.PrivateService{
-		AllowedIds: allowedIds,
-	}
+	pg.Spec.PrivateService = convertPrivateService(d.Get("private_service"))
+
 	if _, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Update(ctx, pg, metav1.UpdateOptions{
 		FieldManager: "terraform-update",
 	}); err != nil {
@@ -319,8 +325,10 @@ func retryUntilPulsarGatewayIsUpdated(ctx context.Context, clientSet *cloudclien
 			}
 			return retry.NonRetryableError(err)
 		}
-		if pg.Status.ObservedGeneration == pg.Generation {
-			return nil
+		for _, condition := range pg.Status.Conditions {
+			if condition.ObservedGeneration == pg.Generation {
+				return nil
+			}
 		}
 
 		//Sleep 10 seconds between checks so we don't overload the API
@@ -345,4 +353,23 @@ func retryUntilPulsarGatewayIsDeleted(ctx context.Context, clientSet *cloudclien
 
 		return retry.RetryableError(fmt.Errorf("pulsargateway: %s/%s is not deleted", ns, name))
 	}
+}
+
+func convertPrivateService(val interface{}) *cloudv1alpha1.PrivateService {
+	privateServiceRaw := val.([]interface{})
+	var privateService cloudv1alpha1.PrivateService
+	for _, privateServiceItem := range privateServiceRaw {
+		privateServiceItemMap, ok := privateServiceItem.(map[string]interface{})
+		if ok && privateServiceItemMap["allowed_ids"] != nil {
+			allowedIdsRaw := privateServiceItemMap["allowed_ids"].([]interface{})
+			allowedIds := make([]string, len(allowedIdsRaw))
+			for i, v := range allowedIdsRaw {
+				allowedIds[i] = v.(string)
+			}
+			privateService = cloudv1alpha1.PrivateService{
+				AllowedIds: allowedIds,
+			}
+		}
+	}
+	return &privateService
 }

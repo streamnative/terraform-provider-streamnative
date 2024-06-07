@@ -20,13 +20,13 @@ description: |-
 - `access` (String) The access type of the pulsar gateway, valid values are 'public' and 'private'
 - `name` (String) The name of the pulsar gateway
 - `organization` (String) The organization name
-- `poolmember_name` (String) The infrastructure pool member name to use, can be got from the PulsarCluster resource
+- `pool_member_name` (String) The infrastructure pool member name
 
 ### Optional
 
-- `private_service` (Block Set) The private service configuration of the pulsar gateway, only can be configured when access is private (see [below for nested schema](#nestedblock--private_service))
+- `private_service` (Block List) The private service configuration of the pulsar gateway, only can be configured when access is private (see [below for nested schema](#nestedblock--private_service))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `wait_for_completion` (Boolean) If true, will block until the status of CloudEnvironment has a Ready condition
+- `wait_for_completion` (Boolean) If true, will block until the status of resource has a Ready condition
 
 ### Read-Only
 

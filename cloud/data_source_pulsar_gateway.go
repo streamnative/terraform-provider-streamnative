@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 )
 
 func dataSourcePulsarGateway() *schema.Resource {
@@ -47,18 +47,18 @@ func dataSourcePulsarGateway() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["gateway_access"],
 			},
-			"poolmember_name": {
+			"pool_member_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["pool_member_name"],
 			},
-			"poolmember_namespace": {
+			"pool_member_namespace": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["pool_member_namespace"],
 			},
 			"private_service": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Description: descriptions["gateway_private_service"],
 				Elem: &schema.Resource{
@@ -76,7 +76,6 @@ func dataSourcePulsarGateway() *schema.Resource {
 			},
 			"private_service_ids": {
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Description: descriptions["gateway_private_service_ids"],
 				Elem: &schema.Schema{
@@ -104,8 +103,8 @@ func dataSourcePulsarGatewayRead(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_GATEWAY: %w", err))
 	}
 	d.Set("access", pg.Spec.Access)
-	d.Set("poolmember_name", pg.Spec.PoolMemberRef.Name)
-	d.Set("poolmember_namespace", pg.Spec.PoolMemberRef.Namespace)
+	d.Set("pool_member_name", pg.Spec.PoolMemberRef.Name)
+	d.Set("pool_member_namespace", pg.Spec.PoolMemberRef.Namespace)
 
 	d.Set("ready", "False")
 	if pg.Status.Conditions != nil {
@@ -116,17 +115,36 @@ func dataSourcePulsarGatewayRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	if pg.Spec.Access == v1alpha1.AccessType(cloud.PrivateAccess) {
-		privateService := make(map[string]interface{})
+	if pg.Spec.Access == cloudv1alpha1.AccessType(cloud.PrivateAccess) {
 		if pg.Spec.PrivateService != nil {
-			privateService["allowed_ids"] = pg.Spec.PrivateService.AllowedIds
-			d.Set("private_service", privateService)
-		}
-		if pg.Spec.PrivateService != nil {
-			d.Set("private_service_ids", pg.Status.PrivateServiceIds)
+			d.Set("private_service", flattenPrivateService(pg.Spec.PrivateService))
+			d.Set("private_service_ids", flattenPrivateServiceIds(pg.Status.PrivateServiceIds))
 		}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
 	return nil
+}
+
+func flattenPrivateService(in *cloudv1alpha1.PrivateService) []interface{} {
+	att := make(map[string]interface{})
+	if in.AllowedIds != nil {
+		att["allowedIds"] = flattenStringSlice(in.AllowedIds)
+	}
+	return []interface{}{att}
+}
+func flattenPrivateServiceIds(in []cloudv1alpha1.PrivateServiceId) []interface{} {
+	ids := make([]string, 0, len(in))
+	for _, v := range in {
+		ids = append(ids, v.Id)
+	}
+	return flattenStringSlice(ids)
+}
+
+func flattenStringSlice(in []string) []interface{} {
+	ids := make([]interface{}, 0, len(in))
+	for _, v := range in {
+		ids = append(ids, v)
+	}
+	return ids
 }

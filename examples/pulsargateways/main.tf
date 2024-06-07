@@ -30,19 +30,17 @@ provider "streamnative" {
 }
 
 resource "streamnative_pulsar_gateway" "public-gateway" {
-  organization         = "sndev"
-  name                 = "public"
-  poolmember_name      = "test"
-  poolmember_namespace = "sndev"
-  access               = "public"
+  organization     = "sndev"
+  name             = "public"
+  pool_member_name = "test"
+  access           = "public"
 }
 
 resource "streamnative_pulsar_gateway" "private-gateway" {
-  organization         = "sndev"
-  name                 = "private"
-  poolmember_name      = "test"
-  poolmember_namespace = "sndev"
-  access               = "private"
+  organization     = "sndev"
+  name             = "private"
+  pool_member_name = "test"
+  access           = "private"
   private_service {
     allowed_ids = ["client-project-id"]
   }
