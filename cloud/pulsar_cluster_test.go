@@ -43,7 +43,7 @@ func TestPulsarCluster(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"terraform-test-pulsar-instance",
-					"us-central1", "rapid"),
+					"us-central1", "lts"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
