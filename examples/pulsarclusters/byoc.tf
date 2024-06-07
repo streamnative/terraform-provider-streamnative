@@ -26,19 +26,19 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/tuteng/Downloads/sndev-terraform-ci-test.json"
+  key_file_path = "/path/to/your/service/account/key.json"
 }
 
-resource "streamnative_pulsar_cluster" "test-cluster-1" {
-  organization    = "sndev"
-  name            = "test-cluster-1"
-  instance_name   = "test-instance"
-  location        = "us-central1"
-  release_channel = "rapid"
-  bookie_replicas = 3
-  broker_replicas = 2
-  compute_unit    = 0.3
-  storage_unit    = 0.3
+resource "streamnative_pulsar_cluster" "test-cluster-2" {
+  organization     = "sndev"
+  name             = "test-cluster-2"
+  instance_name    = "test-instance"
+  pool_member_name = "test-pool-member"
+  release_channel  = "rapid"
+  bookie_replicas  = 3
+  broker_replicas  = 2
+  compute_unit     = 0.3
+  storage_unit     = 0.3
 
   config {
     websocket_enabled   = true
@@ -61,12 +61,12 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   }
 }
 
-data "streamnative_pulsar_cluster" "test-cluster-1" {
-  depends_on   = [streamnative_pulsar_cluster.test-cluster-1]
-  organization = streamnative_pulsar_cluster.test-cluster-1.organization
-  name         = streamnative_pulsar_cluster.test-cluster-1.name
+data "streamnative_pulsar_cluster" "test-cluster-2" {
+  depends_on   = [streamnative_pulsar_cluster.test-cluster-2]
+  organization = streamnative_pulsar_cluster.test-cluster-2.organization
+  name         = streamnative_pulsar_cluster.test-cluster-2.name
 }
 
-output "pulsar_cluster" {
-  value = data.streamnative_pulsar_cluster.test-cluster-1
+output "pulsar_cluster_byoc" {
+  value = data.streamnative_pulsar_cluster.test-cluster-2
 }

@@ -17,24 +17,26 @@ package cloud
 import (
 	"context"
 	"encoding/base64"
-	"k8s.io/utils/clock"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/99designs/keyring"
-	"github.com/streamnative/cloud-cli/pkg/auth/store"
-	"github.com/streamnative/cloud-cli/pkg/plugin"
-	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/utils/clock"
+
 	"github.com/streamnative/cloud-cli/pkg/auth"
+	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"github.com/streamnative/cloud-cli/pkg/plugin"
 )
 
 const (
@@ -64,10 +66,13 @@ func init() {
 		"admin":                        "Whether the service account is admin",
 		"private_key_data":             "The private key data",
 		"availability-mode":            "The availability mode, supporting 'zonal' and 'regional'",
-		"pool_name":                    "The infrastructure pool name to use, supported pool 'shared-aws', 'shared-gcp'",
-		"pool_namespace":               "The infrastructure pool namespace to use, supported 'streamnative'",
-		"pool_member_name":             "The infrastructure pool member name to use, can be got from the PulsarCluster resource",
-		"pool_member_namespace":        "The infrastructure pool member namespace to use, supported 'streamnative'",
+		"pool_name":                    "The infrastructure pool name",
+		"pool_namespace":               "The infrastructure pool namespace",
+		"pool_type":                    "Type of infrastructure pool, one of aws, gcloud and azure",
+		"pool_member_name":             "The infrastructure pool member name",
+		"pool_member_namespace":        "The infrastructure pool member namespace",
+		"pool_member_type":             "Type of infrastructure pool member, one of aws, gcloud and azure",
+		"pool_member_location":         "The location of the infrastructure pool member",
 		"instance_name":                "The pulsar instance name",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
@@ -122,6 +127,7 @@ func init() {
 			"if you set it '0', it will never expire, " +
 			"if you don't set it, it will be set to 30d(30 days) by default",
 		"wait_for_completion": "If true, will block until the status of CloudEnvironment has a Ready condition",
+		"resource_name":       fmt.Sprintf("The name of StreamNative Cloud resource, should be plural format, valid values are %q.", strings.Join(validResourceNames, ", ")),
 	}
 }
 
@@ -164,6 +170,9 @@ func Provider() *schema.Provider {
 			"streamnative_cloud_connection":        dataSourceCloudConnection(),
 			"streamnative_cloud_environment":       dataSourceCloudEnvironment(),
 			"streamnative_apikey":                  dataSourceApiKey(),
+			"streamnative_pool":                    dataSourcePool(),
+			"streamnative_pool_member":             dataSourcePoolMember(),
+			"streamnative_resources":               dataSourceResources(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

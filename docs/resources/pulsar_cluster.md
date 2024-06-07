@@ -18,7 +18,6 @@ description: |-
 ### Required
 
 - `instance_name` (String) The pulsar instance name
-- `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `name` (String) The pulsar cluster name
 - `organization` (String) The organization name
 
@@ -28,6 +27,8 @@ description: |-
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
 - `config` (Block List) (see [below for nested schema](#nestedblock--config))
+- `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
+- `pool_member_name` (String) The infrastructure pool member name
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
 

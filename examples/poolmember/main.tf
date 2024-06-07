@@ -29,20 +29,17 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
-resource "streamnative_pulsar_instance" "test-instance-1" {
+data "streamnative_resources" "poolmembers" {
   organization = "sndev"
-  name = "test-instance-1"
-  availability_mode = "zonal"
-  pool_name = "shared-gcp"
-  pool_namespace = "streamnative"
+  resource = "poolmembers"
 }
 
-data "streamnative_pulsar_instance" "test-instance-1" {
-  depends_on = [streamnative_pulsar_instance.test-instance-1]
-  name = streamnative_pulsar_instance.test-instance-1.name
-  organization = streamnative_pulsar_instance.test-instance-1.organization
+data "streamnative_pool_member" "poolmembers" {
+  count = length(data.streamnative_resources.poolmembers.names)
+  organization = "sndev"
+  name = data.streamnative_resources.poolmembers.names[count.index]
 }
 
-output "pulsar_instance" {
-  value = data.streamnative_pulsar_instance.test-instance-1
+output "poolmembers" {
+  value = data.streamnative_pool_member.poolmembers
 }
