@@ -120,6 +120,7 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 		websocket_enabled = true
 		function_enabled = false
 		transaction_enabled = false
+		release_channel = "lts"
 		protocols {
 		  mqtt = {
 			enabled = "true"

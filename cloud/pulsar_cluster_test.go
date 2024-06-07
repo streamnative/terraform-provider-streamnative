@@ -121,9 +121,9 @@ provider "streamnative" {
 resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	organization = "%s"
 	name = "%s"
-  	instance_name = "%s"
-  	location = "%s"
-    release_channel = "%s"
+	instance_name = "%s"
+	location = "%s"
+	release_channel = "%s"
 	config {
 		websocket_enabled = true
 		function_enabled = false
