@@ -90,14 +90,14 @@ func init() {
 		"mqtt":                "Controls the mqtt protocol config of pulsar cluster",
 		"categories": "Controls the audit log categories config of pulsar cluster, supported categories: " +
 			"\"Management\", \"Describe\", \"Produce\", \"Consume\"",
-		"custom":                 "Controls the custom config of pulsar cluster",
-		"http_tls_service_url":   "The service url of the pulsar cluster, use it to management the pulsar cluster",
-		"pulsar_tls_service_url": "The service url of the pulsar cluster, use it to produce and consume message",
-		"kafka_service_url": "If you want to connect to the pulsar cluster using the kafka protocol," +
+		"custom":                  "Controls the custom config of pulsar cluster",
+		"http_tls_service_urls":   "The service url of the pulsar cluster, use it to management the pulsar cluster",
+		"pulsar_tls_service_urls": "The service url of the pulsar cluster, use it to produce and consume message",
+		"kafka_service_urls": "If you want to connect to the pulsar cluster using the kafka protocol," +
 			" use this kafka service url",
-		"mqtt_service_url": "If you want to connect to the pulsar cluster using the mqtt protocol, " +
+		"mqtt_service_urls": "If you want to connect to the pulsar cluster using the mqtt protocol, " +
 			"use this mqtt service url",
-		"websocket_service_url": "If you want to connect to the pulsar cluster using the websocket protocol, " +
+		"websocket_service_urls": "If you want to connect to the pulsar cluster using the websocket protocol, " +
 			"use this websocket service url",
 		"pulsar_version":         "The version of the pulsar cluster",
 		"bookkeeper_version":     "The version of the bookkeeper cluster",

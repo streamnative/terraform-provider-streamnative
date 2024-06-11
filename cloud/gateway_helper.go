@@ -42,6 +42,20 @@ func flattenDefaultGateway(in *cloudv1alpha1.Gateway) []interface{} {
 	return []interface{}{att}
 }
 
+func convertEndpointAccess(val interface{}) []cloudv1alpha1.EndpointAccess {
+	raw := val.([]interface{})
+	var endpointAccess []cloudv1alpha1.EndpointAccess
+	for _, rawItem := range raw {
+		rawItemMap, ok := rawItem.(map[string]interface{})
+		if ok && rawItemMap["gateway"] != "" {
+			endpointAccess = append(endpointAccess, cloudv1alpha1.EndpointAccess{
+				Gateway: rawItemMap["gateway"].(string),
+			})
+		}
+	}
+	return endpointAccess
+}
+
 func convertGateway(val interface{}) *cloudv1alpha1.Gateway {
 	gatewayRaw := val.([]interface{})
 	if len(gatewayRaw) > 0 {
