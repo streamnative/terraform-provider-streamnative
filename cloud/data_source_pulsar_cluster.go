@@ -269,7 +269,7 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	_ = d.Set("http_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
-	_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
+	_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(pulsarTlsServiceUrls))
 	_ = d.Set("websocket_service_urls", flattenStringSlice(websocketServiceUrls))
 	_ = d.Set("kafka_service_urls", flattenStringSlice(kafkaServiceUrls))
 	_ = d.Set("mqtt_service_urls", flattenStringSlice(mqttServiceUrls))

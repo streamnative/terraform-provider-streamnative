@@ -23,9 +23,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 )
 
 func resourcePulsarCluster() *schema.Resource {
@@ -363,6 +364,14 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		pulsarCluster.Spec.Location = location
 	}
 	pulsarCluster.Spec.EndpointAccess = convertEndpointAccess(d.Get("endpoint_access"))
+	for _, endpoint := range pulsarCluster.Spec.EndpointAccess {
+		if endpoint.Gateway != "default" {
+			_, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Get(ctx, endpoint.Gateway, metav1.GetOptions{})
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_GET_PULSAR_GATEWAY_ON_CREATE_PULSAR_CLUSTER: %w", err))
+			}
+		}
+	}
 	getPulsarClusterChanged(pulsarCluster, d)
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
 		FieldManager: "terraform-create",
@@ -453,30 +462,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 	_ = d.Set("http_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
-	_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
+	_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(pulsarTlsServiceUrls))
 	_ = d.Set("websocket_service_urls", flattenStringSlice(websocketServiceUrls))
 	_ = d.Set("kafka_service_urls", flattenStringSlice(kafkaServiceUrls))
 	_ = d.Set("mqtt_service_urls", flattenStringSlice(mqttServiceUrls))
-
-	if len(pulsarCluster.Spec.ServiceEndpoints) > 0 {
-		dnsName := pulsarCluster.Spec.ServiceEndpoints[0].DnsName
-		_ = d.Set("http_tls_service_url", fmt.Sprintf("https://%s", dnsName))
-		_ = d.Set("pulsar_tls_service_url", fmt.Sprintf("pulsar+ssl://%s:6651", dnsName))
-		if pulsarCluster.Spec.Config != nil {
-			if pulsarCluster.Spec.Config.WebsocketEnabled != nil &&
-				*pulsarCluster.Spec.Config.WebsocketEnabled {
-				_ = d.Set("websocket_service_url", fmt.Sprintf("wss://%s:9443", dnsName))
-			}
-			if pulsarCluster.Spec.Config.Protocols != nil {
-				if pulsarCluster.Spec.Config.Protocols.Kafka != nil {
-					_ = d.Set("kafka_service_url", fmt.Sprintf("%s:9093", dnsName))
-				}
-				if pulsarCluster.Spec.Config.Protocols.Mqtt != nil {
-					_ = d.Set("mqtt_service_url", fmt.Sprintf("mqtts://%s:8883", dnsName))
-				}
-			}
-		}
-	}
 	if pulsarCluster.Spec.Config != nil {
 		err = d.Set("config", flattenPulsarClusterConfig(pulsarCluster.Spec.Config))
 		if err != nil {
