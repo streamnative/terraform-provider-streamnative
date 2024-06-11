@@ -23,9 +23,28 @@ description: |-
 ### Read-Only
 
 - `cloud_connection_name` (String) Name of the cloud connection
+- `default_gateway` (List of Object) The default gateway of the cloud environment (see [below for nested schema](#nestedatt--default_gateway))
 - `id` (String) The ID of this resource.
 - `network` (List of Object) (see [below for nested schema](#nestedatt--network))
-- `region` (String)
+- `private_service_ids` (List of String) The private service ids are ids are service names of PrivateLink in AWS, the ids of Private Service Attachment in GCP, and the aliases of PrivateLinkService in Azure.
+- `region` (String) The region of the cloud environment
+
+<a id="nestedatt--default_gateway"></a>
+### Nested Schema for `default_gateway`
+
+Read-Only:
+
+- `access` (String)
+- `private_service` (List of Object) (see [below for nested schema](#nestedobjatt--default_gateway--private_service))
+
+<a id="nestedobjatt--default_gateway--private_service"></a>
+### Nested Schema for `default_gateway.private_service`
+
+Read-Only:
+
+- `allowed_ids` (List of String)
+
+
 
 <a id="nestedatt--network"></a>
 ### Nested Schema for `network`

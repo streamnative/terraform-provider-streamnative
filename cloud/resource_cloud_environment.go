@@ -73,13 +73,19 @@ func resourceCloudEnvironment() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["environment_type"],
-				ValidateFunc: validateCloudEnvionmentType,
+				ValidateFunc: validateCloudEnvironmentType,
 			},
 			"region": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["region"],
 				ValidateFunc: validateRegion,
+			},
+			"zone": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  descriptions["zone"],
+				ValidateFunc: validateNotBlank,
 			},
 			"cloud_connection_name": {
 				Type:         schema.TypeString,
@@ -105,6 +111,37 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"default_gateway": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: descriptions["default_gateway"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"access": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["default_gateway_access"],
+						},
+						"private_service": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: descriptions["default_gateway_private_service"],
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"allowed_ids": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: descriptions["default_gateway_allowed_ids"],
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -123,6 +160,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	namespace := d.Get("organization").(string)
 	cloudEnvironmentType := d.Get("environment_type").(string)
 	region := d.Get("region").(string)
+	zone := d.Get("zone").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
 	waitForCompletion := d.Get("wait_for_completion")
@@ -149,6 +187,9 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			Network:             &cloudv1alpha1.Network{},
 		},
 	}
+	if zone != "" {
+		cloudEnvironment.Spec.Zone = &zone
+	}
 
 	if len(network) > 0 {
 		for _, networkItem := range network {
@@ -167,6 +208,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
 	}
+
+	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
 
 	ce, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, cloudEnvironment, metav1.CreateOptions{
 		FieldManager: "terraform-create",
@@ -222,12 +265,20 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 
+	_ = d.Set("region", cloudEnvironment.Spec.Region)
+	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)
+
 	if cloudEnvironment.Spec.Network != nil {
 		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT_CONFIG: %w", err))
 		}
 	}
+
+	if cloudEnvironment.Spec.DefaultGateway != nil {
+		_ = d.Set("default_gateway", flattenDefaultGateway(cloudEnvironment.Spec.DefaultGateway))
+	}
+
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 	return nil
 }

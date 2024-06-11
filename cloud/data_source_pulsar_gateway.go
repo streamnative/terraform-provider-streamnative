@@ -118,33 +118,12 @@ func dataSourcePulsarGatewayRead(ctx context.Context, d *schema.ResourceData, me
 	if pg.Spec.Access == cloudv1alpha1.AccessType(cloud.PrivateAccess) {
 		if pg.Spec.PrivateService != nil {
 			d.Set("private_service", flattenPrivateService(pg.Spec.PrivateService))
-			d.Set("private_service_ids", flattenPrivateServiceIds(pg.Status.PrivateServiceIds))
+			if pg.Status.PrivateServiceIds != nil {
+				d.Set("private_service_ids", flattenPrivateServiceIds(pg.Status.PrivateServiceIds))
+			}
 		}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", namespace, name))
 	return nil
-}
-
-func flattenPrivateService(in *cloudv1alpha1.PrivateService) []interface{} {
-	att := make(map[string]interface{})
-	if in.AllowedIds != nil {
-		att["allowedIds"] = flattenStringSlice(in.AllowedIds)
-	}
-	return []interface{}{att}
-}
-func flattenPrivateServiceIds(in []cloudv1alpha1.PrivateServiceId) []interface{} {
-	ids := make([]string, 0, len(in))
-	for _, v := range in {
-		ids = append(ids, v.Id)
-	}
-	return flattenStringSlice(ids)
-}
-
-func flattenStringSlice(in []string) []interface{} {
-	ids := make([]interface{}, 0, len(in))
-	for _, v := range in {
-		ids = append(ids, v)
-	}
-	return ids
 }

@@ -45,8 +45,6 @@ func resourcePulsarGateway() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			fmt.Println(diff.GetChange("name"))
-			fmt.Println(diff.GetChange("access"))
 			if diff.HasChanges("name", "access") {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_GATEWAY: " +
 					"The pulsar gateway does not support updates name and access, please recreate it")
@@ -146,7 +144,9 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 			Namespace: namespace,
 		},
 		Spec: cloudv1alpha1.PulsarGatewaySpec{
-			Access: cloudv1alpha1.AccessType(access),
+			Gateway: cloudv1alpha1.Gateway{
+				Access: cloudv1alpha1.AccessType(access),
+			},
 			PoolMemberRef: cloudv1alpha1.PoolMemberReference{
 				Namespace: namespace,
 				Name:      poolMemberName,
@@ -336,23 +336,4 @@ func retryUntilPulsarGatewayIsDeleted(ctx context.Context, clientSet *cloudclien
 
 		return retry.RetryableError(fmt.Errorf("pulsargateway: %s/%s is not deleted", ns, name))
 	}
-}
-
-func convertPrivateService(val interface{}) *cloudv1alpha1.PrivateService {
-	privateServiceRaw := val.([]interface{})
-	var privateService cloudv1alpha1.PrivateService
-	for _, privateServiceItem := range privateServiceRaw {
-		privateServiceItemMap, ok := privateServiceItem.(map[string]interface{})
-		if ok && privateServiceItemMap["allowed_ids"] != nil {
-			allowedIdsRaw := privateServiceItemMap["allowed_ids"].([]interface{})
-			allowedIds := make([]string, len(allowedIdsRaw))
-			for i, v := range allowedIdsRaw {
-				allowedIds[i] = v.(string)
-			}
-			privateService = cloudv1alpha1.PrivateService{
-				AllowedIds: allowedIds,
-			}
-		}
-	}
-	return &privateService
 }
