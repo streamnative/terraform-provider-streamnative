@@ -108,6 +108,9 @@ func init() {
 		"cloud_connection_name":  "Name of the cloud connection",
 		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
 		"cloud_environment_name": "Name of the cloud environment",
+		"region":                 "The region of the cloud environment",
+		"zone":                   "The zone of the cloud environment, the underlying infrastructure will only be created in this zone if configured",
+		"default_gateway":        "The default gateway of the cloud environment",
 		"apikey_name":            "The name of the api key",
 		"apikey_description":     "The description of the api key",
 		"revoke": "Whether to revoke the api key, if set to true, the api key will be revoked." +
@@ -136,7 +139,15 @@ func init() {
 		"gateway_private_service_ids": "The private service ids are ids are service names of PrivateLink in AWS, " +
 			"the ids of Private Service Attachment in GCP, " +
 			"and the aliases of PrivateLinkService in Azure.",
-		"gateway_ready": "Pulsar gateway is ready, it will be set to 'True' after the gateway is ready",
+		"gateway_ready":                   "Pulsar gateway is ready, it will be set to 'True' after the gateway is ready",
+		"default_gateway_name":            "The name of the pulsar gateway",
+		"default_gateway_access":          "The access type of the pulsar gateway, valid values are 'public' and 'private'",
+		"default_gateway_private_service": "The private service configuration of the pulsar gateway, only can be configured when access is private",
+		"default_gateway_allowed_ids": "The whitelist of the private service, only can be configured when access is private." +
+			"They are account ids in AWS, the project names in GCP, and the subscription ids in Azure",
+		"default_gateway_private_service_ids": "The private service ids are ids are service names of PrivateLink in AWS, " +
+			"the ids of Private Service Attachment in GCP, " +
+			"and the aliases of PrivateLinkService in Azure.",
 	}
 }
 

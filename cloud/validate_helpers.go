@@ -72,7 +72,7 @@ func validateAuditLog(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
-func validateCloudEnvionmentType(val interface{}, key string) (warns []string, errs []error) {
+func validateCloudEnvironmentType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
 	if v != "dev" && v != "test" && v != "staging" && v != "production" && v != "acc" && v != "qa" && v != "poc" {
 		errs = append(errs, fmt.Errorf(

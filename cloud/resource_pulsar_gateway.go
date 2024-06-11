@@ -146,7 +146,9 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 			Namespace: namespace,
 		},
 		Spec: cloudv1alpha1.PulsarGatewaySpec{
-			Access: cloudv1alpha1.AccessType(access),
+			Gateway: cloudv1alpha1.Gateway{
+				Access: cloudv1alpha1.AccessType(access),
+			},
 			PoolMemberRef: cloudv1alpha1.PoolMemberReference{
 				Namespace: namespace,
 				Name:      poolMemberName,
