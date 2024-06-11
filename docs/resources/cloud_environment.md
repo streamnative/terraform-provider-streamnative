@@ -21,12 +21,14 @@ description: |-
 - `environment_type` (String) Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc
 - `network` (Block List, Min: 1) (see [below for nested schema](#nestedblock--network))
 - `organization` (String) The organization name
-- `region` (String)
+- `region` (String) The region of the cloud environment
 
 ### Optional
 
+- `default_gateway` (Block List) The default gateway of the cloud environment (see [below for nested schema](#nestedblock--default_gateway))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `wait_for_completion` (Boolean) If true, will block until the status of resource has a Ready condition
+- `zone` (String) The zone of the cloud environment, the underlying infrastructure will only be created in this zone if configured
 
 ### Read-Only
 
@@ -42,6 +44,23 @@ Optional:
 Read-Only:
 
 - `id` (String) The ID of this resource.
+
+
+<a id="nestedblock--default_gateway"></a>
+### Nested Schema for `default_gateway`
+
+Optional:
+
+- `access` (String) The access type of the pulsar gateway, valid values are 'public' and 'private'
+- `private_service` (Block List) The private service configuration of the pulsar gateway, only can be configured when access is private (see [below for nested schema](#nestedblock--default_gateway--private_service))
+
+<a id="nestedblock--default_gateway--private_service"></a>
+### Nested Schema for `default_gateway.private_service`
+
+Optional:
+
+- `allowed_ids` (List of String) The whitelist of the private service, only can be configured when access is private.They are account ids in AWS, the project names in GCP, and the subscription ids in Azure
+
 
 
 <a id="nestedblock--timeouts"></a>
