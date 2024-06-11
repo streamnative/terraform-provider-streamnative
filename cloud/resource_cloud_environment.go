@@ -209,6 +209,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
 	}
 
+	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
+
 	ce, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Create(ctx, cloudEnvironment, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -263,12 +265,20 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 
+	_ = d.Set("region", cloudEnvironment.Spec.Region)
+	_ = d.Set("cloud_connection_name", cloudEnvironment.Spec.CloudConnectionName)
+
 	if cloudEnvironment.Spec.Network != nil {
 		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT_CONFIG: %w", err))
 		}
 	}
+
+	if cloudEnvironment.Spec.DefaultGateway != nil {
+		_ = d.Set("default_gateway", flattenDefaultGateway(cloudEnvironment.Spec.DefaultGateway))
+	}
+
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 	return nil
 }

@@ -79,6 +79,45 @@ func dataSourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"default_gateway": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["default_gateway"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"access": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["default_gateway_access"],
+						},
+						"private_service": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: descriptions["default_gateway_private_service"],
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"allowed_ids": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: descriptions["default_gateway_allowed_ids"],
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"private_service_ids": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["default_gateway_private_service_ids"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -104,6 +143,13 @@ func dataSourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData,
 		err = d.Set("network", flattenCloudEnvironmentNetwork(cloudEnvironment.Spec.Network))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT_CONFIG: %w", err))
+		}
+	}
+
+	if cloudEnvironment.Spec.DefaultGateway != nil {
+		_ = d.Set("default_gateway", flattenDefaultGateway(cloudEnvironment.Spec.DefaultGateway))
+		if cloudEnvironment.Status.DefaultGateway != nil {
+			_ = d.Set("private_service_ids", flattenPrivateServiceIds(cloudEnvironment.Status.DefaultGateway.PrivateServiceIds))
 		}
 	}
 

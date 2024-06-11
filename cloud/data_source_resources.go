@@ -35,8 +35,8 @@ var (
 		"poolmembers",
 		"pulsarclusters",
 		"pulsarinstances",
-		"pulsarconnections",
-		"pulsarenvironments",
+		"cloudconnections",
+		"cloudenvironments",
 	}
 )
 
