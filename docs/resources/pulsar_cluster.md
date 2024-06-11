@@ -27,6 +27,7 @@ description: |-
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
 - `config` (Block List) (see [below for nested schema](#nestedblock--config))
+- `endpoint_access` (Block List) (see [below for nested schema](#nestedblock--endpoint_access))
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `pool_member_name` (String) The infrastructure pool member name
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
@@ -35,14 +36,14 @@ description: |-
 ### Read-Only
 
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
-- `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster
+- `http_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to management the pulsar cluster
 - `id` (String) The ID of this resource.
-- `kafka_service_url` (String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url
-- `mqtt_service_url` (String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url
-- `pulsar_tls_service_url` (String) The service url of the pulsar cluster, use it to produce and consume message
+- `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url
+- `mqtt_service_urls` (List of String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url
+- `pulsar_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to produce and consume message
 - `pulsar_version` (String) The version of the pulsar cluster
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
-- `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url
+- `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url
 
 <a id="nestedblock--config"></a>
 ### Nested Schema for `config`
@@ -71,3 +72,12 @@ Optional:
 
 - `kafka` (Map of String) Controls the kafka protocol config of pulsar cluster
 - `mqtt` (Map of String) Controls the mqtt protocol config of pulsar cluster
+
+
+
+<a id="nestedblock--endpoint_access"></a>
+### Nested Schema for `endpoint_access`
+
+Optional:
+
+- `gateway` (String)
