@@ -157,7 +157,7 @@ resource "streamnative_apikey" "test-terraform-api-key" {
   depends_on = [streamnative_pulsar_cluster.test-api-key-pulsar-cluster]
   organization = "%s"
   name = "%s"
-  instance_name = "terraform-test-api-key-pulsar-instance"
+  instance_name = "%s"
   service_account_name = "terraform-test-api-key-service-account"
   # just for testing, please don't set it to true for avoid token revoked
   revoke = true
@@ -170,5 +170,5 @@ data "streamnative_apikey" "test-terraform-api-key" {
   name = streamnative_apikey.test-terraform-api-key.name
   private_key = streamnative_apikey.test-terraform-api-key.private_key
 }
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name)
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name, name)
 }
