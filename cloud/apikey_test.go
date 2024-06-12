@@ -38,7 +38,11 @@ func TestApiKey(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceApiKey(
-					apiKeyGeneratedName, apiKeyGeneratedName),
+					"sndev",
+					apiKeyGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "lts"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),
@@ -107,16 +111,23 @@ func testCheckApiKeyExists(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourceApiKey(clusterName string, apiKeyName string) string {
+func testResourceDataSourceApiKey(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
-resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
-	organization = "sndev"
+resource "streamnative_pulsar_instance" "test-api-key-pulsar-instance" {
+	organization = "%s"
 	name = "%s"
-	instance_name = "terraform-test-api-key-pulsar-instance"
-	location = "us-central1"
-	release_channel = "lts"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
+}
+resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
+	organization = "%s"
+	name = "%s"
+	instance_name = "%s"
+	location = "%s"
+	release_channel = "%s"
 	config {
 		websocket_enabled = true
 		function_enabled = false
@@ -135,6 +146,7 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
+	depends_on = [streamnative_pulsar_instance.test-api-key-pulsar-instance]
 }
 data "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
   depends_on = [streamnative_pulsar_cluster.test-api-key-pulsar-cluster]
@@ -143,7 +155,7 @@ data "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 }
 resource "streamnative_apikey" "test-terraform-api-key" {
   depends_on = [streamnative_pulsar_cluster.test-api-key-pulsar-cluster]
-  organization = "sndev"
+  organization = "%s"
   name = "%s"
   instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "terraform-test-api-key-service-account"
@@ -158,5 +170,5 @@ data "streamnative_apikey" "test-terraform-api-key" {
   name = streamnative_apikey.test-terraform-api-key.name
   private_key = streamnative_apikey.test-terraform-api-key.private_key
 }
-`, clusterName, apiKeyName)
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name)
 }
