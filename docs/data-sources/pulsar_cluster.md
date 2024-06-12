@@ -27,18 +27,23 @@ description: |-
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
 - `config` (List of Object) (see [below for nested schema](#nestedatt--config))
+- `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster.
 - `http_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways
 - `id` (String) The ID of this resource.
 - `instance_name` (String) The pulsar instance name
-- `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url.  There'll be multiple service urls if the cluster attached with multiple gateways
+- `kafka_service_url` (String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url.
+- `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url. There'll be multiple service urls if the cluster attached with multiple gateways
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
+- `mqtt_service_url` (String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.
 - `mqtt_service_urls` (List of String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.  There'll be multiple service urls if the cluster attached with multiple gateways
+- `pulsar_tls_service_url` (String) The service url of the pulsar cluster, use it to produce and consume message.
 - `pulsar_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to produce and consume message. There'll be multiple service urls if the cluster attached with multiple gateways
 - `pulsar_version` (String) The version of the pulsar cluster
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
-- `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.  There'll be multiple service urls if the cluster attached with multiple gateways
+- `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
+- `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
 
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`

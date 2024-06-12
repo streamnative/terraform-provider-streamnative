@@ -215,6 +215,11 @@ func resourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["cluster_ready"],
 			},
+			"http_tls_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["http_tls_service_url"],
+			},
 			"http_tls_service_urls": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -222,6 +227,11 @@ func resourcePulsarCluster() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"pulsar_tls_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["pulsar_tls_service_url"],
 			},
 			"pulsar_tls_service_urls": {
 				Type:        schema.TypeList,
@@ -231,6 +241,11 @@ func resourcePulsarCluster() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"kafka_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["kafka_service_url"],
+			},
 			"kafka_service_urls": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -239,6 +254,11 @@ func resourcePulsarCluster() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"mqtt_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["mqtt_service_url"],
+			},
 			"mqtt_service_urls": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -246,6 +266,11 @@ func resourcePulsarCluster() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"websocket_service_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["websocket_service_url"],
 			},
 			"websocket_service_urls": {
 				Type:        schema.TypeList,
@@ -461,11 +486,29 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 			}
 		}
 	}
-	_ = d.Set("http_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
-	_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(pulsarTlsServiceUrls))
-	_ = d.Set("websocket_service_urls", flattenStringSlice(websocketServiceUrls))
-	_ = d.Set("kafka_service_urls", flattenStringSlice(kafkaServiceUrls))
-	_ = d.Set("mqtt_service_urls", flattenStringSlice(mqttServiceUrls))
+	if pulsarCluster.Spec.EndpointAccess != nil {
+		_ = d.Set("http_tls_service_urls", flattenStringSlice(httpTlsServiceUrls))
+		_ = d.Set("pulsar_tls_service_urls", flattenStringSlice(pulsarTlsServiceUrls))
+		_ = d.Set("websocket_service_urls", flattenStringSlice(websocketServiceUrls))
+		_ = d.Set("kafka_service_urls", flattenStringSlice(kafkaServiceUrls))
+		_ = d.Set("mqtt_service_urls", flattenStringSlice(mqttServiceUrls))
+	} else {
+		if len(httpTlsServiceUrls) > 0 {
+			_ = d.Set("http_tls_service_url", httpTlsServiceUrls[0])
+		}
+		if len(pulsarTlsServiceUrls) > 0 {
+			_ = d.Set("pulsar_tls_service_url", pulsarTlsServiceUrls[0])
+		}
+		if len(websocketServiceUrls) > 0 {
+			_ = d.Set("websocket_service_url", websocketServiceUrls[0])
+		}
+		if len(kafkaServiceUrls) > 0 {
+			_ = d.Set("kafka_service_url", kafkaServiceUrls[0])
+		}
+		if len(mqttServiceUrls) > 0 {
+			_ = d.Set("mqtt_service_url", mqttServiceUrls[0])
+		}
+	}
 	if pulsarCluster.Spec.Config != nil {
 		err = d.Set("config", flattenPulsarClusterConfig(pulsarCluster.Spec.Config))
 		if err != nil {

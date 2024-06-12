@@ -91,14 +91,22 @@ func init() {
 		"categories": "Controls the audit log categories config of pulsar cluster, supported categories: " +
 			"\"Management\", \"Describe\", \"Produce\", \"Consume\"",
 		"custom":                  "Controls the custom config of pulsar cluster",
+		"http_tls_service_url":    "The service url of the pulsar cluster, use it to management the pulsar cluster.",
 		"http_tls_service_urls":   "The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways",
+		"pulsar_tls_service_url":  "The service url of the pulsar cluster, use it to produce and consume message.",
 		"pulsar_tls_service_urls": "The service url of the pulsar cluster, use it to produce and consume message. There'll be multiple service urls if the cluster attached with multiple gateways",
+		"kafka_service_url": "If you want to connect to the pulsar cluster using the kafka protocol," +
+			" use this kafka service url.",
 		"kafka_service_urls": "If you want to connect to the pulsar cluster using the kafka protocol," +
-			" use this kafka service url.  There'll be multiple service urls if the cluster attached with multiple gateways",
+			" use this kafka service url. There'll be multiple service urls if the cluster attached with multiple gateways",
+		"mqtt_service_url": "If you want to connect to the pulsar cluster using the mqtt protocol, " +
+			"use this mqtt service url.",
 		"mqtt_service_urls": "If you want to connect to the pulsar cluster using the mqtt protocol, " +
 			"use this mqtt service url.  There'll be multiple service urls if the cluster attached with multiple gateways",
+		"websocket_service_url": "If you want to connect to the pulsar cluster using the websocket protocol, " +
+			"use this websocket service url.",
 		"websocket_service_urls": "If you want to connect to the pulsar cluster using the websocket protocol, " +
-			"use this websocket service url.  There'll be multiple service urls if the cluster attached with multiple gateways",
+			"use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways",
 		"pulsar_version":         "The version of the pulsar cluster",
 		"bookkeeper_version":     "The version of the bookkeeper cluster",
 		"type":                   "Type of cloud connection, one of aws or gcp",

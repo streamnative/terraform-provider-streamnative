@@ -40,7 +40,10 @@ description: |-
 Optional:
 
 - `cidr` (String)
-- `id` (String)
+
+Read-Only:
+
+- `id` (String) The ID of this resource.
 
 
 <a id="nestedblock--default_gateway"></a>
