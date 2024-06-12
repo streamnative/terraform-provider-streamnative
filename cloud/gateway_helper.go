@@ -59,7 +59,7 @@ func convertEndpointAccess(val interface{}) []cloudv1alpha1.EndpointAccess {
 func convertGateway(val interface{}) *cloudv1alpha1.Gateway {
 	gatewayRaw := val.([]interface{})
 	if len(gatewayRaw) > 0 {
-		defaultGatewayItemMap, ok := gatewayRaw[0].(map[string]interface{})
+		defaultGatewayItemMap := gatewayRaw[0].(map[string]interface{})
 		var gateway cloudv1alpha1.Gateway
 		access, ok := defaultGatewayItemMap["access"]
 		if ok && access != "" {
