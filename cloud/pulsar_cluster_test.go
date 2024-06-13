@@ -42,7 +42,8 @@ func TestPulsarCluster(t *testing.T) {
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
 					clusterGeneratedName,
-					"terraform-test-pulsar-instance",
+					"shared-gcp",
+					"streamnative",
 					"us-central1", "lts"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -114,9 +115,16 @@ func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourcePulsarCluster(organization, name, instanceName, location, releaseChannel string) string {
+func testResourceDataSourcePulsarCluster(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
+}
+resource "streamnative_pulsar_instance" "test-pulsar-instance" {
+	organization = "%s"
+	name = "%s"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
 }
 resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	organization = "%s"
@@ -142,11 +150,12 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
+	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
 }
 data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, instanceName, location, releaseChannel)
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
 }
