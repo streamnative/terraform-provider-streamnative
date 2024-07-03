@@ -75,6 +75,16 @@ func dataSourcePulsarInstance() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["instance_ready"],
 			},
+			"oauth2_audience": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["oauth2_audience"],
+			},
+			"oauth2_issuer_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["oauth2_issuer_url"],
+			},
 		},
 	}
 }
@@ -103,6 +113,11 @@ func dataSourcePulsarInstanceRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("pool_namespace", pulsarInstance.Spec.PoolRef.Namespace)
 	}
 	_ = d.Set("availability_mode", pulsarInstance.Spec.AvailabilityMode)
+	if pulsarInstance.Status.Auth != nil && pulsarInstance.Status.Auth.Type == "oauth2" &&
+		pulsarInstance.Status.Auth.OAuth2 != nil {
+		_ = d.Set("oauth2_audience", pulsarInstance.Status.Auth.OAuth2.Audience)
+		_ = d.Set("oauth2_issuer_url", pulsarInstance.Status.Auth.OAuth2.IssuerURL)
+	}
 	d.SetId(fmt.Sprintf("%s/%s", pulsarInstance.Namespace, pulsarInstance.Name))
 	return nil
 }

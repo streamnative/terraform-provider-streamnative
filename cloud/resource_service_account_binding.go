@@ -80,15 +80,20 @@ func resourceServiceAccountBinding() *schema.Resource {
 				Description:  descriptions["service_account_name"],
 				ValidateFunc: validateNotBlank,
 			},
+			"cluster_name": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: descriptions["cluster_name"],
+			},
 			"pool_member_name": {
 				Type:        schema.TypeString,
 				Description: descriptions["pool_member_name"],
-				Required:    true,
+				Computed:    true,
 			},
 			"pool_member_namespace": {
 				Type:        schema.TypeString,
 				Description: descriptions["pool_member_namespace"],
-				Required:    true,
+				Computed:    true,
 			},
 		},
 	}
@@ -97,12 +102,21 @@ func resourceServiceAccountBinding() *schema.Resource {
 func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	serviceAccountName := d.Get("service_account_name").(string)
-	poolMemberName := d.Get("pool_member_name").(string)
-	poolMemberNamespace := d.Get("pool_member_namespace").(string)
+	clusterName := d.Get("cluster_name").(string)
+
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_SERVICE_ACCOUNT_BINDING: %w", err))
 	}
+
+	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, clusterName, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
+	}
+
+	poolMemberNamespace := pulsarCluster.Spec.PoolMemberRef.Namespace
+	poolMemberName := pulsarCluster.Spec.PoolMemberRef.Name
+
 	name := fmt.Sprintf("%s.%s.%s", serviceAccountName, poolMemberNamespace, poolMemberName)
 	sab := &v1alpha1.ServiceAccountBinding{
 		TypeMeta: metav1.TypeMeta{
