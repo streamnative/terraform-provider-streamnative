@@ -24,6 +24,8 @@ description: |-
 
 - `availability_mode` (String) The availability mode, supporting 'zonal' and 'regional'
 - `id` (String) The ID of this resource.
+- `oauth2_audience` (String) The audience of the oauth2
+- `oauth2_issuer_url` (String) The issuer url of the oauth2
 - `pool_name` (String) The infrastructure pool name
 - `pool_namespace` (String) The infrastructure pool namespace
 - `ready` (String) Pulsar instance is ready, it will be set to 'True' after the instance is ready
