@@ -47,7 +47,7 @@ jobs:
           git config --global user.name "StreamNative Bot"
           git config --global url."https://streamnativebot:${ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: goreleaser release (without release notes)
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b # v4.2.0
         with:
           args: release --clean --timeout 60m
         env:
