@@ -17,12 +17,13 @@ description: |-
 
 ### Required
 
+- `cluster_name` (String) The pulsar cluster name
 - `organization` (String) The organization name
-- `pool_member_name` (String) The infrastructure pool member name
-- `pool_member_namespace` (String) The infrastructure pool member namespace
 - `service_account_name` (String) The service account name
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `name` (String) The service account binding name
+- `pool_member_name` (String) The infrastructure pool member name
+- `pool_member_namespace` (String) The infrastructure pool member namespace

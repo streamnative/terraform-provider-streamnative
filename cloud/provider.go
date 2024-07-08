@@ -156,6 +156,8 @@ func init() {
 		"default_gateway_private_service_ids": "The private service ids are ids are service names of PrivateLink in AWS, " +
 			"the ids of Private Service Attachment in GCP, " +
 			"and the aliases of PrivateLinkService in Azure.",
+		"oauth2_issuer_url": "The issuer url of the oauth2",
+		"oauth2_audience":   "The audience of the oauth2",
 	}
 }
 

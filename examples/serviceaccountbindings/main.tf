@@ -32,8 +32,7 @@ provider "streamnative" {
 resource "streamnative_service_account_binding" "func-runner" {
   organization = "sndev"
   service_account_name = "func-runner"
-  pool_member_name = "azure-westus3-dugong-snc"
-  pool_member_namespace = "streamnative"
+  cluster_name = "cluster"
 }
 
 data "streamnative_service_account_binding" "func-runner" {
