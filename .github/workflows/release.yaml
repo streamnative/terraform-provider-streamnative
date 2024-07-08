@@ -49,7 +49,6 @@ jobs:
       - name: goreleaser release (without release notes)
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: '~> v2'
           args: release --clean --timeout 60m
         env:
           GITHUB_TOKEN: ${{ secrets.SNBOT_GITHUB_TOKEN }}
