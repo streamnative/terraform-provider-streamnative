@@ -9,7 +9,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.25.2-0.20240607131732-e2211877910c
+	github.com/streamnative/cloud-api-server v1.25.2-0.20240803044529-9e543679949e
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
@@ -246,6 +246,7 @@ replace (
 	github.com/streamnative/pulsar-operators/pulsar-operator/api => github.com/streamnative/pulsar-operators/pulsar-operator/api v0.17.3
 	github.com/streamnative/pulsar-operators/zookeeper-operator => github.com/streamnative/pulsar-operators/zookeeper-operator v0.17.3
 	github.com/streamnative/pulsar-operators/zookeeper-operator/api => github.com/streamnative/pulsar-operators/zookeeper-operator/api v0.17.3
+	github.com/streamnative/sn-operator/api => github.com/streamnative/sn-operator/api v0.4.10
 	google.golang.org/api => google.golang.org/api v0.32.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
 )

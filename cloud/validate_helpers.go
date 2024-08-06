@@ -28,6 +28,14 @@ func validateNotBlank(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
+func validateInstanceType(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if v != "serverless" && v != "standard" {
+		errs = append(errs, fmt.Errorf("%q must be serverless or standard", key))
+	}
+	return
+}
+
 func validateReleaseChannel(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
 	if v != "lts" && v != "rapid" {
