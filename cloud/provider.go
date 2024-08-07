@@ -63,6 +63,7 @@ func init() {
 		"service_account_name":         "The service account name",
 		"service_account_binding_name": "The service account binding name",
 		"cluster_name":                 "The pulsar cluster name",
+		"cluster_display_name":         "The pulsar cluster display name",
 		"admin":                        "Whether the service account is admin",
 		"private_key_data":             "The private key data",
 		"availability-mode":            "The availability mode, supporting 'zonal' and 'regional'",
@@ -74,6 +75,7 @@ func init() {
 		"pool_member_type":             "Type of infrastructure pool member, one of aws, gcloud and azure",
 		"pool_member_location":         "The location of the infrastructure pool member",
 		"instance_name":                "The pulsar instance name",
+		"instance_type":                "The streamnative cloud instance type, supporting 'serverless' and 'standard'",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
 		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",

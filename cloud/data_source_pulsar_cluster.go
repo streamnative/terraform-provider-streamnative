@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -235,6 +236,11 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["bookkeeper_version"],
 			},
+			"type": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["instance_type"],
+			},
 		},
 	}
 }
@@ -321,10 +327,13 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-	_ = d.Set("pulsar_version", brokerImage[1])
-	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless {
+		brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+		_ = d.Set("pulsar_version", brokerImage[1])
+		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
+		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	}
+	_ = d.Set("type", pulsarInstance.Spec.Type)
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {
 		_ = d.Set("release_channel", releaseChannel)

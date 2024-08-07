@@ -95,6 +95,12 @@ func resourcePulsarInstance() *schema.Resource {
 				Description:  descriptions["pool_namespace"],
 				ValidateFunc: validateNotBlank,
 			},
+			"type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  descriptions["instance_type"],
+				ValidateFunc: validateInstanceType,
+			},
 			"ready": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -110,6 +116,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 	availabilityMode := d.Get("availability_mode").(string)
 	poolName := d.Get("pool_name").(string)
 	poolNamespace := d.Get("pool_namespace").(string)
+	instanceType := d.Get("type").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_INSTANCE: %w", err))
@@ -117,6 +124,12 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 	poolRef := &cloudv1alpha1.PoolRef{
 		Namespace: poolNamespace,
 		Name:      poolName,
+	}
+	var t cloudv1alpha1.PulsarInstanceType
+	if instanceType == "" {
+		t = cloudv1alpha1.PulsarInstanceTypeStandard
+	} else {
+		t = cloudv1alpha1.PulsarInstanceType(instanceType)
 	}
 	pulsarInstance := &cloudv1alpha1.PulsarInstance{
 		TypeMeta: metav1.TypeMeta{
@@ -129,7 +142,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 		},
 		Spec: cloudv1alpha1.PulsarInstanceSpec{
 			AvailabilityMode: cloudv1alpha1.InstanceAvailabilityMode(availabilityMode),
-			Type:             cloudv1alpha1.PulsarInstanceTypeStandard,
+			Type:             t,
 			PoolRef:          poolRef,
 		},
 	}

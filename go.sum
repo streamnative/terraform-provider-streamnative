@@ -553,8 +553,8 @@ github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/streamnative/apiserver-builder-alpha v0.0.0-20230717175906-0f9240887463 h1:ukAAbYtzonTxP/zNwAZhFVvsqc6A8fVWSKwH9Yfu9w0=
 github.com/streamnative/apiserver-builder-alpha v0.0.0-20230717175906-0f9240887463/go.mod h1:W1q2VCPvT9GjMUsFX4JYmdXfSAYsrmLVLALfutt5LsE=
-github.com/streamnative/cloud-api-server v1.25.2-0.20240607131732-e2211877910c h1:AaV+hCJ0qEoQhBSc+vzG5zJRRNWRjt6b5l3PwX1LRSs=
-github.com/streamnative/cloud-api-server v1.25.2-0.20240607131732-e2211877910c/go.mod h1:7Zv0BDZYJA7XTCE+S324I40ee5aT0CpnaZcXPUk9r50=
+github.com/streamnative/cloud-api-server v1.25.2-0.20240803044529-9e543679949e h1:xF3QG0fIs6HoTiwp7Rke8nWPu5DldHy+NcBWG6qnqOY=
+github.com/streamnative/cloud-api-server v1.25.2-0.20240803044529-9e543679949e/go.mod h1:QVY82royWwFivIFXWESh5nt+g388hsxP7sqz/f6ZMpM=
 github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680 h1:PRqjyTsfwTCAd3SGDjgPT4Nmbczeegdm/ApyDGr14PA=
 github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680/go.mod h1:48XuDAuu3upsbndxqN+grxz9yPSklZk9ycxKB235dGs=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
