@@ -53,6 +53,7 @@ Read-Only:
 - `audit_log` (List of Object) (see [below for nested schema](#nestedobjatt--config--audit_log))
 - `custom` (Map of String)
 - `function_enabled` (Boolean)
+- `lakehouse_storage` (Map of String)
 - `protocols` (List of Object) (see [below for nested schema](#nestedobjatt--config--protocols))
 - `transaction_enabled` (Boolean)
 - `websocket_enabled` (Boolean)

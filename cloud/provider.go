@@ -90,6 +90,11 @@ func init() {
 		"mqtt":                "Controls the mqtt protocol config of pulsar cluster",
 		"categories": "Controls the audit log categories config of pulsar cluster, supported categories: " +
 			"\"Management\", \"Describe\", \"Produce\", \"Consume\"",
+		"lakehouse_type":          "The type of the lakehouse",
+		"lakehouse_catalog":       "The name of the lakehouse catalog",
+		"catalog_credentials":     "The credentials of the lakehouse catalog",
+		"catalog_connection_url":  "The connection url of the lakehouse catalog",
+		"catalog_warehouse":       "The warehouse of the lakehouse catalog",
 		"custom":                  "Controls the custom config of pulsar cluster",
 		"http_tls_service_url":    "The service url of the pulsar cluster, use it to management the pulsar cluster.",
 		"http_tls_service_urls":   "The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways",

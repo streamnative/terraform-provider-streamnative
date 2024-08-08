@@ -5,11 +5,12 @@ go 1.19
 require (
 	github.com/99designs/keyring v1.2.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
+	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.25.2-0.20240607131732-e2211877910c
+	github.com/streamnative/cloud-api-server v1.26.1
 	github.com/streamnative/cloud-cli v0.14.3-0.20240202094224-5eec608e4680
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.28.4
@@ -86,7 +87,6 @@ require (
 	github.com/hashicorp/terraform-exec v0.18.1 // indirect
 	github.com/hashicorp/terraform-json v0.17.1 // indirect
 	github.com/hashicorp/terraform-plugin-go v0.18.0 // indirect
-	github.com/hashicorp/terraform-plugin-log v0.9.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.1 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
@@ -246,6 +246,7 @@ replace (
 	github.com/streamnative/pulsar-operators/pulsar-operator/api => github.com/streamnative/pulsar-operators/pulsar-operator/api v0.17.3
 	github.com/streamnative/pulsar-operators/zookeeper-operator => github.com/streamnative/pulsar-operators/zookeeper-operator v0.17.3
 	github.com/streamnative/pulsar-operators/zookeeper-operator/api => github.com/streamnative/pulsar-operators/zookeeper-operator/api v0.17.3
+	github.com/streamnative/sn-operator/api => github.com/streamnative/sn-operator/api v0.5.0
 	google.golang.org/api => google.golang.org/api v0.32.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
 )

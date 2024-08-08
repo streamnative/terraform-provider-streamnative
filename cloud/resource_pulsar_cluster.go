@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
 	"time"
 
@@ -188,6 +189,11 @@ func resourcePulsarCluster() *schema.Resource {
 									},
 								},
 							},
+						},
+						"lakehouse_storage": {
+							Type:        schema.TypeMap,
+							Optional:    true,
+							Description: descriptions["lakehouse_storage"],
 						},
 						"custom": {
 							Type:        schema.TypeMap,
@@ -397,7 +403,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		}
 	}
-	getPulsarClusterChanged(pulsarCluster, d)
+	getPulsarClusterChanged(ctx, pulsarCluster, d)
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -509,6 +515,9 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		_ = d.Set("mqtt_service_url", "")
 	}
 	if pulsarCluster.Spec.Config != nil {
+		tflog.Debug(ctx, "pulsar cluster config: ", map[string]interface{}{
+			"config": pulsarCluster.Spec.Config,
+		})
 		err = d.Set("config", flattenPulsarClusterConfig(pulsarCluster.Spec.Config))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
@@ -547,6 +556,10 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 			"The pulsar cluster release channel does not support updates"))
 	}
+	if d.HasChanges("lakehouse_type", "catalog_type", "catalog_credentials", "catalog_connection_url", "catalog_warehouse") {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+			"The pulsar cluster lakehouse storage does not support updates"))
+	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -579,7 +592,7 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		pulsarCluster.Spec.BookKeeper.Resources.Memory = resource.NewQuantity(
 			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
-	changed := getPulsarClusterChanged(pulsarCluster, d)
+	changed := getPulsarClusterChanged(ctx, pulsarCluster, d)
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
 		d.HasChange("compute_unit") ||
@@ -624,7 +637,7 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *schema.ResourceData) bool {
+func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.PulsarCluster, d *schema.ResourceData) bool {
 	changed := false
 	if pulsarCluster.Spec.Config == nil {
 		pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
@@ -633,6 +646,7 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 	if len(config) > 0 {
 		for _, configItem := range config {
 			configItemMap := configItem.(map[string]interface{})
+			tflog.Debug(ctx, "configItemMap: %v", configItemMap)
 			if configItemMap["websocket_enabled"] != nil {
 				webSocketEnabled := configItemMap["websocket_enabled"].(bool)
 				pulsarCluster.Spec.Config.WebsocketEnabled = &webSocketEnabled
@@ -727,6 +741,32 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 			if d.HasChanges("audit_log") {
 				changed = true
 			}
+			if configItemMap["lakehouse_storage"] != nil {
+				lakehouseStorageItemMap := configItemMap["lakehouse_storage"].(map[string]interface{})
+				tflog.Debug(ctx, "lakehouseStorageItemMap:", lakehouseStorageItemMap)
+				pulsarClusterLakehouseStorage := &cloudv1alpha1.LakehouseStorageConfig{}
+				if len(lakehouseStorageItemMap) > 0 {
+					if _, ok := lakehouseStorageItemMap["lakehouse_type"]; ok {
+						lakehouseType := lakehouseStorageItemMap["lakehouse_type"].(string)
+						pulsarClusterLakehouseStorage.LakehouseType = &lakehouseType
+					}
+					if _, ok := lakehouseStorageItemMap["catalog_type"]; ok {
+						catalogType := lakehouseStorageItemMap["catalog_type"].(string)
+						pulsarClusterLakehouseStorage.CatalogType = &catalogType
+					}
+					if _, ok := lakehouseStorageItemMap["catalog_credentials"]; ok {
+						pulsarClusterLakehouseStorage.CatalogCredentials = lakehouseStorageItemMap["catalog_credentials"].(string)
+					}
+					if _, ok := lakehouseStorageItemMap["catalog_connection_url"]; ok {
+						pulsarClusterLakehouseStorage.CatalogConnectionUrl = lakehouseStorageItemMap["catalog_connection_url"].(string)
+					}
+					if _, ok := lakehouseStorageItemMap["catalog_warehouse"]; ok {
+						pulsarClusterLakehouseStorage.CatalogWarehouse = lakehouseStorageItemMap["catalog_warehouse"].(string)
+					}
+					pulsarCluster.Spec.Config.LakehouseStorage = pulsarClusterLakehouseStorage
+					changed = true
+				}
+			}
 			if configItemMap["custom"] != nil {
 				custom := configItemMap["custom"].(map[string]interface{})
 				if len(custom) > 0 {
@@ -742,5 +782,8 @@ func getPulsarClusterChanged(pulsarCluster *cloudv1alpha1.PulsarCluster, d *sche
 			}
 		}
 	}
+	tflog.Debug(ctx, "get pulsarcluster changed: %v", map[string]interface{}{
+		"pulsarcluster": *pulsarCluster.Spec.Config,
+	})
 	return changed
 }
