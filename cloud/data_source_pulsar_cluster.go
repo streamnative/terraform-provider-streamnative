@@ -148,6 +148,11 @@ func dataSourcePulsarCluster() *schema.Resource {
 								},
 							},
 						},
+						"lakehouse_storage": {
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Description: descriptions["lakehouse_storage"],
+						},
 						"custom": {
 							Type:        schema.TypeMap,
 							Computed:    true,

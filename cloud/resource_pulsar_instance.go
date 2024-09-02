@@ -146,6 +146,11 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 			PoolRef:          poolRef,
 		},
 	}
+	if t == "serverless" {
+		pulsarInstance.Annotations = map[string]string{
+			"cloud.streamnative.io/type": "serverless",
+		}
+	}
 	pi, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Create(ctx, pulsarInstance, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})

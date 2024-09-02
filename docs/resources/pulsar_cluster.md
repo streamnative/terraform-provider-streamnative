@@ -58,6 +58,7 @@ Optional:
 - `audit_log` (Block List) (see [below for nested schema](#nestedblock--config--audit_log))
 - `custom` (Map of String) Controls the custom config of pulsar cluster
 - `function_enabled` (Boolean) Whether the function is enabled
+- `lakehouse_storage` (Map of String)
 - `protocols` (Block List) (see [below for nested schema](#nestedblock--config--protocols))
 - `transaction_enabled` (Boolean) Whether the transaction is enabled
 - `websocket_enabled` (Boolean)
