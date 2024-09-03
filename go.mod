@@ -215,6 +215,7 @@ replace (
 // api-server
 replace (
 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v0.19.0
+	golang.org/x/crypto => golang.org/x/crypto v0.23.0
 	google.golang.org/grpc => google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
 	k8s.io/api => k8s.io/api v0.23.17
