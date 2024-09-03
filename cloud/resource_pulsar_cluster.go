@@ -38,9 +38,13 @@ func resourcePulsarCluster() *schema.Resource {
 		DeleteContext: resourcePulsarClusterDelete,
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
 			oldOrg, _ := diff.GetChange("organization")
-			oldName, _ := diff.GetChange("name")
+			oldName, newName := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
 				// This is create event, so we don't need to check the diff.
+				return nil
+			}
+			if oldName != "" && newName == "" {
+				// Auto generate the name, so we don't need to check the diff.
 				return nil
 			}
 			if diff.HasChanges([]string{"organization", "name", "instance_name", "location", "pool_member_name"}...) {
@@ -69,10 +73,14 @@ func resourcePulsarCluster() *schema.Resource {
 				ValidateFunc: validateNotBlank,
 			},
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["cluster_name"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["cluster_name"],
+			},
+			"display_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["cluster_display_name"],
 			},
 			"instance_name": {
 				Type:         schema.TypeString,
@@ -296,6 +304,11 @@ func resourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["bookkeeper_version"],
 			},
+			"type": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["instance_type"],
+			},
 		},
 	}
 }
@@ -303,6 +316,7 @@ func resourcePulsarCluster() *schema.Resource {
 func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	displayName := d.Get("display_name").(string)
 	instanceName := d.Get("instance_name").(string)
 	pool_member_name := d.Get("pool_member_name").(string)
 	location := d.Get("location").(string)
@@ -361,7 +375,6 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: cloudv1alpha1.PulsarClusterSpec{
@@ -386,6 +399,21 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			},
 		},
 	}
+	if name != "" {
+		pulsarCluster.ObjectMeta.Name = name
+	}
+	if displayName != "" {
+		pulsarCluster.Spec.DisplayName = displayName
+	}
+	if pulsarInstance.Spec.Type == "serverless" {
+		pulsarCluster.Annotations = map[string]string{
+			"cloud.streamnative.io/type": "serverless",
+		}
+	}
+	if displayName == "" && name == "" {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+			"either name or display_name must be provided"))
+	}
 	if pool_member_name != "" {
 		pulsarCluster.Spec.PoolMemberRef = cloudv1alpha1.PoolMemberReference{
 			Name:      pool_member_name,
@@ -403,13 +431,17 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		}
 	}
-	getPulsarClusterChanged(ctx, pulsarCluster, d)
+	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeStandard {
+		getPulsarClusterChanged(ctx, pulsarCluster, d)
+	}
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: %w", err))
 	}
+	d.Set("name", pc.Name)
+	d.Set("display_name", pc.Spec.DisplayName)
 	if pc.Status.Conditions != nil {
 		ready := false
 		for _, condition := range pc.Status.Conditions {
@@ -441,13 +473,32 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	displayName := d.Get("display_name").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
 	}
-	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
+	var pulsarCluster *cloudv1alpha1.PulsarCluster
+	if name != "" {
+		pulsarCluster, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
+		}
+	} else {
+		pulsarClusters, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_LIST_PULSAR_CLUSTER: %w", err))
+		}
+		for _, cluster := range pulsarClusters.Items {
+			if cluster.Spec.DisplayName == displayName {
+				pulsarCluster = &cluster
+				break
+			}
+		}
+		if pulsarCluster == nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: "+
+				"the pulsar cluster with display_name %s does not exist", displayName))
+		}
 	}
 	_ = d.Set("ready", "False")
 	if pulsarCluster.Status.Conditions != nil {
@@ -523,19 +574,28 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-	_ = d.Set("pulsar_version", brokerImage[1])
-	bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-	_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless {
+		brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+		_ = d.Set("pulsar_version", brokerImage[1])
+		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
+		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+	}
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {
 		_ = d.Set("release_channel", releaseChannel)
 	}
+	_ = d.Set("type", pulsarInstance.Spec.Type)
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
 
 func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	serverless := d.Get("type")
+	if serverless == cloudv1alpha1.PulsarInstanceTypeServerless {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: "+
+			"updating a cluster under instance of type '%s' is no longer allowed",
+			cloudv1alpha1.PulsarInstanceTypeServerless))
+	}
 	if d.HasChange("organization") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 			"The pulsar cluster organization does not support updates"))
@@ -629,7 +689,12 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_PULSAR_CLUSTER: %w", err))
 	}
 	namespace := d.Get("organization").(string)
+	t := d.Get("type")
 	name := d.Get("name").(string)
+	if t == cloudv1alpha1.PulsarInstanceTypeServerless {
+		id := strings.Split(d.Id(), "/")
+		name = id[1]
+	}
 	err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_DELETE_PULSAR_CLUSTER: %w", err))
