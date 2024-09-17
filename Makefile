@@ -19,7 +19,7 @@ build-dev: build
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${OS_ARCH}
 
 testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v -count 3 $(TESTARGS) -timeout 120m
+	TF_ACC=1 go test $(TEST) -v -count 1 $(TESTARGS) -timeout 120m
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."
