@@ -112,14 +112,18 @@ func resourceCloudEnvironment() *schema.Resource {
 				},
 			},
 			"default_gateway": {
-				Type:        schema.TypeList,
+				Type: schema.TypeList,
+				//Set this as optional and computed because an empty block will still create a default on the API and in the statefile
+				//As per https://github.com/hashicorp/terraform/issues/21278 Setting both allows optionally passing the config
 				Optional:    true,
+				Computed:    true,
 				Description: descriptions["default_gateway"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: descriptions["default_gateway_access"],
 						},
 						"private_service": {
