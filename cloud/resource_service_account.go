@@ -116,6 +116,44 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_SERVICE_ACCOUNT: %w", err))
 	}
+
+	if admin {
+		_, err := clientSet.CloudV1alpha1().RoleBindings(namespace).Create(ctx, &v1alpha1.RoleBinding{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "RoleBinding",
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: serviceAccount.APIVersion,
+						Kind:       serviceAccount.Kind,
+						Name:       serviceAccount.Name,
+						UID:        serviceAccount.UID,
+					},
+				},
+			},
+			Spec: v1alpha1.RoleBindingSpec{
+				RoleRef: v1alpha1.RoleRef{
+					APIGroup: "cloud.streamnative.io",
+					Kind:     "Role",
+					Name:     "admin",
+				},
+				Subjects: []v1alpha1.Subject{
+					{
+						Kind:     "ServiceAccount",
+						APIGroup: "cloud.streamnative.io",
+						Name:     name,
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_ROLE_BINDING: %w", err))
+		}
+	}
 	privateKeyData := ""
 	if len(serviceAccount.Status.Conditions) > 0 && serviceAccount.Status.Conditions[0].Type == "Ready" {
 		privateKeyData = serviceAccount.Status.PrivateKeyData
@@ -172,7 +210,10 @@ func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, m
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	err = clientSet.CloudV1alpha1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	foreground := metav1.DeletePropagationForeground
+	err = clientSet.CloudV1alpha1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{
+		PropagationPolicy: &foreground,
+	})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("DELETE_SERVICE_ACCOUNT: %w", err))
 	}
