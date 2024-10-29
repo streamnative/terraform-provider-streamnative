@@ -128,8 +128,8 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 				Namespace: namespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: serviceAccount.APIVersion,
-						Kind:       serviceAccount.Kind,
+						APIVersion: v1alpha1.SchemeGroupVersion.String(),
+						Kind:       "ServiceAccount",
 						Name:       serviceAccount.Name,
 						UID:        serviceAccount.UID,
 					},
@@ -149,7 +149,9 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 					},
 				},
 			},
-		}, metav1.CreateOptions{})
+		}, metav1.CreateOptions{
+			FieldManager: "terraform-create",
+		})
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_CREATE_ROLE_BINDING: %w", err))
 		}
