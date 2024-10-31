@@ -103,7 +103,7 @@ func resourcePulsarInstance() *schema.Resource {
 			},
 			"engine": {
 				Type:         schema.TypeString,
-				Required:     false,
+				Optional:     true,
 				Description:  descriptions["instance_engine"],
 				ValidateFunc: validateEngine,
 			},
