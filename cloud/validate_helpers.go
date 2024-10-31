@@ -28,6 +28,14 @@ func validateNotBlank(val interface{}, key string) (warns []string, errs []error
 	return
 }
 
+func validateEngine(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	if v != "" && v != "ursa" {
+		errs = append(errs, fmt.Errorf("%q must be pulsar", key))
+	}
+	return
+}
+
 func validateInstanceType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
 	if v != "serverless" && v != "standard" {
