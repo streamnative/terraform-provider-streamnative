@@ -27,6 +27,8 @@ import (
 
 const (
 	IstioEnabledAnnotation = "annotations.cloud.streamnative.io/istio-enabled"
+	UrsaEngineAnnotation   = "cloud.streamnative.io/engine"
+	UrsaEngineValue        = "ursa"
 )
 
 func dataSourcePulsarCluster() *schema.Resource {

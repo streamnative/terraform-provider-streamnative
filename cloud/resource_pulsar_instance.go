@@ -101,6 +101,12 @@ func resourcePulsarInstance() *schema.Resource {
 				Description:  descriptions["instance_type"],
 				ValidateFunc: validateInstanceType,
 			},
+			"engine": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  descriptions["instance_engine"],
+				ValidateFunc: validateEngine,
+			},
 			"ready": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -117,6 +123,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 	poolName := d.Get("pool_name").(string)
 	poolNamespace := d.Get("pool_namespace").(string)
 	instanceType := d.Get("type").(string)
+	instanceEngine := d.Get("engine").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_INSTANCE: %w", err))
@@ -146,9 +153,9 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 			PoolRef:          poolRef,
 		},
 	}
-	if t == "serverless" {
+	if instanceEngine == UrsaEngineValue {
 		pulsarInstance.Annotations = map[string]string{
-			"cloud.streamnative.io/type": "serverless",
+			UrsaEngineAnnotation: UrsaEngineValue,
 		}
 	}
 	pi, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Create(ctx, pulsarInstance, metav1.CreateOptions{

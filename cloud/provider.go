@@ -76,6 +76,7 @@ func init() {
 		"pool_member_location":         "The location of the infrastructure pool member",
 		"instance_name":                "The pulsar instance name",
 		"instance_type":                "The streamnative cloud instance type, supporting 'serverless' and 'standard'",
+		"instance_engine":              "The streamnative cloud instance engine, supporting 'ursa' and 'classic', default 'classic'",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
 		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
