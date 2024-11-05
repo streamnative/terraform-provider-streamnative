@@ -79,7 +79,7 @@ func resourceCloudEnvironment() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  descriptions["region"],
-				ValidateFunc: validateRegion,
+				ValidateFunc: validateNotBlank,
 			},
 			"zone": {
 				Type:         schema.TypeString,

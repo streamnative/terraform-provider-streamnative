@@ -123,7 +123,7 @@ func init() {
 		"cloud_connection_name":  "Name of the cloud connection",
 		"environment_type":       "Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc",
 		"cloud_environment_name": "Name of the cloud environment",
-		"region":                 "The region of the cloud environment",
+		"region":                 "The region of the cloud environment, for Azure, it should be the resource group name",
 		"zone":                   "The zone of the cloud environment, the underlying infrastructure will only be created in this zone if configured",
 		"default_gateway":        "The default gateway of the cloud environment",
 		"apikey_name":            "The name of the api key",
