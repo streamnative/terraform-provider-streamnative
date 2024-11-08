@@ -288,8 +288,69 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-		"The cloud environment does not support updates, please recreate it"))
+	namespace := d.Get("organization").(string)
+	waitForCompletion := d.Get("wait_for_completion").(bool)
+	name := strings.Split(d.Id(), "/")[1]
+
+	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	if d.HasChanges("organization") ||
+		d.HasChanges("cloud_connection_name") ||
+		d.HasChanges("region") ||
+		d.HasChanges("network_id") ||
+		d.HasChanges("network_cidr") {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+			"The cloud environment does not support updates on this attribute, please recreate it"))
+	}
+
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
+
+	if _, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Update(ctx, cloudEnvironment, metav1.UpdateOptions{
+		FieldManager: "terraform-update",
+	}); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	ready := false
+
+	if waitForCompletion {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, cloudEnvironment.GetObjectMeta().GetName()))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		for _, condition := range cloudEnvironment.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
+				ready = true
+			}
+		}
+	}
+
+	if ready {
+		_ = d.Set("organization", namespace)
+		return resourceCloudEnvironmentRead(ctx, d, meta)
+	}
+
+	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
+		dia := resourceCloudEnvironmentRead(ctx, d, meta)
+		if dia.HasError() {
+			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_CLOUD_ENVIRONMENT: %s", dia[0].Summary))
+		}
+		return nil
+	})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_RETRY_READ_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	return nil
 }
 
 func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
