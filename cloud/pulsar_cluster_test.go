@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var clusterGeneratedName = fmt.Sprintf("terraform-test-cluster-%d-%d", rand.Intn(10000), rand.Intn(10000))
+var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
 
 func TestPulsarCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
