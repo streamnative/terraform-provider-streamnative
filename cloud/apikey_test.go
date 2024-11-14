@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var apiKeyGeneratedName = fmt.Sprintf("terraform-test-api-key-%d", rand.Intn(10000))
+var apiKeyGeneratedName = fmt.Sprintf("t-%d", rand.Intn(1000))
 
 func TestApiKey(t *testing.T) {
 	resource.Test(t, resource.TestCase{
