@@ -206,6 +206,10 @@ func resourcePulsarGatewayRead(ctx context.Context, d *schema.ResourceData, meta
 
 	pg, err := clientSet.CloudV1alpha1().PulsarGateways(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_GATEWAY: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%s/%s", pg.Namespace, pg.Name))
