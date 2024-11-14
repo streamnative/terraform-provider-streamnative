@@ -26,7 +26,7 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/tuteng/Downloads/max-admin.json"
+  key_file_path = "/path/to/your/service/account/key.json"
 }
 
 resource "streamnative_pulsar_instance" "test-ursa" {
