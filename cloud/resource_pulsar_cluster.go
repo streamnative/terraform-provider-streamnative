@@ -17,9 +17,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -350,6 +352,8 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				"creating a cluster under instance of type '%s' is no longer allowed",
 			cloudv1alpha1.PulsarInstanceTypeFree))
 	}
+	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
+	ursaEnabled := ok && ursaEngine == UrsaEngineValue
 	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
 	brokerCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
 	brokerMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
@@ -410,6 +414,15 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			"cloud.streamnative.io/type": "serverless",
 		}
 	}
+	if ursaEnabled {
+		if pulsarCluster.Annotations == nil {
+			pulsarCluster.Annotations = map[string]string{
+				UrsaEngineAnnotation: UrsaEngineValue,
+			}
+		} else {
+			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
+		}
+	}
 	if displayName == "" && name == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
 			"either name or display_name must be provided"))
@@ -453,7 +466,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			return resourcePulsarClusterRead(ctx, d, meta)
 		}
 	}
-	err = retry.RetryContext(ctx, 15*time.Minute, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
 		dia := resourcePulsarClusterRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
@@ -482,6 +495,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	if name != "" {
 		pulsarCluster, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				d.SetId("")
+				return nil
+			}
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 		}
 	} else {
@@ -665,7 +682,7 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 		// Delay 10 seconds to wait for api server start reconcile.
 		time.Sleep(10 * time.Second)
-		err = retry.RetryContext(ctx, 15*time.Minute, func() *retry.RetryError {
+		err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
 			dia := resourcePulsarClusterRead(ctx, d, meta)
 			if dia.HasError() {
 				return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))

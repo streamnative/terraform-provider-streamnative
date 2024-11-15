@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -27,6 +28,8 @@ import (
 
 const (
 	IstioEnabledAnnotation = "annotations.cloud.streamnative.io/istio-enabled"
+	UrsaEngineAnnotation   = "cloud.streamnative.io/engine"
+	UrsaEngineValue        = "ursa"
 )
 
 func dataSourcePulsarCluster() *schema.Resource {
@@ -259,6 +262,10 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	}
 	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	_ = d.Set("ready", "False")

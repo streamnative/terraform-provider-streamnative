@@ -23,6 +23,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwe"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
@@ -119,6 +120,10 @@ func DataSourceApiKeyRead(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 	apiKey, err := clientSet.CloudV1alpha1().APIKeys(organization).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_API_KEY: %w", err))
 	}
 	if err = d.Set("organization", apiKey.Namespace); err != nil {
