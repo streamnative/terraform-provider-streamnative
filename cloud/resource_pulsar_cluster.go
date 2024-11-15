@@ -594,12 +594,12 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless {
-		brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-		_ = d.Set("pulsar_version", brokerImage[1])
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
 		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
 	}
+	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	_ = d.Set("pulsar_version", brokerImage[1])
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {
 		_ = d.Set("release_channel", releaseChannel)
