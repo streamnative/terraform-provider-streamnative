@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -57,6 +58,10 @@ func DataSourcePoolRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 	pool, err := clientSet.CloudV1alpha1().Pools(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_POOL: %w", err))
 	}
 	_ = d.Set("name", pool.Name)
