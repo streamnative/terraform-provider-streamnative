@@ -46,6 +46,46 @@ func TestServiceAccount(t *testing.T) {
 	})
 }
 
+func TestServiceAccountRemovedExternally(t *testing.T) {
+	// This test case is to simulate the situation that the service account is removed externally
+	// and the terraform state still has the resource
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckServiceAccountDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourceServiceAccount(
+					"sndev", "terraform-test-service-account-remove", true),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
+				),
+			},
+			{
+				PreConfig: func() {
+					meta := testAccProvider.Meta()
+					clientSet, err := getClientSet(getFactoryFromMeta(meta))
+					if err != nil {
+						t.Fatal(err)
+					}
+					err = clientSet.CloudV1alpha1().
+						ServiceAccounts("sndev").
+						Delete(context.Background(), "terraform-test-service-account-remove", metav1.DeleteOptions{})
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config: testResourceDataSourceServiceAccount(
+					"sndev", "terraform-test-service-account-remove", true),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testCheckServiceAccountDestroy(s *terraform.State) error {
 	// Add a sleep for wait the service account to be deleted
 	// It seems that azure connection to gcp is slow, so add a delay to wait
