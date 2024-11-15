@@ -352,6 +352,8 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				"creating a cluster under instance of type '%s' is no longer allowed",
 			cloudv1alpha1.PulsarInstanceTypeFree))
 	}
+	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
+	ursaEnabled := ok && ursaEngine == UrsaEngineValue
 	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
 	brokerCPU := resource.NewMilliQuantity(int64(computeUnit*2*1000), resource.DecimalSI)
 	brokerMem := resource.NewQuantity(int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
@@ -410,6 +412,15 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if pulsarInstance.Spec.Type == "serverless" {
 		pulsarCluster.Annotations = map[string]string{
 			"cloud.streamnative.io/type": "serverless",
+		}
+	}
+	if ursaEnabled {
+		if pulsarCluster.Annotations == nil {
+			pulsarCluster.Annotations = map[string]string{
+				UrsaEngineAnnotation: UrsaEngineValue,
+			}
+		} else {
+			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
 		}
 	}
 	if displayName == "" && name == "" {
