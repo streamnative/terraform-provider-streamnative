@@ -1,8 +1,6 @@
 module github.com/streamnative/terraform-provider-streamnative
 
-go 1.21
-
-toolchain go1.23.3
+go 1.19
 
 require (
 	github.com/99designs/keyring v1.2.1
