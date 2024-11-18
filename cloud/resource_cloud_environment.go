@@ -42,13 +42,23 @@ func resourceCloudEnvironment() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
+
+			old, new := diff.GetChange("default_gateway")
+			oldGateway := convertGateway(old)
+			newGateway := convertGateway(new)
+
+			if oldGateway.Access != newGateway.Access {
+				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+					"The cloud environment does not support updating the gateway access, please recreate it")
+			}
+
 			if diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
 				diff.HasChanges("network_cidr") {
 				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-					"The cloud environment does not support updates, please recreate it")
+					"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it")
 			}
 			return nil
 		},
@@ -302,13 +312,22 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_UPDATE_CLOUD_ENVIRONMENT: %w", err))
 	}
 
+	old, new := d.GetChange("default_gateway")
+	oldGateway := convertGateway(old)
+	newGateway := convertGateway(new)
+
+	if oldGateway.Access != newGateway.Access {
+		return diag.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+			"The cloud environment does not support updating the gateway access, please recreate it")
+	}
+
 	if d.HasChanges("organization") ||
 		d.HasChanges("cloud_connection_name") ||
 		d.HasChanges("region") ||
 		d.HasChanges("network_id") ||
 		d.HasChanges("network_cidr") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-			"The cloud environment does not support updates on this attribute, please recreate it"))
+			"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it"))
 	}
 
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
