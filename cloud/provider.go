@@ -166,6 +166,7 @@ func init() {
 			"and the aliases of PrivateLinkService in Azure.",
 		"oauth2_issuer_url": "The issuer url of the oauth2",
 		"oauth2_audience":   "The audience of the oauth2",
+		"annotations":       "The metadata annotations of the resource",
 	}
 }
 

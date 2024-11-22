@@ -23,11 +23,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 )
 
 func resourceCloudEnvironment() *schema.Resource {
@@ -157,6 +157,13 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"annotations": {
+				Type:         schema.TypeMap,
+				Description:  descriptions["annotations"],
+				Optional:     true,
+				Elem:         &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: validateAnnotations,
+			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -178,12 +185,18 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	zone := d.Get("zone").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	rawAnnotations := d.Get("annotations").(map[string]interface{})
 	waitForCompletion := d.Get("wait_for_completion")
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
 	}
+	annotations := make(map[string]string)
+	if len(rawAnnotations) > 0 {
+		annotations = convertToStringMap(rawAnnotations)
+	}
+	annotations["cloud.streamnative.io/environment-type"] = cloudEnvironmentType
 
 	cloudEnvironment := &cloudv1alpha1.CloudEnvironment{
 		TypeMeta: metav1.TypeMeta{
@@ -191,10 +204,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Annotations: map[string]string{
-				"cloud.streamnative.io/environment-type": cloudEnvironmentType,
-			},
+			Namespace:   namespace,
+			Annotations: annotations,
 		},
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
 			CloudConnectionName: cloudConnectionName,
@@ -407,7 +418,7 @@ func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *clo
 	return func() *retry.RetryError {
 		ce, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+			if statusErr, ok := err.(*apierrors.StatusError); ok && apierrors.IsNotFound(statusErr) {
 				return nil
 			}
 			return retry.NonRetryableError(err)

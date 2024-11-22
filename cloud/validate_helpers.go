@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	utilValidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 func validateNotBlank(val interface{}, key string) (warns []string, errs []error) {
@@ -120,6 +122,19 @@ func validateCidrRange(val interface{}, key string) (warns []string, errs []erro
 		if err != nil || (prefixLength < 16 || prefixLength > 28) {
 			errs = append(errs, fmt.Errorf(
 				"%q is not valid CIDR prefix length, must be between /16 and /28, got: %s", key, v))
+		}
+	}
+	return
+}
+
+func validateAnnotations(value interface{}, key string) (ws []string, es []error) {
+	m := value.(map[string]interface{})
+	for k := range m {
+		errors := utilValidation.IsQualifiedName(strings.ToLower(k))
+		if len(errors) > 0 {
+			for _, e := range errors {
+				es = append(es, fmt.Errorf("%s (%q) %s", key, k, e))
+			}
 		}
 	}
 	return
