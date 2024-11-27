@@ -45,21 +45,16 @@ func dataSourceRoleBinding() *schema.Resource {
 				Description: descriptions["rolebinding_ready"],
 			},
 			"predefined_role_name": {
-				Type:         schema.TypeString,
-				Required:     false,
-				Description:  descriptions["rolebinding_predefined_role_name"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["rolebinding_predefined_role_name"],
 			},
 			"service_account_names": {
-				Type:         schema.TypeList,
-				Required:     false,
-				Description:  descriptions["rolebinding_service_account_names"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["rolebinding_service_account_names"],
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					Required:     true,
-					Description:  descriptions["rolebinding_service_account_name"],
-					ValidateFunc: validateNotBlank,
+					Type: schema.TypeString,
 				},
 			},
 		},
@@ -108,7 +103,7 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 
 	if len(roleBinding.Status.Conditions) >= 1 {
 		for _, condition := range roleBinding.Status.Conditions {
-			if condition.Type == "ready" && condition.Status == "True" {
+			if condition.Type == "Ready" && condition.Status == "True" {
 				if err = d.Set("ready", true); err != nil {
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
 				}

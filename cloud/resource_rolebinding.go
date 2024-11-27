@@ -30,8 +30,8 @@ func resourceRoleBinding() *schema.Resource {
 				diff.HasChange("organization") ||
 				diff.HasChange("predefined_role_name") {
 				return fmt.Errorf("ERROR_UPDATE_: " +
-					"The api key does not support updates organization, " +
-					"name, role, please recreate it")
+					"The rolebinding does not support updates organization, " +
+					"name, predefined_role_name, please recreate it")
 			}
 			return nil
 		},
@@ -70,21 +70,16 @@ func resourceRoleBinding() *schema.Resource {
 				Description: descriptions["rolebinding_ready"],
 			},
 			"predefined_role_name": {
-				Type:         schema.TypeString,
-				Required:     false,
-				Description:  descriptions["rolebinding_predefined_role_name"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["rolebinding_predefined_role_name"],
 			},
 			"service_account_names": {
-				Type:         schema.TypeList,
-				Required:     false,
-				Description:  descriptions["rolebinding_service_account_names"],
-				ValidateFunc: validateNotBlank,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: descriptions["rolebinding_service_account_names"],
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					Required:     true,
-					Description:  descriptions["rolebinding_service_account_name"],
-					ValidateFunc: validateNotBlank,
+					Type: schema.TypeString,
 				},
 			},
 		},
@@ -96,7 +91,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 	name := d.Get("name").(string)
 
 	predefinedRoleName := d.Get("predefined_role_name").(string)
-	serviceAccountNames := d.Get("service_account_names").([]string)
+	serviceAccountNames := d.Get("service_account_names").([]interface{})
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
@@ -118,15 +113,17 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	if predefinedRoleName != "" {
 		rb.Spec.RoleRef = v1alpha1.RoleRef{
-			Kind: "ClusterRole",
-			Name: predefinedRoleName,
+			APIGroup: "cloud.streamnative.io",
+			Kind:     "ClusterRole",
+			Name:     predefinedRoleName,
 		}
 	}
 	if serviceAccountNames != nil {
 		for _, serviceAccountName := range serviceAccountNames {
 			rb.Spec.Subjects = append(rb.Spec.Subjects, v1alpha1.Subject{
-				Name: serviceAccountName,
-				Kind: "ServiceAccount",
+				APIGroup: "cloud.streamnative.io",
+				Name:     serviceAccountName.(string),
+				Kind:     "ServiceAccount",
 			})
 		}
 	}
@@ -186,13 +183,15 @@ func resourceRoleBindingUpdate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(fmt.Errorf("ERROR_READ_ROLEBINDING: %w", err))
 	}
 
-	serviceAccountNames := d.Get("service_account_names").([]string)
+	serviceAccountNames := d.Get("service_account_names").([]interface{})
 
 	if serviceAccountNames != nil {
+		roleBinding.Spec.Subjects = []v1alpha1.Subject{}
 		for _, serviceAccountName := range serviceAccountNames {
 			roleBinding.Spec.Subjects = append(roleBinding.Spec.Subjects, v1alpha1.Subject{
-				Name: serviceAccountName,
-				Kind: "ServiceAccount",
+				APIGroup: "cloud.streamnative.io",
+				Name:     serviceAccountName.(string),
+				Kind:     "ServiceAccount",
 			})
 		}
 	}
@@ -245,7 +244,7 @@ func resourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	if len(roleBinding.Status.Conditions) >= 1 {
 		for _, condition := range roleBinding.Status.Conditions {
-			if condition.Type == "ready" && condition.Status == "True" {
+			if condition.Type == "Ready" && condition.Status == "True" {
 				if err = d.Set("ready", true); err != nil {
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
 				}

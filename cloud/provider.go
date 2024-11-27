@@ -171,7 +171,6 @@ func init() {
 		"rolebinding_name":                  "The name of rolebinding",
 		"rolebinding_predefined_role_name":  "The predefined role name",
 		"rolebinding_service_account_names": "The list of service accounts that are role binding names ",
-		"rolebinding_service_account_name":  "The name of service account",
 	}
 }
 

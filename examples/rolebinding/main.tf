@@ -29,19 +29,17 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
-resource "streamnative_rolebinding" "rolebinding_1" {
+resource "streamnative_rolebinding" "rolebinding_demo" {
   organization = "o-y8z75"
-  name         = "test-rolebinding-1"
-
+  name         = "test-rolebinding-demo"
   predefined_role_name = "metrics-viewer"
-  serviceaccount_names = ["service-account-1"]
+  service_account_names = ["service-account-1", "service-account-2"]
 }
 
 data "streamnative_rolebinding" "rolebinding_1" {
-  depends_on = [streamnative_rolebinding.rolebinding_1]
-  organization = streamnative_rolebinding.rolebinding_1.organization
-  name         = streamnative_rolebinding.rolebinding_1.name
-  ready        = streamnative_rolebinding.rolebinding_1.ready
+  depends_on = [streamnative_rolebinding.rolebinding_demo]
+  organization = "o-y8z75"
+  name         = "test-rolebinding-demo"
 }
 
 output "streamnative_rolebinding" {
