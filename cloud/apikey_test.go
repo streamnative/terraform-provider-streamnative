@@ -121,6 +121,7 @@ resource "streamnative_pulsar_instance" "test-api-key-pulsar-instance" {
 	availability_mode = "zonal"
 	pool_name = "%s"
 	pool_namespace = "%s"
+	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	organization = "%s"
