@@ -95,7 +95,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_API_KEY: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_ROLEBINDING: %w", err))
 	}
 	rb := &v1alpha1.RoleBinding{
 		TypeMeta: metav1.TypeMeta{
