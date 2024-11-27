@@ -134,11 +134,22 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 		Namespace: poolNamespace,
 		Name:      poolName,
 	}
-	var t cloudv1alpha1.PulsarInstanceType
+	poolOption, err := clientSet.CloudV1alpha1().
+		PoolOptions(namespace).
+		Get(ctx, fmt.Sprintf("%s-%s", poolNamespace, poolName), metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_OPTION: %w", err))
+	}
 	if instanceType == "" {
-		t = cloudv1alpha1.PulsarInstanceTypeStandard
-	} else {
-		t = cloudv1alpha1.PulsarInstanceType(instanceType)
+		if poolOption.Spec.DeploymentType == cloudv1alpha1.PoolDeploymentTypeHosted {
+			instanceType = "serverless"
+		}
+		if poolOption.Spec.DeploymentType == cloudv1alpha1.PoolDeploymentTypeManaged {
+			instanceType = "byoc"
+		}
+		if poolOption.Spec.DeploymentType == cloudv1alpha1.PoolDeploymentTypeManagedPro {
+			instanceType = "byoc-pro"
+		}
 	}
 	pulsarInstance := &cloudv1alpha1.PulsarInstance{
 		TypeMeta: metav1.TypeMeta{
@@ -151,7 +162,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 		},
 		Spec: cloudv1alpha1.PulsarInstanceSpec{
 			AvailabilityMode: cloudv1alpha1.InstanceAvailabilityMode(availabilityMode),
-			Type:             t,
+			Type:             cloudv1alpha1.PulsarInstanceType(instanceType),
 			PoolRef:          poolRef,
 		},
 	}
