@@ -38,8 +38,8 @@ resource "streamnative_rolebinding" "rolebinding_demo" {
 
 data "streamnative_rolebinding" "rolebinding_1" {
   depends_on = [streamnative_rolebinding.rolebinding_demo]
-  organization = "o-y8z75"
-  name         = "test-rolebinding-demo"
+  organization = streamnative_rolebinding.rolebinding_demo.organization
+  name         = streamnative_rolebinding.rolebinding_demo.name
 }
 
 output "streamnative_rolebinding" {
