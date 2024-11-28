@@ -134,7 +134,6 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	location = "%s"
 	release_channel = "%s"
 	config {
-		websocket_enabled = true
 		function_enabled = false
 		transaction_enabled = false
 		protocols {

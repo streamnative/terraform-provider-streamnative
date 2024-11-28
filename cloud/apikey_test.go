@@ -130,7 +130,6 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	location = "%s"
 	release_channel = "%s"
 	config {
-		websocket_enabled = true
 		function_enabled = false
 		transaction_enabled = false
 		protocols {
