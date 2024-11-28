@@ -169,7 +169,7 @@ func init() {
 		"annotations":                       "The metadata annotations of the resource",
 		"rolebinding_ready":                 "The RoleBinding is ready, it will be set to 'True' after the cluster is ready",
 		"rolebinding_name":                  "The name of rolebinding",
-		"rolebinding_predefined_role_name":  "The predefined role name",
+		"rolebinding_cluster_role_name":     "The predefined role name",
 		"rolebinding_service_account_names": "The list of service accounts that are role binding names ",
 	}
 }

@@ -32,7 +32,7 @@ provider "streamnative" {
 resource "streamnative_rolebinding" "rolebinding_demo" {
   organization = "o-y8z75"
   name         = "test-rolebinding-demo"
-  predefined_role_name = "metrics-viewer"
+  cluster_role_name = "metrics-viewer"
   service_account_names = ["service-account-1", "service-account-2"]
 }
 

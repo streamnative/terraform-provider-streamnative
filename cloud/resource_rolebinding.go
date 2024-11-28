@@ -28,10 +28,10 @@ func resourceRoleBinding() *schema.Resource {
 			}
 			if diff.HasChange("name") ||
 				diff.HasChange("organization") ||
-				diff.HasChange("predefined_role_name") {
+				diff.HasChange("cluster_role_name") {
 				return fmt.Errorf("ERROR_UPDATE_: " +
 					"The rolebinding does not support updates organization, " +
-					"name, predefined_role_name, please recreate it")
+					"name, cluster_role_name, please recreate it")
 			}
 			return nil
 		},
@@ -69,10 +69,10 @@ func resourceRoleBinding() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["rolebinding_ready"],
 			},
-			"predefined_role_name": {
+			"cluster_role_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: descriptions["rolebinding_predefined_role_name"],
+				Description: descriptions["rolebinding_cluster_role_name"],
 			},
 			"service_account_names": {
 				Type:        schema.TypeList,
@@ -90,7 +90,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 
-	predefinedRoleName := d.Get("predefined_role_name").(string)
+	predefinedRoleName := d.Get("cluster_role_name").(string)
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))

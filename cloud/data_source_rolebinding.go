@@ -44,10 +44,10 @@ func dataSourceRoleBinding() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["rolebinding_ready"],
 			},
-			"predefined_role_name": {
+			"cluster_role_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: descriptions["rolebinding_predefined_role_name"],
+				Description: descriptions["rolebinding_cluster_role_name"],
 			},
 			"service_account_names": {
 				Type:        schema.TypeList,
@@ -84,8 +84,8 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	if roleBinding.Spec.RoleRef.Kind == "ClusterRole" {
-		if err = d.Set("predefined_role_name", roleBinding.Spec.RoleRef.Name); err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_SET_PREDEFINED_ROLE_NAME: %w", err))
+		if err = d.Set("cluster_role_name", roleBinding.Spec.RoleRef.Name); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_CLUSTER_ROLE_NAME: %w", err))
 		}
 	}
 
