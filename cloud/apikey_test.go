@@ -42,7 +42,7 @@ func TestApiKey(t *testing.T) {
 					apiKeyGeneratedName,
 					"shared-gcp",
 					"streamnative",
-					"us-central1", "lts"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),

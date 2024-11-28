@@ -44,7 +44,7 @@ func TestPulsarCluster(t *testing.T) {
 					clusterGeneratedName,
 					"shared-gcp",
 					"streamnative",
-					"us-central1", "lts"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
