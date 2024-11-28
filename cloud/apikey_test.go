@@ -130,6 +130,7 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	location = "%s"
 	release_channel = "%s"
 	config {
+		websocket_enabled = false
 		function_enabled = false
 		transaction_enabled = false
 		protocols {
@@ -141,7 +142,6 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 		  }
 		}
 		custom = {
-			"allowAutoTopicCreation" = "true"
 			"bookkeeper.journalSyncData" = "false"
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
