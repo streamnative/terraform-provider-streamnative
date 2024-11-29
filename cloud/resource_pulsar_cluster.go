@@ -346,12 +346,6 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_GET_PULSAR_INSTANCE_ON_CREATE_PULSAR_CLUSTER: %w", err))
 	}
-	if pulsarInstance.Spec.Plan == string(cloudv1alpha1.PulsarInstanceTypeFree) {
-		return diag.FromErr(fmt.Errorf(
-			"ERROR_CREATE_PULSAR_CLUSTER: "+
-				"creating a cluster under instance of type '%s' is no longer allowed",
-			cloudv1alpha1.PulsarInstanceTypeFree))
-	}
 	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
 	ursaEnabled := ok && ursaEngine == UrsaEngineValue
 	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
@@ -596,10 +590,14 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		if len(bookkeeperImage) > 1 {
+			_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		}
 	}
 	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-	_ = d.Set("pulsar_version", brokerImage[1])
+	if len(brokerImage) > 1 {
+		_ = d.Set("pulsar_version", brokerImage[1])
+	}
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {
 		_ = d.Set("release_channel", releaseChannel)

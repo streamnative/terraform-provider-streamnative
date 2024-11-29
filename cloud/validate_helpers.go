@@ -40,8 +40,8 @@ func validateEngine(val interface{}, key string) (warns []string, errs []error) 
 
 func validateInstanceType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
-	if v != "serverless" && v != "standard" {
-		errs = append(errs, fmt.Errorf("%q must be serverless or standard", key))
+	if v != "serverless" && v != "standard" && v != "dedicated" && v != "byoc" && v != "byoc-pro" {
+		errs = append(errs, fmt.Errorf("%q must be serverless, dedicated, byoc and byoc-pro", key))
 	}
 	return
 }

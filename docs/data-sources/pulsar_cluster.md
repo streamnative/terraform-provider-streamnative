@@ -42,7 +42,7 @@ description: |-
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
-- `type` (String) The streamnative cloud instance type, supporting 'serverless' and 'standard'
+- `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
 

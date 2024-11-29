@@ -341,10 +341,14 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		if len(bookkeeperImage) > 1 {
+			_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		}
 	}
 	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-	_ = d.Set("pulsar_version", brokerImage[1])
+	if len(brokerImage) > 1 {
+		_ = d.Set("pulsar_version", brokerImage[1])
+	}
 	_ = d.Set("type", pulsarInstance.Spec.Type)
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {

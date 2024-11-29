@@ -26,7 +26,7 @@ description: |-
 ### Optional
 
 - `engine` (String) The streamnative cloud instance engine, supporting 'ursa' and 'classic', default 'classic'
-- `type` (String) The streamnative cloud instance type, supporting 'serverless' and 'standard'
+- `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 
 ### Read-Only
 
