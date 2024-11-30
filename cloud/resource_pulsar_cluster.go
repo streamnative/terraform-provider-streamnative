@@ -57,9 +57,6 @@ func resourcePulsarCluster() *schema.Resource {
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				organizationCluster := strings.Split(d.Id(), "/")
-				_ = d.Set("organization", organizationCluster[0])
-				_ = d.Set("name", organizationCluster[1])
 				err := resourcePulsarClusterRead(ctx, d, meta)
 				if err.HasError() {
 					return nil, fmt.Errorf("import %q: %s", d.Id(), err[0].Summary)
@@ -420,10 +417,6 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if !ursaEnabled && !pulsarInstance.IsServerless() {
 		pulsarCluster.Spec.BookKeeper = bookkeeper
 	}
-	if displayName == "" && name == "" {
-		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
-			"either name or display_name must be provided"))
-	}
 	if pool_member_name != "" {
 		pulsarCluster.Spec.PoolMemberRef = cloudv1alpha1.PoolMemberReference{
 			Name:      pool_member_name,
@@ -441,7 +434,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		}
 	}
-	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeStandard {
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarInstance.IsUsingUrsaEngine() {
 		getPulsarClusterChanged(ctx, pulsarCluster, d)
 	}
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
@@ -450,8 +443,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: %w", err))
 	}
-	d.Set("name", pc.Name)
-	d.Set("display_name", pc.Spec.DisplayName)
+	d.SetId(fmt.Sprintf("%s/%s", pc.Namespace, pc.Name))
 	if pc.Status.Conditions != nil {
 		ready := false
 		for _, condition := range pc.Status.Conditions {
@@ -483,36 +475,24 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
-	displayName := d.Get("display_name").(string)
+	//displayName := d.Get("display_name").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
 	}
 	var pulsarCluster *cloudv1alpha1.PulsarCluster
-	if name != "" {
-		pulsarCluster, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				d.SetId("")
-				return nil
-			}
-			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
+	if name == "" {
+		organizationCluster := strings.Split(d.Id(), "/")
+		name = organizationCluster[1]
+		namespace = organizationCluster[0]
+	}
+	pulsarCluster, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
 		}
-	} else {
-		pulsarClusters, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_LIST_PULSAR_CLUSTER: %w", err))
-		}
-		for _, cluster := range pulsarClusters.Items {
-			if cluster.Spec.DisplayName == displayName {
-				pulsarCluster = &cluster
-				break
-			}
-		}
-		if pulsarCluster == nil {
-			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: "+
-				"the pulsar cluster with display_name %s does not exist", displayName))
-		}
+		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	_ = d.Set("ready", "False")
 	if pulsarCluster.Status.Conditions != nil {
@@ -640,9 +620,19 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	if d.Get("type") == cloudv1alpha1.PulsarInstanceTypeServerless {
+		organizationCluster := strings.Split(d.Id(), "/")
+		namespace = organizationCluster[0]
+		name = organizationCluster[1]
+	}
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_PULSAR_CLUSTER: %w", err))
+	}
+	if name == "" {
+		organizationCluster := strings.Split(d.Id(), "/")
+		name = organizationCluster[1]
+		namespace = organizationCluster[0]
 	}
 	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -707,11 +697,11 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_PULSAR_CLUSTER: %w", err))
 	}
 	namespace := d.Get("organization").(string)
-	t := d.Get("type")
 	name := d.Get("name").(string)
-	if t == cloudv1alpha1.PulsarInstanceTypeServerless {
-		id := strings.Split(d.Id(), "/")
-		name = id[1]
+	if name == "" {
+		organizationCluster := strings.Split(d.Id(), "/")
+		name = organizationCluster[1]
+		namespace = organizationCluster[0]
 	}
 	err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
