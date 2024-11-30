@@ -49,7 +49,7 @@ func resourcePulsarCluster() *schema.Resource {
 				// Auto generate the name, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChanges([]string{"organization", "name", "instance_name", "location", "pool_member_name"}...) {
+			if diff.HasChanges([]string{"organization", "name", "instance_name", "location", "pool_member_name", "release_channel"}...) {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 					"The pulsar cluster organization, name, instance_name, location, pool_member_name does not support updates, please recreate it")
 			}
@@ -400,7 +400,15 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if displayName != "" {
 		pulsarCluster.Spec.DisplayName = displayName
 	}
-	if pulsarInstance.Spec.Type == "serverless" {
+	if pulsarInstance.IsServerless() {
+		if computeUnit != 0.5 {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"compute_unit must be 0.5 for serverless instance"))
+		}
+		if brokerReplicas != 2 {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"broker_replicas must be 2 for serverless instance"))
+		}
 		pulsarCluster.Annotations = map[string]string{
 			"cloud.streamnative.io/type": "serverless",
 		}
@@ -588,10 +596,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 
 func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	serverless := d.Get("type")
-	if serverless == cloudv1alpha1.PulsarInstanceTypeServerless {
-		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: "+
-			"updating a cluster under instance of type '%s' is no longer allowed",
-			cloudv1alpha1.PulsarInstanceTypeServerless))
+	displayNameChanged := d.HasChange("display_name")
+	if !displayNameChanged && serverless == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+			"only display_name can be updated for serverless instance"))
 	}
 	if d.HasChange("organization") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
@@ -660,10 +668,14 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
 	changed := getPulsarClusterChanged(ctx, pulsarCluster, d)
+	if displayNameChanged {
+		displayName := d.Get("display_name").(string)
+		pulsarCluster.Spec.DisplayName = displayName
+	}
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
 		d.HasChange("compute_unit") ||
-		d.HasChange("storage_unit") || changed {
+		d.HasChange("storage_unit") || changed || displayNameChanged {
 		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
 			FieldManager: "terraform-update",
 		})
