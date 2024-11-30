@@ -26,7 +26,7 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/path/to/your/service/account/key.json"
+  key_file_path = "/Users/tuteng/Downloads/o-wak6b-uo-admin.json"
 }
 
 resource "streamnative_pulsar_cluster" "test-cluster-1" {
@@ -61,10 +61,15 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   }
 }
 
+locals {
+  depends_on   = [streamnative_pulsar_cluster.test-cluster-1]
+  nsCluster = split("/", streamnative_pulsar_cluster.test-cluster-1.id)
+}
+
 data "streamnative_pulsar_cluster" "test-cluster-1" {
   depends_on   = [streamnative_pulsar_cluster.test-cluster-1]
   organization = streamnative_pulsar_cluster.test-cluster-1.organization
-  name         = streamnative_pulsar_cluster.test-cluster-1.name
+  name         = local.nsCluster[1]
 }
 
 output "pulsar_cluster_hosted" {
