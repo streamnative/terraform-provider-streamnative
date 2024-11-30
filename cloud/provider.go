@@ -171,6 +171,7 @@ func init() {
 		"rolebinding_name":                  "The name of rolebinding",
 		"rolebinding_cluster_role_name":     "The predefined role name",
 		"rolebinding_service_account_names": "The list of service accounts that are role binding names ",
+		"dns":                               "The DNS ID and name. Must specify together",
 	}
 }
 

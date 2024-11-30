@@ -17,8 +17,8 @@ github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0 h1:BMAjVKJM0U/CYF27gA0ZM
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0/go.mod h1:1fXstnBMas5kzG+S3q8UoJcmyU6nUeunJcMDHcRYHhs=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.0 h1:d81/ng9rET2YqdVkVwkb6EXeRrLJIwyGnJcAlAWKwhs=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.0/go.mod h1:s4kgfzA0covAXNicZHDMN58jExvcng2mC/DepXiF1EI=
-github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v2 v2.4.0 h1:1u/K2BFv0MwkG6he8RYuUcbbeK22rkoZbg4lKa/msZU=
-github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v2 v2.4.0/go.mod h1:U5gpsREQZE6SLk1t/cFfc1eMhYAlYpEzvaYXuDfefy8=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice v1.0.0 h1:figxyQZXzZQIcP3njhC68bYUiTw45J8/SsHaLW8Ax0M=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice v1.0.0/go.mod h1:TmlMW4W5OvXOmOyKNnor8nlMMiO1ctIyzmHme/VHsrA=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/msi/armmsi v1.2.0 h1:z4YeiSXxnUI+PqB46Yj6MZA3nwb1CcJIkEMDrzUd8Cs=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/msi/armmsi v1.2.0/go.mod h1:rko9SzMxcMk0NJsNAxALEGaTYyy79bNRwxgJfrH0Spw=
 github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 h1:UQHMgLO+TxOElx5B5HZ4hJQsoJ/PvUvKRhJHDQXO8P8=
@@ -628,8 +628,8 @@ github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/y
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/streamnative/apiserver-builder-alpha v0.0.0-20240326220620-ce0d72b3e222 h1:shRWPOZDQCtvZERDSN3sUO5HXYSpHWFfm2sSpuhMsHo=
 github.com/streamnative/apiserver-builder-alpha v0.0.0-20240326220620-ce0d72b3e222/go.mod h1:hM7h0lTFQ6ZyQ8YXz9SYX613ryUlW7ILbm1Jj4PgVlc=
-github.com/streamnative/cloud-api-server v1.25.2-0.20241126113204-4d08d27e3122 h1:8NxYBFixXLL4/7GwP5AuBYulqblTOYg4WUt/GnDpBHg=
-github.com/streamnative/cloud-api-server v1.25.2-0.20241126113204-4d08d27e3122/go.mod h1:ezloI11TvplSGQPwuRIYacs8BqnqujAFiwdsRmhqWQ0=
+github.com/streamnative/cloud-api-server v1.29.1 h1:FKH+axMN0Ok9zo9emrbatJRYltTrcfPiDRkhxnd2dNE=
+github.com/streamnative/cloud-api-server v1.29.1/go.mod h1:a5Xoy6PfbV8/tLr11VHLyMhPJqkdmG0yh+Cm+WyCIRA=
 github.com/streamnative/cloud-cli v0.19.5 h1:oCoETQ8G3tFRu/mlThPwdvMuzNWOLY5qvSSnYfTsC0s=
 github.com/streamnative/cloud-cli v0.19.5/go.mod h1:YeZwO9an7qp6K6PYFbho8dfWf8Xsee4NpnjVvdRZqZo=
 github.com/streamnative/function-mesh/api v0.0.0-20240802074023-ee53ec49a51d h1:s0BpMQcsvRBwvlOEkTB8gavWvMjLYtdjHt3+8KzmvtQ=
