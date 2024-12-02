@@ -61,10 +61,15 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
   }
 }
 
+locals {
+  depends_on   = [streamnative_pulsar_cluster.test-cluster-1]
+  nsCluster = split("/", streamnative_pulsar_cluster.test-cluster-1.id)
+}
+
 data "streamnative_pulsar_cluster" "test-cluster-1" {
   depends_on   = [streamnative_pulsar_cluster.test-cluster-1]
   organization = streamnative_pulsar_cluster.test-cluster-1.organization
-  name         = streamnative_pulsar_cluster.test-cluster-1.name
+  name         = local.nsCluster[1]
 }
 
 output "pulsar_cluster_hosted" {
