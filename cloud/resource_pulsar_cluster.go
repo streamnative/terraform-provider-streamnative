@@ -464,7 +464,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			return resourcePulsarClusterRead(ctx, d, meta)
 		}
 	}
-	err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		dia := resourcePulsarClusterRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
@@ -684,7 +684,7 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 		// Delay 10 seconds to wait for api server start reconcile.
 		time.Sleep(10 * time.Second)
-		err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			dia := resourcePulsarClusterRead(ctx, d, meta)
 			if dia.HasError() {
 				return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
