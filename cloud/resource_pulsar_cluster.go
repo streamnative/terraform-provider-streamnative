@@ -17,10 +17,11 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -463,7 +464,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			return resourcePulsarClusterRead(ctx, d, meta)
 		}
 	}
-	err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
 		dia := resourcePulsarClusterRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
@@ -684,7 +685,7 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 		// Delay 10 seconds to wait for api server start reconcile.
 		time.Sleep(10 * time.Second)
-		err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
 			dia := resourcePulsarClusterRead(ctx, d, meta)
 			if dia.HasError() {
 				return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
@@ -718,6 +719,23 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_DELETE_PULSAR_CLUSTER: %w", err))
 	}
+	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
+		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+				return nil
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		e := fmt.Errorf("pulsarcluster (%s) still exists", d.Id())
+		return retry.RetryableError(e)
+	})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %w", err))
+	}
+
+	d.SetId("")
 	return nil
 }
 

@@ -122,6 +122,24 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"dns": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["dns"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			"default_gateway": {
 				Type: schema.TypeList,
 				//Set this as optional and computed because an empty block will still create a default on the API and in the statefile
@@ -185,6 +203,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	zone := d.Get("zone").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	dns := d.Get("dns").([]interface{})
 	rawAnnotations := d.Get("annotations").(map[string]interface{})
 	waitForCompletion := d.Get("wait_for_completion")
 
@@ -233,6 +252,31 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
+
+	expandDns := func() error {
+		for _, l := range dns {
+			if l == nil {
+				continue
+			}
+			item := l.(map[string]interface{})
+
+			dnsId := item["id"].(string)
+			dnsName := item["name"].(string)
+
+			if (dnsId != "" && dnsName == "") || (dnsId == "" && dnsName != "") {
+				return fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: DNS ID and name must specify together")
+			}
+
+			cloudEnvironment.Spec.DNS = &cloudv1alpha1.DNS{
+				ID:   dnsId,
+				Name: dnsName,
+			}
+		}
+		return nil
+	}
+	if err := expandDns(); err != nil {
+		return diag.FromErr(err)
 	}
 
 	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
