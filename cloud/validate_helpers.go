@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	utilValidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 func validateNotBlank(val interface{}, key string) (warns []string, errs []error) {
@@ -38,8 +40,8 @@ func validateEngine(val interface{}, key string) (warns []string, errs []error) 
 
 func validateInstanceType(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
-	if v != "serverless" && v != "standard" {
-		errs = append(errs, fmt.Errorf("%q must be serverless or standard", key))
+	if v != "serverless" && v != "standard" && v != "dedicated" && v != "byoc" && v != "byoc-pro" {
+		errs = append(errs, fmt.Errorf("%q must be serverless, dedicated, byoc and byoc-pro", key))
 	}
 	return
 }
@@ -120,6 +122,19 @@ func validateCidrRange(val interface{}, key string) (warns []string, errs []erro
 		if err != nil || (prefixLength < 16 || prefixLength > 28) {
 			errs = append(errs, fmt.Errorf(
 				"%q is not valid CIDR prefix length, must be between /16 and /28, got: %s", key, v))
+		}
+	}
+	return
+}
+
+func validateAnnotations(value interface{}, key string) (ws []string, es []error) {
+	m := value.(map[string]interface{})
+	for k := range m {
+		errors := utilValidation.IsQualifiedName(strings.ToLower(k))
+		if len(errors) > 0 {
+			for _, e := range errors {
+				es = append(es, fmt.Errorf("%s (%q) %s", key, k, e))
+			}
 		}
 	}
 	return

@@ -35,7 +35,7 @@ resource "streamnative_pulsar_instance" "test-ursa" {
   availability_mode = "regional"
   pool_name = "shared-aws"
   pool_namespace = "max"
-  type = "standard"
+  type = "byoc"
   engine = "ursa"
 }
 

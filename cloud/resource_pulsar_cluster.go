@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -345,12 +347,6 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_GET_PULSAR_INSTANCE_ON_CREATE_PULSAR_CLUSTER: %w", err))
 	}
-	if pulsarInstance.Spec.Plan == string(cloudv1alpha1.PulsarInstanceTypeFree) {
-		return diag.FromErr(fmt.Errorf(
-			"ERROR_CREATE_PULSAR_CLUSTER: "+
-				"creating a cluster under instance of type '%s' is no longer allowed",
-			cloudv1alpha1.PulsarInstanceTypeFree))
-	}
 	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
 	ursaEnabled := ok && ursaEngine == UrsaEngineValue
 	bookieCPU := resource.NewMilliQuantity(int64(storageUnit*2*1000), resource.DecimalSI)
@@ -384,21 +380,21 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			InstanceName:   instanceName,
 			Location:       location,
 			ReleaseChannel: releaseChannel,
-			BookKeeper: &cloudv1alpha1.BookKeeper{
-				Replicas: &bookieReplicas,
-				Resources: &cloudv1alpha1.BookkeeperNodeResource{
-					DefaultNodeResource: cloudv1alpha1.DefaultNodeResource{
-						Cpu:    bookieCPU,
-						Memory: bookieMem,
-					},
-				},
-			},
 			Broker: cloudv1alpha1.Broker{
 				Replicas: &brokerReplicas,
 				Resources: &cloudv1alpha1.DefaultNodeResource{
 					Cpu:    brokerCPU,
 					Memory: brokerMem,
 				},
+			},
+		},
+	}
+	bookkeeper := &cloudv1alpha1.BookKeeper{
+		Replicas: &bookieReplicas,
+		Resources: &cloudv1alpha1.BookkeeperNodeResource{
+			DefaultNodeResource: cloudv1alpha1.DefaultNodeResource{
+				Cpu:    bookieCPU,
+				Memory: bookieMem,
 			},
 		},
 	}
@@ -421,6 +417,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		} else {
 			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
 		}
+	}
+	if !ursaEnabled && !pulsarInstance.IsServerless() {
+		pulsarCluster.Spec.BookKeeper = bookkeeper
 	}
 	if displayName == "" && name == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
@@ -494,6 +493,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	if name != "" {
 		pulsarCluster, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				d.SetId("")
+				return nil
+			}
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 		}
 	} else {
@@ -586,11 +589,15 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless {
-		brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-		_ = d.Set("pulsar_version", brokerImage[1])
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		if len(bookkeeperImage) > 1 {
+			_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		}
+	}
+	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	if len(brokerImage) > 1 {
+		_ = d.Set("pulsar_version", brokerImage[1])
 	}
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel
 	if releaseChannel != "" {
@@ -711,7 +718,7 @@ func resourcePulsarClusterDelete(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_DELETE_PULSAR_CLUSTER: %w", err))
 	}
-	err = retry.RetryContext(ctx, 20*time.Minute, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
 		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {

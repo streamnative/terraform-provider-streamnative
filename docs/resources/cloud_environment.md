@@ -25,6 +25,7 @@ description: |-
 
 ### Optional
 
+- `annotations` (Map of String) The metadata annotations of the resource
 - `default_gateway` (Block List) The default gateway of the cloud environment (see [below for nested schema](#nestedblock--default_gateway))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `wait_for_completion` (Boolean) If true, will block until the status of resource has a Ready condition

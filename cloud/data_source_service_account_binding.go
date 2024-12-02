@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -81,6 +82,10 @@ func DataSourceServiceAccountBindingRead(ctx context.Context, d *schema.Resource
 	}
 	serviceAccountBinding, err := clientSet.CloudV1alpha1().ServiceAccountBindings(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_SERVICE_ACCOUNT_BINDING: %w", err))
 	}
 	_ = d.Set("name", serviceAccountBinding.Name)

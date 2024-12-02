@@ -18,7 +18,6 @@ description: |-
 ### Required
 
 - `instance_name` (String) The pulsar instance name
-- `name` (String) The pulsar cluster name
 - `organization` (String) The organization name
 
 ### Optional
@@ -27,8 +26,10 @@ description: |-
 - `broker_replicas` (Number) The number of broker replicas
 - `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
 - `config` (Block List) (see [below for nested schema](#nestedblock--config))
+- `display_name` (String) The pulsar cluster display name
 - `endpoint_access` (Block List) (see [below for nested schema](#nestedblock--endpoint_access))
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
+- `name` (String) The pulsar cluster name
 - `pool_member_name` (String) The infrastructure pool member name
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
@@ -47,6 +48,7 @@ description: |-
 - `pulsar_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to produce and consume message. There'll be multiple service urls if the cluster attached with multiple gateways
 - `pulsar_version` (String) The version of the pulsar cluster
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
+- `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
 
