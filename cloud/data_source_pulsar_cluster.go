@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -27,6 +28,8 @@ import (
 
 const (
 	IstioEnabledAnnotation = "annotations.cloud.streamnative.io/istio-enabled"
+	UrsaEngineAnnotation   = "cloud.streamnative.io/engine"
+	UrsaEngineValue        = "ursa"
 )
 
 func dataSourcePulsarCluster() *schema.Resource {
@@ -259,6 +262,10 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	}
 	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	_ = d.Set("ready", "False")
@@ -332,11 +339,15 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
 	}
-	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless {
-		brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
-		_ = d.Set("pulsar_version", brokerImage[1])
+	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
-		_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		if len(bookkeeperImage) > 1 {
+			_ = d.Set("bookkeeper_version", bookkeeperImage[1])
+		}
+	}
+	brokerImage := strings.Split(pulsarCluster.Spec.Broker.Image, ":")
+	if len(brokerImage) > 1 {
+		_ = d.Set("pulsar_version", brokerImage[1])
 	}
 	_ = d.Set("type", pulsarInstance.Spec.Type)
 	releaseChannel := pulsarCluster.Spec.ReleaseChannel

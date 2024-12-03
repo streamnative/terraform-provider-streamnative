@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -120,6 +121,10 @@ func dataSourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, 
 	}
 	cloudConnection, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION: %w", err))
 	}
 

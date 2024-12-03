@@ -75,7 +75,8 @@ func init() {
 		"pool_member_type":             "Type of infrastructure pool member, one of aws, gcloud and azure",
 		"pool_member_location":         "The location of the infrastructure pool member",
 		"instance_name":                "The pulsar instance name",
-		"instance_type":                "The streamnative cloud instance type, supporting 'serverless' and 'standard'",
+		"instance_type":                "The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'",
+		"instance_engine":              "The streamnative cloud instance engine, supporting 'ursa' and 'classic', default 'classic'",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
 		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
@@ -163,8 +164,14 @@ func init() {
 		"default_gateway_private_service_ids": "The private service ids are ids are service names of PrivateLink in AWS, " +
 			"the ids of Private Service Attachment in GCP, " +
 			"and the aliases of PrivateLinkService in Azure.",
-		"oauth2_issuer_url": "The issuer url of the oauth2",
-		"oauth2_audience":   "The audience of the oauth2",
+		"oauth2_issuer_url":                 "The issuer url of the oauth2",
+		"oauth2_audience":                   "The audience of the oauth2",
+		"annotations":                       "The metadata annotations of the resource",
+		"rolebinding_ready":                 "The RoleBinding is ready, it will be set to 'True' after the cluster is ready",
+		"rolebinding_name":                  "The name of rolebinding",
+		"rolebinding_cluster_role_name":     "The predefined role name",
+		"rolebinding_service_account_names": "The list of service accounts that are role binding names ",
+		"dns":                               "The DNS ID and name. Must specify together",
 	}
 }
 
@@ -199,6 +206,7 @@ func Provider() *schema.Provider {
 			"streamnative_cloud_environment":       resourceCloudEnvironment(),
 			"streamnative_apikey":                  resourceApiKey(),
 			"streamnative_pulsar_gateway":          resourcePulsarGateway(),
+			"streamnative_rolebinding":             resourceRoleBinding(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         dataSourceServiceAccount(),
@@ -212,6 +220,7 @@ func Provider() *schema.Provider {
 			"streamnative_pool_member":             dataSourcePoolMember(),
 			"streamnative_resources":               dataSourceResources(),
 			"streamnative_pulsar_gateway":          dataSourcePulsarGateway(),
+			"streamnative_rolebinding":             dataSourceRoleBinding(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

@@ -25,7 +25,9 @@ description: |-
 
 ### Optional
 
+- `annotations` (Map of String) The metadata annotations of the resource
 - `default_gateway` (Block List) The default gateway of the cloud environment (see [below for nested schema](#nestedblock--default_gateway))
+- `dns` (Block List, Max: 1) The DNS ID and name. Must specify together (see [below for nested schema](#nestedblock--dns))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `wait_for_completion` (Boolean) If true, will block until the status of resource has a Ready condition
 - `zone` (String) The zone of the cloud environment, the underlying infrastructure will only be created in this zone if configured
@@ -58,6 +60,15 @@ Optional:
 
 - `allowed_ids` (List of String) The whitelist of the private service, only can be configured when access is private.They are account ids in AWS, the project names in GCP, and the subscription ids in Azure
 
+
+
+<a id="nestedblock--dns"></a>
+### Nested Schema for `dns`
+
+Required:
+
+- `id` (String)
+- `name` (String)
 
 
 <a id="nestedblock--timeouts"></a>

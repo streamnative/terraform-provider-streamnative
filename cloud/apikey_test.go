@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var apiKeyGeneratedName = fmt.Sprintf("terraform-test-api-key-%d", rand.Intn(10000))
+var apiKeyGeneratedName = fmt.Sprintf("ak-%d", rand.Intn(1000))
 
 func TestApiKey(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -42,7 +42,7 @@ func TestApiKey(t *testing.T) {
 					apiKeyGeneratedName,
 					"shared-gcp",
 					"streamnative",
-					"us-central1", "lts"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
 				),
@@ -121,6 +121,7 @@ resource "streamnative_pulsar_instance" "test-api-key-pulsar-instance" {
 	availability_mode = "zonal"
 	pool_name = "%s"
 	pool_namespace = "%s"
+	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	organization = "%s"
@@ -129,7 +130,7 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 	location = "%s"
 	release_channel = "%s"
 	config {
-		websocket_enabled = true
+		websocket_enabled = false
 		function_enabled = false
 		transaction_enabled = false
 		protocols {
@@ -141,7 +142,6 @@ resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
 		  }
 		}
 		custom = {
-			"allowAutoTopicCreation" = "true"
 			"bookkeeper.journalSyncData" = "false"
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}

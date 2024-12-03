@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var clusterGeneratedName = fmt.Sprintf("terraform-test-cluster-%d-%d", rand.Intn(10000), rand.Intn(10000))
+var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
 
 func TestPulsarCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -44,7 +44,7 @@ func TestPulsarCluster(t *testing.T) {
 					clusterGeneratedName,
 					"shared-gcp",
 					"streamnative",
-					"us-central1", "lts"),
+					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
@@ -125,6 +125,7 @@ resource "streamnative_pulsar_instance" "test-pulsar-instance" {
 	availability_mode = "zonal"
 	pool_name = "%s"
 	pool_namespace = "%s"
+	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	organization = "%s"
@@ -133,7 +134,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	location = "%s"
 	release_channel = "%s"
 	config {
-		websocket_enabled = true
+		websocket_enabled = false
 		function_enabled = false
 		transaction_enabled = false
 		protocols {
@@ -145,7 +146,6 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 		  }
 		}
 		custom = {
-			"allowAutoTopicCreation" = "true"
 			"bookkeeper.journalSyncData" = "false"
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}

@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -251,6 +253,10 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 	}
 	cloudConnection, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION: %w", err))
 	}
 

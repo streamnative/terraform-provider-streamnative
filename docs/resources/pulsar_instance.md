@@ -23,6 +23,11 @@ description: |-
 - `pool_name` (String) The infrastructure pool name
 - `pool_namespace` (String) The infrastructure pool namespace
 
+### Optional
+
+- `engine` (String) The streamnative cloud instance engine, supporting 'ursa' and 'classic', default 'classic'
+- `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

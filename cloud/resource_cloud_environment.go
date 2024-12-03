@@ -23,10 +23,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func resourceCloudEnvironment() *schema.Resource {
@@ -41,13 +42,23 @@ func resourceCloudEnvironment() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
+
+			old, new := diff.GetChange("default_gateway")
+			oldGateway := convertGateway(old)
+			newGateway := convertGateway(new)
+
+			if oldGateway.Access != newGateway.Access {
+				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+					"The cloud environment does not support updating the gateway access, please recreate it")
+			}
+
 			if diff.HasChanges("organization") ||
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
 				diff.HasChanges("network_cidr") {
 				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-					"The cloud environment does not support updates, please recreate it")
+					"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it")
 			}
 			return nil
 		},
@@ -111,6 +122,24 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"dns": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["dns"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			"default_gateway": {
 				Type: schema.TypeList,
 				//Set this as optional and computed because an empty block will still create a default on the API and in the statefile
@@ -146,6 +175,13 @@ func resourceCloudEnvironment() *schema.Resource {
 					},
 				},
 			},
+			"annotations": {
+				Type:         schema.TypeMap,
+				Description:  descriptions["annotations"],
+				Optional:     true,
+				Elem:         &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: validateAnnotations,
+			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -167,12 +203,19 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	zone := d.Get("zone").(string)
 	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	network := d.Get("network").([]interface{})
+	dns := d.Get("dns").([]interface{})
+	rawAnnotations := d.Get("annotations").(map[string]interface{})
 	waitForCompletion := d.Get("wait_for_completion")
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
 	}
+	annotations := make(map[string]string)
+	if len(rawAnnotations) > 0 {
+		annotations = convertToStringMap(rawAnnotations)
+	}
+	annotations["cloud.streamnative.io/environment-type"] = cloudEnvironmentType
 
 	cloudEnvironment := &cloudv1alpha1.CloudEnvironment{
 		TypeMeta: metav1.TypeMeta{
@@ -180,10 +223,8 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 			APIVersion: cloudv1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Annotations: map[string]string{
-				"cloud.streamnative.io/environment-type": cloudEnvironmentType,
-			},
+			Namespace:   namespace,
+			Annotations: annotations,
 		},
 		Spec: cloudv1alpha1.CloudEnvironmentSpec{
 			CloudConnectionName: cloudConnectionName,
@@ -211,6 +252,31 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
+
+	expandDns := func() error {
+		for _, l := range dns {
+			if l == nil {
+				continue
+			}
+			item := l.(map[string]interface{})
+
+			dnsId := item["id"].(string)
+			dnsName := item["name"].(string)
+
+			if (dnsId != "" && dnsName == "") || (dnsId == "" && dnsName != "") {
+				return fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: DNS ID and name must specify together")
+			}
+
+			cloudEnvironment.Spec.DNS = &cloudv1alpha1.DNS{
+				ID:   dnsId,
+				Name: dnsName,
+			}
+		}
+		return nil
+	}
+	if err := expandDns(); err != nil {
+		return diag.FromErr(err)
 	}
 
 	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
@@ -266,6 +332,10 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 	}
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
 	}
 
@@ -288,8 +358,78 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-		"The cloud environment does not support updates, please recreate it"))
+	namespace := d.Get("organization").(string)
+	waitForCompletion := d.Get("wait_for_completion").(bool)
+	name := strings.Split(d.Id(), "/")[1]
+
+	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	old, new := d.GetChange("default_gateway")
+	oldGateway := convertGateway(old)
+	newGateway := convertGateway(new)
+
+	if oldGateway.Access != newGateway.Access {
+		return diag.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+			"The cloud environment does not support updating the gateway access, please recreate it")
+	}
+
+	if d.HasChanges("organization") ||
+		d.HasChanges("cloud_connection_name") ||
+		d.HasChanges("region") ||
+		d.HasChanges("network_id") ||
+		d.HasChanges("network_cidr") {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
+			"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it"))
+	}
+
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
+
+	if _, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Update(ctx, cloudEnvironment, metav1.UpdateOptions{
+		FieldManager: "terraform-update",
+	}); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	ready := false
+
+	if waitForCompletion {
+		err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), retryUntilCloudEnvironmentIsProvisioned(ctx, clientSet, namespace, cloudEnvironment.GetObjectMeta().GetName()))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		for _, condition := range cloudEnvironment.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
+				ready = true
+			}
+		}
+	}
+
+	if ready {
+		_ = d.Set("organization", namespace)
+		return resourceCloudEnvironmentRead(ctx, d, meta)
+	}
+
+	err = retry.RetryContext(ctx, 3*time.Minute, func() *retry.RetryError {
+		dia := resourceCloudEnvironmentRead(ctx, d, meta)
+		if dia.HasError() {
+			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_CLOUD_ENVIRONMENT: %s", dia[0].Summary))
+		}
+		return nil
+	})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_RETRY_READ_CLOUD_ENVIRONMENT: %w", err))
+	}
+
+	return nil
 }
 
 func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -322,7 +462,7 @@ func retryUntilCloudEnvironmentIsProvisioned(ctx context.Context, clientSet *clo
 	return func() *retry.RetryError {
 		ce, err := clientSet.CloudV1alpha1().CloudEnvironments(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			if statusErr, ok := err.(*errors.StatusError); ok && errors.IsNotFound(statusErr) {
+			if statusErr, ok := err.(*apierrors.StatusError); ok && apierrors.IsNotFound(statusErr) {
 				return nil
 			}
 			return retry.NonRetryableError(err)

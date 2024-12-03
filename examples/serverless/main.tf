@@ -54,13 +54,17 @@ resource "streamnative_pulsar_cluster" "test-serverless" {
   display_name            = "test-serverless"
   instance_name   = streamnative_pulsar_instance.test-serverless.name
   location        = "us-east-2"
-  release_channel = "rapid"
+}
+
+locals {
+  depends_on   = [streamnative_pulsar_cluster.test-serverless]
+  nsCluster = split("/", streamnative_pulsar_cluster.test-serverless.id)
 }
 
 data "streamnative_pulsar_cluster" "test-serverless" {
   depends_on   = [streamnative_pulsar_cluster.test-serverless]
   organization = streamnative_pulsar_cluster.test-serverless.organization
-  name         = streamnative_pulsar_cluster.test-serverless.name
+  name         = local.nsCluster[1]
 }
 
 output "pulsar_cluster_serverless" {
