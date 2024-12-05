@@ -138,6 +138,9 @@ func resourcePulsarCluster() *schema.Resource {
 			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 				MinItems: 0,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
