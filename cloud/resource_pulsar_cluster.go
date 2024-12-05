@@ -106,6 +106,9 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:      "rapid",
 				Description:  descriptions["release_channel"],
 				ValidateFunc: validateReleaseChannel,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 			},
 			"bookie_replicas": {
 				Type:         schema.TypeInt,
@@ -113,6 +116,9 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:      3,
 				Description:  descriptions["bookie_replicas"],
 				ValidateFunc: validateBookieReplicas,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 			},
 			"broker_replicas": {
 				Type:         schema.TypeInt,
@@ -120,6 +126,9 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:      2,
 				Description:  descriptions["broker_replicas"],
 				ValidateFunc: validateBrokerReplicas,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 			},
 			"compute_unit": {
 				Type:         schema.TypeFloat,
@@ -127,6 +136,9 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:      0.5,
 				Description:  descriptions["compute_unit"],
 				ValidateFunc: validateCUSU,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 			},
 			"storage_unit": {
 				Type:         schema.TypeFloat,
@@ -134,6 +146,9 @@ func resourcePulsarCluster() *schema.Resource {
 				Default:      0.5,
 				Description:  descriptions["storage_unit"],
 				ValidateFunc: validateCUSU,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
 			},
 			"config": {
 				Type:     schema.TypeList,
