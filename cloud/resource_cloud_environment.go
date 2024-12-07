@@ -212,11 +212,23 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_ENVIRONMENT: %w", err))
 	}
+
+	cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Get(ctx, cloudConnectionName, metav1.GetOptions{})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	annotations := make(map[string]string)
 	if len(rawAnnotations) > 0 {
 		annotations = convertToStringMap(rawAnnotations)
 	}
 	annotations["cloud.streamnative.io/environment-type"] = cloudEnvironmentType
+
+	if cc.Spec.ConnectionType != cloudv1alpha1.ConnectionTypeAzure {
+		if !contains(validRegions, region) {
+			return diag.FromErr(fmt.Errorf("invalid region: %s", region))
+		}
+	}
 
 	cloudEnvironment := &cloudv1alpha1.CloudEnvironment{
 		TypeMeta: metav1.TypeMeta{
@@ -256,10 +268,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if cloudEnvironment.Spec.Network.ID != "" {
-		cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Get(ctx, cloudConnectionName, metav1.GetOptions{})
-		if err != nil {
-			return diag.FromErr(err)
-		}
 		if cc.Spec.ConnectionType == cloudv1alpha1.ConnectionTypeAzure {
 			return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: Azure doesn't support specify network id yet. Please use network cidr"))
 		}
