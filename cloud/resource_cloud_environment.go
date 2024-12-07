@@ -107,6 +107,7 @@ func resourceCloudEnvironment() *schema.Resource {
 			"network": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MaxItems:    1,
 				Description: descriptions["network"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -252,6 +253,16 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 
 	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
+
+	if cloudEnvironment.Spec.Network.ID != "" {
+		cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Get(ctx, cloudConnectionName, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if cc.Spec.ConnectionType == cloudv1alpha1.ConnectionTypeAzure {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: Azure doesn't support specify network id yet. Please use network cidr"))
+		}
 	}
 
 	expandDns := func() error {
