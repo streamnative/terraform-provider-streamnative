@@ -173,6 +173,7 @@ func init() {
 		"rolebinding_service_account_names": "The list of service accounts that are role binding names ",
 		"dns":                               "The DNS ID and name. Must specify together",
 		"rolebinding_cel":                   "The CEL(Common Expression Langauge) for conditional role binding",
+		"rolebinding_user_names":            "The list of users that are role binding names ",
 	}
 }
 
