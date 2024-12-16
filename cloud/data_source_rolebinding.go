@@ -107,8 +107,7 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 	for _, subject := range roleBinding.Spec.Subjects {
 		if subject.Kind == "ServiceAccount" {
 			serviceAccountNames = append(serviceAccountNames, subject.Name)
-		}
-		if subject.Kind == "User" {
+		} else if subject.Kind == "User" {
 			userNames = append(userNames, subject.Name)
 		}
 	}
