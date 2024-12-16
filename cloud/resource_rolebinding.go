@@ -9,6 +9,7 @@ import (
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"strings"
 	"time"
 )
@@ -82,6 +83,14 @@ func resourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"cel": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["rolebinding_cel"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -92,6 +101,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	predefinedRoleName := d.Get("cluster_role_name").(string)
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
+	cel := d.Get("cel").(string)
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
@@ -126,6 +136,9 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 				Kind:     "ServiceAccount",
 			})
 		}
+	}
+	if cel != "" {
+		rb.Spec.CEL = pointer.String(cel)
 	}
 
 	if _, err := clientSet.CloudV1alpha1().RoleBindings(namespace).Create(ctx, rb, metav1.CreateOptions{

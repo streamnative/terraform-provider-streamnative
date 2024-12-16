@@ -57,6 +57,14 @@ func dataSourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"cel": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["rolebinding_cel"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -98,6 +106,12 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 	if serviceAccountNames != nil {
 		if err = d.Set("service_account_names", serviceAccountNames); err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_SET_SERVICE_ACCOUNT_NAMES: %w", err))
+		}
+	}
+
+	if roleBinding.Spec.CEL != nil {
+		if err = d.Set("cel", roleBinding.Spec.CEL); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_CEL: %w", err))
 		}
 	}
 
