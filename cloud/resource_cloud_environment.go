@@ -267,12 +267,6 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
 	}
 
-	if cloudEnvironment.Spec.Network.ID != "" {
-		if cc.Spec.ConnectionType == cloudv1alpha1.ConnectionTypeAzure {
-			return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: Azure doesn't support specify network id yet. Please use network cidr"))
-		}
-	}
-
 	expandDns := func() error {
 		for _, l := range dns {
 			if l == nil {
