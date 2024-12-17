@@ -83,13 +83,18 @@ func resourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"user_names": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: descriptions["rolebinding_user_names"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"cel": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["rolebinding_cel"],
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
 		},
 	}
@@ -101,6 +106,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	predefinedRoleName := d.Get("cluster_role_name").(string)
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
+	userNames := d.Get("user_names").([]interface{})
 	cel := d.Get("cel").(string)
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
@@ -137,6 +143,17 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 			})
 		}
 	}
+
+	if userNames != nil {
+		for _, userName := range userNames {
+			rb.Spec.Subjects = append(rb.Spec.Subjects, v1alpha1.Subject{
+				APIGroup: "cloud.streamnative.io",
+				Name:     userName.(string),
+				Kind:     "User",
+			})
+		}
+	}
+
 	if cel != "" {
 		rb.Spec.CEL = pointer.String(cel)
 	}
