@@ -17,10 +17,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -131,20 +132,42 @@ func resourcePulsarCluster() *schema.Resource {
 				},
 			},
 			"compute_unit": {
+				Deprecated:   "Deprecated. Please use compute_unit_per_broker instead.",
 				Type:         schema.TypeFloat,
 				Optional:     true,
 				Default:      0.5,
-				Description:  descriptions["compute_unit"],
+				Description:  descriptions["compute_unit_per_broker"],
+				ValidateFunc: validateCUSU,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
+			},
+			"compute_unit_per_broker": {
+				Type:         schema.TypeFloat,
+				Optional:     true,
+				Default:      0.5,
+				Description:  descriptions["compute_unit_per_broker"],
 				ValidateFunc: validateCUSU,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
 				},
 			},
 			"storage_unit": {
+				Deprecated:   "Deprecated. Please use storage_unit_per_bookie instead.",
 				Type:         schema.TypeFloat,
 				Optional:     true,
 				Default:      0.5,
-				Description:  descriptions["storage_unit"],
+				Description:  descriptions["storage_unit_per_bookie"],
+				ValidateFunc: validateCUSU,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
+				},
+			},
+			"storage_unit_per_bookie": {
+				Type:         schema.TypeFloat,
+				Optional:     true,
+				Default:      0.5,
+				Description:  descriptions["storage_unit_per_bookie"],
 				ValidateFunc: validateCUSU,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
@@ -345,8 +368,8 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	releaseChannel := d.Get("release_channel").(string)
 	bookieReplicas := int32(d.Get("bookie_replicas").(int))
 	brokerReplicas := int32(d.Get("broker_replicas").(int))
-	computeUnit := d.Get("compute_unit").(float64)
-	storageUnit := d.Get("storage_unit").(float64)
+	computeUnit := d.Get("compute_unit_per_broker").(float64)
+	storageUnit := d.Get("storage_unit_per_bookie").(float64)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_PULSAR_CLUSTER: %w", err))
@@ -672,15 +695,15 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		bookieReplicas := int32(d.Get("broker_replicas").(int))
 		pulsarCluster.Spec.Broker.Replicas = &bookieReplicas
 	}
-	if d.HasChange("compute_unit") {
-		computeUnit := d.Get("compute_unit").(float64)
+	if d.HasChange("compute_unit_per_broker") {
+		computeUnit := d.Get("compute_unit_per_broker").(float64)
 		pulsarCluster.Spec.Broker.Resources.Cpu = resource.NewMilliQuantity(
 			int64(computeUnit*2*1000), resource.DecimalSI)
 		pulsarCluster.Spec.Broker.Resources.Memory = resource.NewQuantity(
 			int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
-	if d.HasChange("storage_unit") {
-		storageUnit := d.Get("storage_unit").(float64)
+	if d.HasChange("storage_unit_per_bookie") {
+		storageUnit := d.Get("storage_unit_per_bookie").(float64)
 		pulsarCluster.Spec.BookKeeper.Resources.Cpu = resource.NewMilliQuantity(
 			int64(storageUnit*2*1000), resource.DecimalSI)
 		pulsarCluster.Spec.BookKeeper.Resources.Memory = resource.NewQuantity(
@@ -693,8 +716,8 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
-		d.HasChange("compute_unit") ||
-		d.HasChange("storage_unit") || changed || displayNameChanged {
+		d.HasChange("compute_unit_per_broker") ||
+		d.HasChange("storage_unit_per_bookie") || changed || displayNameChanged {
 		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
 			FieldManager: "terraform-update",
 		})
