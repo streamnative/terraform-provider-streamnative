@@ -17,9 +17,10 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -86,13 +87,20 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 			},
 			"compute_unit": {
+				Deprecated:  "Deprecated. Please use compute_unit_per_broker instead.",
 				Type:        schema.TypeFloat,
-				Description: descriptions["compute_unit"],
+				Description: descriptions["compute_unit_per_broker"],
+				Computed:    true,
+			},
+			"compute_unit_per_broker": {
+				Type:        schema.TypeFloat,
+				Description: descriptions["compute_unit_per_broker"],
 				Computed:    true,
 			},
 			"storage_unit": {
+				Deprecated:  "Deprecated. Please use storage_unit_per_bookie instead.",
 				Type:        schema.TypeFloat,
-				Description: descriptions["storage_unit"],
+				Description: descriptions["storage_unit_per_bookie"],
 				Computed:    true,
 			},
 			"config": {

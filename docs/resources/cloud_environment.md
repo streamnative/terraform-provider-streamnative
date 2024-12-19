@@ -19,9 +19,9 @@ description: |-
 
 - `cloud_connection_name` (String) Name of the cloud connection
 - `environment_type` (String) Type of the cloud environment, either: dev, test, staging, production, acc, qa or poc
-- `network` (Block List, Min: 1) (see [below for nested schema](#nestedblock--network))
+- `network` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--network))
 - `organization` (String) The organization name
-- `region` (String) The region of the cloud environment
+- `region` (String) The region of the cloud environment, for Azure, it should be the resource group name
 
 ### Optional
 

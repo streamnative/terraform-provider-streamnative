@@ -27,7 +27,7 @@ description: |-
 - `id` (String) The ID of this resource.
 - `network` (List of Object) (see [below for nested schema](#nestedatt--network))
 - `private_service_ids` (List of String) The private service ids are ids are service names of PrivateLink in AWS, the ids of Private Service Attachment in GCP, and the aliases of PrivateLinkService in Azure.
-- `region` (String) The region of the cloud environment
+- `region` (String) The region of the cloud environment, for Azure, it should be the resource group name
 
 <a id="nestedatt--default_gateway"></a>
 ### Nested Schema for `default_gateway`
