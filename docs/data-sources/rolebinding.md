@@ -22,7 +22,9 @@ description: |-
 
 ### Read-Only
 
+- `cel` (String) The CEL(Common Expression Langauge) for conditional role binding
 - `cluster_role_name` (String) The predefined role name
 - `id` (String) The ID of this resource.
 - `ready` (Boolean) The RoleBinding is ready, it will be set to 'True' after the cluster is ready
 - `service_account_names` (List of String) The list of service accounts that are role binding names
+- `user_names` (List of String) The list of users that are role binding names

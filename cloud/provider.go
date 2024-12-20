@@ -26,17 +26,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/utils/clock"
-
 	"github.com/streamnative/cloud-cli/pkg/auth"
 	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
 	"github.com/streamnative/cloud-cli/pkg/plugin"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/utils/clock"
 )
 
 const (
@@ -79,18 +78,18 @@ func init() {
 		"instance_engine":              "The streamnative cloud instance engine, supporting 'ursa' and 'classic', default 'classic'",
 		"location": "The location of the pulsar cluster, " +
 			"supported location https://docs.streamnative.io/docs/cluster#cluster-location",
-		"release_channel":     "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
-		"bookie_replicas":     "The number of bookie replicas",
-		"broker_replicas":     "The number of broker replicas",
-		"compute_unit":        "compute unit, 1 compute unit is 2 cpu and 8gb memory",
-		"storage_unit":        "storage unit, 1 storage unit is 2 cpu and 8gb memory",
-		"cluster_ready":       "Pulsar cluster is ready, it will be set to 'True' after the cluster is ready",
-		"instance_ready":      "Pulsar instance is ready, it will be set to 'True' after the instance is ready",
-		"websocket_enabled":   "Whether the websocket is enabled",
-		"function_enabled":    "Whether the function is enabled",
-		"transaction_enabled": "Whether the transaction is enabled",
-		"kafka":               "Controls the kafka protocol config of pulsar cluster",
-		"mqtt":                "Controls the mqtt protocol config of pulsar cluster",
+		"release_channel":         "The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid",
+		"bookie_replicas":         "The number of bookie replicas",
+		"broker_replicas":         "The number of broker replicas",
+		"compute_unit_per_broker": "compute unit per broker, 1 compute unit is 2 cpu and 8gb memory",
+		"storage_unit_per_bookie": "storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory",
+		"cluster_ready":           "Pulsar cluster is ready, it will be set to 'True' after the cluster is ready",
+		"instance_ready":          "Pulsar instance is ready, it will be set to 'True' after the instance is ready",
+		"websocket_enabled":       "Whether the websocket is enabled",
+		"function_enabled":        "Whether the function is enabled",
+		"transaction_enabled":     "Whether the transaction is enabled",
+		"kafka":                   "Controls the kafka protocol config of pulsar cluster",
+		"mqtt":                    "Controls the mqtt protocol config of pulsar cluster",
 		"categories": "Controls the audit log categories config of pulsar cluster, supported categories: " +
 			"\"Management\", \"Describe\", \"Produce\", \"Consume\"",
 		"lakehouse_type":          "The type of the lakehouse",
