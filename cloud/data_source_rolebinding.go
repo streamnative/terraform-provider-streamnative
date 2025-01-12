@@ -69,43 +69,48 @@ func dataSourceRoleBinding() *schema.Resource {
 			"condition_resource_names": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: descriptions["rolebinding_resource_names"],
+				Description: descriptions["rolebinding_condition_resource_names"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"organization": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_organization"],
+						},
 						"instance": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_instance"],
+							Description: descriptions["rolebinding_condition_resource_names_instance"],
 						},
 						"cluster": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_cluster"],
+							Description: descriptions["rolebinding_condition_resource_names_cluster"],
 						},
 						"tenant": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_tenant"],
+							Description: descriptions["rolebinding_condition_resource_names_tenant"],
 						},
 						"namespace": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_namespace"],
+							Description: descriptions["rolebinding_condition_resource_names_namespace"],
 						},
 						"topic_domain": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_topic_domain"],
+							Description: descriptions["rolebinding_condition_resource_names_topic_domain"],
 						},
 						"topic_name": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_topic_name"],
+							Description: descriptions["rolebinding_condition_resource_names_topic_name"],
 						},
 						"subscription": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: descriptions["rolebinding_resource_names_subscription"],
+							Description: descriptions["rolebinding_condition_resource_names_subscription"],
 						},
 					},
 				},
@@ -113,7 +118,7 @@ func dataSourceRoleBinding() *schema.Resource {
 			"condition_cel": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: descriptions["rolebinding_cel"],
+				Description: descriptions["rolebinding_condition_cel"],
 			},
 		},
 	}
@@ -167,7 +172,7 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 
-	if err = conditionParse(roleBinding, d); err != nil {
+	if err = conditionParse(organization, roleBinding, d); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_CONDITION: %w", err))
 	}
 
@@ -184,7 +189,7 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func conditionParse(binding *v1alpha1.RoleBinding, d *schema.ResourceData) error {
+func conditionParse(organization string, binding *v1alpha1.RoleBinding, d *schema.ResourceData) error {
 	celExpression := binding.Spec.CEL
 	if celExpression != nil {
 		if err := d.Set("condition_cel", celExpression); err != nil {
@@ -198,6 +203,7 @@ func conditionParse(binding *v1alpha1.RoleBinding, d *schema.ResourceData) error
 		for idx := range resourceNames {
 			resourceName := resourceNames[idx]
 			resourceNamesData = append(resourceNamesData, map[string]string{
+				"organization": organization,
 				"instance":     resourceName.Instance,
 				"cluster":      resourceName.Cluster,
 				"tenant":       resourceName.Tenant,

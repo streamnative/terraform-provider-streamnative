@@ -94,43 +94,48 @@ func resourceRoleBinding() *schema.Resource {
 				ConflictsWith: []string{"condition_cel"},
 				Type:          schema.TypeList,
 				Optional:      true,
-				Description:   descriptions["rolebinding_resource_names"],
+				Description:   descriptions["rolebinding_condition_resource_names"],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"organization": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_organization"],
+						},
 						"instance": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_instance"],
+							Description: descriptions["rolebinding_condition_resource_names_instance"],
 						},
 						"cluster": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_cluster"],
+							Description: descriptions["rolebinding_condition_resource_names_cluster"],
 						},
 						"tenant": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_tenant"],
+							Description: descriptions["rolebinding_condition_resource_names_tenant"],
 						},
 						"namespace": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_namespace"],
+							Description: descriptions["rolebinding_condition_resource_names_namespace"],
 						},
 						"topic_domain": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_topic_domain"],
+							Description: descriptions["rolebinding_condition_resource_names_topic_domain"],
 						},
 						"topic_name": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_topic_name"],
+							Description: descriptions["rolebinding_condition_resource_names_topic_name"],
 						},
 						"subscription": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["rolebinding_resource_names_subscription"],
+							Description: descriptions["rolebinding_condition_resource_names_subscription"],
 						},
 					},
 				},
@@ -138,7 +143,7 @@ func resourceRoleBinding() *schema.Resource {
 			"condition_cel": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Description:   descriptions["rolebinding_cel"],
+				Description:   descriptions["rolebinding_condition_cel"],
 				ConflictsWith: []string{"condition_resource_names"},
 			},
 		},
@@ -341,8 +346,8 @@ func resourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func conditionSet(organization string, d *schema.ResourceData, binding *v1alpha1.RoleBinding) {
-	cel := d.Get("condition_cel")
-	if cel != nil {
+	cel, exist := d.GetOk("condition_cel")
+	if exist {
 		celExpression := cel.(string)
 		binding.Spec.CEL = &celExpression
 	}

@@ -100,28 +100,41 @@ data "streamnative_rolebinding" "rolebinding_demo" {
 }
 
 func TestRoleBinding_ConditionParse(t *testing.T) {
+	orgName := "test"
 	requestResourceData := dataSourceRoleBinding().TestResourceData()
 	requestBinding := &v1alpha1.RoleBinding{
 		Spec: v1alpha1.RoleBindingSpec{
 			CEL: pointer.String("srn.instance == 'a'"),
-			ResourceNames: []v1alpha1.ResourceName{
-				{
-					Instance: "ins-1",
-					Cluster:  "cluster-1",
-					Tenant:   "tenant-1",
-				},
-				{
-					Instance: "ins-2",
-					Cluster:  "cluster-2",
-					Tenant:   "tenant-2",
-				},
-			},
 		},
 	}
-	err := conditionParse(requestBinding, requestResourceData)
+	err := conditionParse(orgName, requestBinding, requestResourceData)
 	assert.NoError(t, err)
 	expectRoleBinding := &v1alpha1.RoleBinding{}
-	conditionSet("", requestResourceData, expectRoleBinding)
-
+	conditionSet(orgName, requestResourceData, expectRoleBinding)
 	assert.Equal(t, expectRoleBinding.Spec, requestBinding.Spec)
+
+	requestResourceData = dataSourceRoleBinding().TestResourceData()
+	requestBinding = &v1alpha1.RoleBinding{
+		Spec: v1alpha1.RoleBindingSpec{
+			ResourceNames: []v1alpha1.ResourceName{
+				{
+					Organization: orgName,
+					Instance:     "ins-1",
+					Cluster:      "cluster-1",
+					Tenant:       "tenant-1",
+				},
+				{
+					Organization: orgName,
+					Instance:     "ins-2",
+					Cluster:      "cluster-2",
+					Tenant:       "tenant-2",
+				},
+			}},
+	}
+	err = conditionParse(orgName, requestBinding, requestResourceData)
+	assert.NoError(t, err)
+	expectRoleBinding = &v1alpha1.RoleBinding{}
+	conditionSet(orgName, requestResourceData, expectRoleBinding)
+	assert.Equal(t, expectRoleBinding.Spec, requestBinding.Spec)
+
 }
