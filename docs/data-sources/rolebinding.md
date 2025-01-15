@@ -22,9 +22,24 @@ description: |-
 
 ### Read-Only
 
-- `cel` (String) The CEL(Common Expression Langauge) for conditional role binding
 - `cluster_role_name` (String) The predefined role name
+- `condition_cel` (String) The conditional role binding CEL(Common Expression Language) expression
+- `condition_resource_names` (List of Object) The list of conditional role binding resource names (see [below for nested schema](#nestedatt--condition_resource_names))
 - `id` (String) The ID of this resource.
 - `ready` (Boolean) The RoleBinding is ready, it will be set to 'True' after the cluster is ready
 - `service_account_names` (List of String) The list of service accounts that are role binding names
 - `user_names` (List of String) The list of users that are role binding names
+
+<a id="nestedatt--condition_resource_names"></a>
+### Nested Schema for `condition_resource_names`
+
+Read-Only:
+
+- `cluster` (String)
+- `instance` (String)
+- `namespace` (String)
+- `organization` (String)
+- `subscription` (String)
+- `tenant` (String)
+- `topic_domain` (String)
+- `topic_name` (String)
