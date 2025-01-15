@@ -25,7 +25,8 @@ description: |-
 - `bookie_replicas` (Number) The number of bookie replicas
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
 - `broker_replicas` (Number) The number of broker replicas
-- `compute_unit` (Number) compute unit, 1 compute unit is 2 cpu and 8gb memory
+- `compute_unit` (Number, Deprecated) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
+- `compute_unit_per_broker` (Number) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
 - `config` (List of Object) (see [below for nested schema](#nestedatt--config))
 - `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster.
 - `http_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways
@@ -41,7 +42,8 @@ description: |-
 - `pulsar_version` (String) The version of the pulsar cluster
 - `ready` (String) Pulsar cluster is ready, it will be set to 'True' after the cluster is ready
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
-- `storage_unit` (Number) storage unit, 1 storage unit is 2 cpu and 8gb memory
+- `storage_unit` (Number, Deprecated) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
+- `storage_unit_per_broker` (Number) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
 - `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
