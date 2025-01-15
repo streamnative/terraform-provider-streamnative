@@ -365,8 +365,8 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	releaseChannel := d.Get("release_channel").(string)
 	bookieReplicas := int32(d.Get("bookie_replicas").(int))
 	brokerReplicas := int32(d.Get("broker_replicas").(int))
-	computeUnit := d.Get("compute_unit_per_broker").(float64)
-	storageUnit := d.Get("storage_unit_per_bookie").(float64)
+	computeUnit := getComputeUnit(d)
+	storageUnit := getStorageUnit(d)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_PULSAR_CLUSTER: %w", err))
@@ -692,15 +692,15 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		bookieReplicas := int32(d.Get("broker_replicas").(int))
 		pulsarCluster.Spec.Broker.Replicas = &bookieReplicas
 	}
-	if d.HasChange("compute_unit_per_broker") {
-		computeUnit := d.Get("compute_unit_per_broker").(float64)
+	if d.HasChange("compute_unit") || d.HasChange("compute_unit_per_broker") {
+		computeUnit := getComputeUnit(d)
 		pulsarCluster.Spec.Broker.Resources.Cpu = resource.NewMilliQuantity(
 			int64(computeUnit*2*1000), resource.DecimalSI)
 		pulsarCluster.Spec.Broker.Resources.Memory = resource.NewQuantity(
 			int64(computeUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
-	if d.HasChange("storage_unit_per_bookie") {
-		storageUnit := d.Get("storage_unit_per_bookie").(float64)
+	if d.HasChange("storage_unit") || d.HasChange("storage_unit_per_bookie") {
+		storageUnit := getStorageUnit(d)
 		pulsarCluster.Spec.BookKeeper.Resources.Cpu = resource.NewMilliQuantity(
 			int64(storageUnit*2*1000), resource.DecimalSI)
 		pulsarCluster.Spec.BookKeeper.Resources.Memory = resource.NewQuantity(
@@ -713,6 +713,8 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
+		d.HasChange("compute_unit") ||
+		d.HasChange("storage_unit") ||
 		d.HasChange("compute_unit_per_broker") ||
 		d.HasChange("storage_unit_per_bookie") || changed || displayNameChanged {
 		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
@@ -926,4 +928,20 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 		"pulsarcluster": *pulsarCluster.Spec.Config,
 	})
 	return changed
+}
+
+func getComputeUnit(d *schema.ResourceData) float64 {
+	computeUnit := d.Get("compute_unit").(float64)
+	if newComputeUnit, exist := d.GetOk("compute_unit_per_broker"); exist {
+		computeUnit = newComputeUnit.(float64)
+	}
+	return computeUnit
+}
+
+func getStorageUnit(d *schema.ResourceData) float64 {
+	storageUnit := d.Get("storage_unit").(float64)
+	if newStorageUnit, exist := d.GetOk("storage_unit"); exist {
+		storageUnit = newStorageUnit.(float64)
+	}
+	return storageUnit
 }

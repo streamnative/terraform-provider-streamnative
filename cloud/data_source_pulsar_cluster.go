@@ -102,6 +102,11 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Description: descriptions["storage_unit_per_bookie"],
 				Computed:    true,
 			},
+			"storage_unit_per_broker": {
+				Type:        schema.TypeFloat,
+				Description: descriptions["storage_unit_per_bookie"],
+				Computed:    true,
+			},
 			"config": {
 				Type:     schema.TypeList,
 				Computed: true,
