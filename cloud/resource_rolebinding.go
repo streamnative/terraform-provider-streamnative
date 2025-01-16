@@ -9,7 +9,6 @@ import (
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 	"strings"
 	"time"
 )
@@ -91,10 +90,61 @@ func resourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"cel": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: descriptions["rolebinding_cel"],
+			"condition_resource_names": {
+				ConflictsWith: []string{"condition_cel"},
+				Type:          schema.TypeList,
+				Optional:      true,
+				Description:   descriptions["rolebinding_condition_resource_names"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"organization": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_organization"],
+						},
+						"instance": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_instance"],
+						},
+						"cluster": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_cluster"],
+						},
+						"tenant": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_tenant"],
+						},
+						"namespace": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_namespace"],
+						},
+						"topic_domain": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_topic_domain"],
+						},
+						"topic_name": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_topic_name"],
+						},
+						"subscription": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_subscription"],
+						},
+					},
+				},
+			},
+			"condition_cel": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   descriptions["rolebinding_condition_cel"],
+				ConflictsWith: []string{"condition_resource_names"},
 			},
 		},
 	}
@@ -107,7 +157,6 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 	predefinedRoleName := d.Get("cluster_role_name").(string)
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
 	userNames := d.Get("user_names").([]interface{})
-	cel := d.Get("cel").(string)
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
@@ -154,9 +203,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 		}
 	}
 
-	if cel != "" {
-		rb.Spec.CEL = pointer.String(cel)
-	}
+	conditionSet(namespace, d, rb)
 
 	if _, err := clientSet.CloudV1alpha1().RoleBindings(namespace).Create(ctx, rb, metav1.CreateOptions{
 		FieldManager: "terraform-create",
@@ -204,6 +251,7 @@ func resourceRoleBindingDelete(ctx context.Context, d *schema.ResourceData, m in
 func resourceRoleBindingUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
+	userNames := d.Get("user_names").([]interface{})
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_READ_ROLEBINDING: %w", err))
@@ -215,8 +263,9 @@ func resourceRoleBindingUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
 
+	roleBinding.Spec.Subjects = []v1alpha1.Subject{}
+
 	if serviceAccountNames != nil {
-		roleBinding.Spec.Subjects = []v1alpha1.Subject{}
 		for _, serviceAccountName := range serviceAccountNames {
 			roleBinding.Spec.Subjects = append(roleBinding.Spec.Subjects, v1alpha1.Subject{
 				APIGroup: "cloud.streamnative.io",
@@ -225,6 +274,17 @@ func resourceRoleBindingUpdate(ctx context.Context, d *schema.ResourceData, m in
 			})
 		}
 	}
+	if userNames != nil {
+		for _, userName := range userNames {
+			roleBinding.Spec.Subjects = append(roleBinding.Spec.Subjects, v1alpha1.Subject{
+				APIGroup: "cloud.streamnative.io",
+				Name:     userName.(string),
+				Kind:     "User",
+			})
+		}
+	}
+
+	conditionSet(namespace, d, roleBinding)
 	_, err = clientSet.CloudV1alpha1().RoleBindings(namespace).Update(ctx, roleBinding, metav1.UpdateOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_ROLEBINDING: %w", err))
@@ -283,4 +343,33 @@ func resourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	d.SetId(fmt.Sprintf("%s/%s", roleBinding.Namespace, roleBinding.Name))
 	return nil
+}
+
+func conditionSet(organization string, d *schema.ResourceData, binding *v1alpha1.RoleBinding) {
+	cel, exist := d.GetOk("condition_cel")
+	if exist {
+		celExpression := cel.(string)
+		binding.Spec.CEL = &celExpression
+	}
+
+	resourceNames := d.Get("condition_resource_names")
+	if resourceNames != nil {
+		var bindingResourceNames []v1alpha1.ResourceName
+		resourceNamesEntity := resourceNames.([]interface{})
+		for idx := range resourceNamesEntity {
+			resourceName := resourceNamesEntity[idx]
+			resourceElements := resourceName.(map[string]interface{})
+			bindingResourceNames = append(bindingResourceNames, v1alpha1.ResourceName{
+				Organization: organization,
+				Instance:     resourceElements["instance"].(string),
+				Cluster:      resourceElements["cluster"].(string),
+				Tenant:       resourceElements["tenant"].(string),
+				Namespace:    resourceElements["namespace"].(string),
+				TopicDomain:  resourceElements["topic_domain"].(string),
+				TopicName:    resourceElements["topic_name"].(string),
+				Subscription: resourceElements["subscription"].(string),
+			})
+		}
+		binding.Spec.ResourceNames = bindingResourceNames
+	}
 }

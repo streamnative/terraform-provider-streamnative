@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -65,10 +66,59 @@ func dataSourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"cel": {
+			"condition_resource_names": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["rolebinding_condition_resource_names"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"organization": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_organization"],
+						},
+						"instance": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_instance"],
+						},
+						"cluster": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_cluster"],
+						},
+						"tenant": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_tenant"],
+						},
+						"namespace": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_namespace"],
+						},
+						"topic_domain": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_topic_domain"],
+						},
+						"topic_name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_topic_name"],
+						},
+						"subscription": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: descriptions["rolebinding_condition_resource_names_subscription"],
+						},
+					},
+				},
+			},
+			"condition_cel": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: descriptions["rolebinding_cel"],
+				Description: descriptions["rolebinding_condition_cel"],
 			},
 		},
 	}
@@ -122,10 +172,8 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 
-	if roleBinding.Spec.CEL != nil {
-		if err = d.Set("cel", roleBinding.Spec.CEL); err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_SET_CEL: %w", err))
-		}
+	if err = conditionParse(organization, roleBinding, d); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_CONDITION: %w", err))
 	}
 
 	if len(roleBinding.Status.Conditions) >= 1 {
@@ -138,5 +186,36 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", roleBinding.Namespace, roleBinding.Name))
+	return nil
+}
+
+func conditionParse(organization string, binding *v1alpha1.RoleBinding, d *schema.ResourceData) error {
+	celExpression := binding.Spec.CEL
+	if celExpression != nil {
+		if err := d.Set("condition_cel", celExpression); err != nil {
+			return err
+		}
+	}
+
+	resourceNames := binding.Spec.ResourceNames
+	if resourceNames != nil {
+		var resourceNamesData []interface{}
+		for idx := range resourceNames {
+			resourceName := resourceNames[idx]
+			resourceNamesData = append(resourceNamesData, map[string]string{
+				"organization": organization,
+				"instance":     resourceName.Instance,
+				"cluster":      resourceName.Cluster,
+				"tenant":       resourceName.Tenant,
+				"namespace":    resourceName.Namespace,
+				"topic_domain": resourceName.TopicDomain,
+				"topic_name":   resourceName.TopicName,
+				"subscription": resourceName.Subscription,
+			})
+		}
+		if err := d.Set("condition_resource_names", resourceNamesData); err != nil {
+			return err
+		}
+	}
 	return nil
 }

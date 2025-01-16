@@ -22,8 +22,9 @@ description: |-
 
 ### Optional
 
-- `cel` (String) The CEL(Common Expression Langauge) for conditional role binding
 - `cluster_role_name` (String) The predefined role name
+- `condition_cel` (String) The conditional role binding CEL(Common Expression Language) expression
+- `condition_resource_names` (Block List) The list of conditional role binding resource names (see [below for nested schema](#nestedblock--condition_resource_names))
 - `service_account_names` (List of String) The list of service accounts that are role binding names
 - `user_names` (List of String) The list of users that are role binding names
 
@@ -31,3 +32,17 @@ description: |-
 
 - `id` (String) The ID of this resource.
 - `ready` (Boolean) The RoleBinding is ready, it will be set to 'True' after the cluster is ready
+
+<a id="nestedblock--condition_resource_names"></a>
+### Nested Schema for `condition_resource_names`
+
+Optional:
+
+- `cluster` (String) The conditional role binding resource name - cluster
+- `instance` (String) The conditional role binding resource name - instance
+- `namespace` (String) The conditional role binding resource name - namespace
+- `organization` (String) The conditional role binding resource name - organization
+- `subscription` (String) The conditional role binding resource name - subscription
+- `tenant` (String) The conditional role binding resource name - tenant
+- `topic_domain` (String) The conditional role binding resource name - topic domain(persistent/non-persistent)
+- `topic_name` (String) The conditional role binding resource name - topic name
