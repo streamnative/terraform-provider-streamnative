@@ -53,6 +53,30 @@ func TestPulsarCluster(t *testing.T) {
 	})
 }
 
+func TestPulsarClusterNoConfig(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckPulsarClusterDestroy(s *terraform.State) error {
 	time.Sleep(30 * time.Second)
 	for _, rs := range s.RootModule().Resources {
@@ -115,6 +139,74 @@ func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
 	}
 }
 
+func TestPulsarClusterConfigDrift(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarCluster(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarCluster(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp",
+					"streamnative",
+					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testResourceDataSourcePulsarCluster(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
@@ -150,6 +242,34 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
+	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
+}
+data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+  depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
+  organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
+  name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+}
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+}
+
+func testResourceDataSourcePulsarClusterWithoutConfig(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+	return fmt.Sprintf(`
+provider "streamnative" {
+}
+resource "streamnative_pulsar_instance" "test-pulsar-instance" {
+	organization = "%s"
+	name = "%s"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
+	type = "dedicated"
+}
+resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+	organization = "%s"
+	name = "%s"
+	instance_name = "%s"
+	location = "%s"
+	release_channel = "%s"
 	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
 }
 data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
