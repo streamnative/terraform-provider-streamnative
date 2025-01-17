@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -177,6 +178,7 @@ func resourcePulsarCluster() *schema.Resource {
 					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
 				},
 				MinItems: 0,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"websocket_enabled": {
@@ -629,6 +631,10 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		_ = d.Set("release_channel", releaseChannel)
 	}
 	_ = d.Set("type", pulsarInstance.Spec.Type)
+	computeUnit := convertCpuAndMemoryToComputeUnit(pulsarCluster)
+	storageUnit := convertCpuAndMemoryToStorageUnit(pulsarCluster)
+	_ = d.Set("compute_unit_per_broker", computeUnit)
+	_ = d.Set("storage_unit_per_bookie", storageUnit)
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
@@ -940,8 +946,26 @@ func getComputeUnit(d *schema.ResourceData) float64 {
 
 func getStorageUnit(d *schema.ResourceData) float64 {
 	storageUnit := d.Get("storage_unit").(float64)
-	if newStorageUnit, exist := d.GetOk("storage_unit"); exist {
+	if newStorageUnit, exist := d.GetOk("storage_unit_per_bookie"); exist {
 		storageUnit = newStorageUnit.(float64)
 	}
 	return storageUnit
+}
+
+func convertCpuAndMemoryToComputeUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
+	if pc != nil && pc.Spec.Broker.Resources != nil {
+		cpu := pc.Spec.Broker.Resources.Cpu.MilliValue()
+		memory := pc.Spec.Broker.Resources.Memory.Value()
+		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
+	}
+	return 0.5 // default value
+}
+
+func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
+	if pc != nil && pc.Spec.BookKeeper.Resources != nil {
+		cpu := pc.Spec.BookKeeper.Resources.Cpu.MilliValue()
+		memory := pc.Spec.BookKeeper.Resources.Memory.Value()
+		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
+	}
+	return 0.5 // default value
 }
