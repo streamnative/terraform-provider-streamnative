@@ -691,12 +691,12 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
 	if d.HasChange("bookie_replicas") {
-		brokerReplicas := int32(d.Get("bookie_replicas").(int))
-		pulsarCluster.Spec.Broker.Replicas = &brokerReplicas
+		bookieReplicas := int32(d.Get("bookie_replicas").(int))
+		pulsarCluster.Spec.BookKeeper.Replicas = &bookieReplicas
 	}
 	if d.HasChange("broker_replicas") {
-		bookieReplicas := int32(d.Get("broker_replicas").(int))
-		pulsarCluster.Spec.Broker.Replicas = &bookieReplicas
+		brokerReplicas := int32(d.Get("broker_replicas").(int))
+		pulsarCluster.Spec.Broker.Replicas = &brokerReplicas
 	}
 	if d.HasChange("compute_unit") || d.HasChange("compute_unit_per_broker") {
 		computeUnit := getComputeUnit(d)
