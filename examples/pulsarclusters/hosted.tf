@@ -42,7 +42,7 @@ resource "streamnative_pulsar_cluster" "test-cluster-1" {
 
   config {
     websocket_enabled   = true
-    function_enabled    = false
+    function_enabled    = true
     transaction_enabled = false
     protocols {
       mqtt = {
