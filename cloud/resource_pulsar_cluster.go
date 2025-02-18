@@ -189,7 +189,7 @@ func resourcePulsarCluster() *schema.Resource {
 						"function_enabled": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Default:     false,
+							Default:     true,
 							Description: descriptions["function_enabled"],
 						},
 						"transaction_enabled": {
