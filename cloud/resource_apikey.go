@@ -171,6 +171,7 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	r1 := regexp.MustCompile(`^(\d+.)(s|m|h|d)$`)
 	t := time.Now()
+
 	if expirationTime != "" {
 		if r1.MatchString(expirationTime) {
 			ago, err := str2duration.ParseDuration(expirationTime)
@@ -179,7 +180,7 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 			t = t.Add(ago)
 		} else if expirationTime != "0" {
-			layout := "2006-02-01T15:04:05Z"
+			layout := time.RFC3339[:len(expirationTime)]
 			t, err = time.Parse(layout, expirationTime)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
