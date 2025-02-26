@@ -180,7 +180,7 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 			t = t.Add(ago)
 		} else if expirationTime != "0" {
-			layout := "2006-01-02T15:04:05Z07:00"
+			layout := "2006-01-02T15:04:05Z"
 			t, err = time.Parse(layout, expirationTime)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
