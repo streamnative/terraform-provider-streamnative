@@ -171,7 +171,6 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	r1 := regexp.MustCompile(`^(\d+.)(s|m|h|d)$`)
 	t := time.Now()
-
 	if expirationTime != "" {
 		if r1.MatchString(expirationTime) {
 			ago, err := str2duration.ParseDuration(expirationTime)
