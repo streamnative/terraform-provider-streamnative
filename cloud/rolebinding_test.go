@@ -3,6 +3,10 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -11,9 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestPredefinedBinding(t *testing.T) {
@@ -57,7 +58,7 @@ provider "streamnative" {
 }
 
 resource "streamnative_rolebinding" "rolebinding_demo" {
-  organization = "o-y8z75"
+  organization = "o-q77cp"
   name         = "%s"
   cluster_role_name = "metrics-viewer"
   service_account_names = ["%s"]

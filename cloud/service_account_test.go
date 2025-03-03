@@ -37,7 +37,7 @@ func TestServiceAccount(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceServiceAccount(
-					"sndev", "terraform-test-service-account-b", true),
+					"o-q77cp", "terraform-test-service-account-b", true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
