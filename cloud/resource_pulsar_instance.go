@@ -45,8 +45,7 @@ func resourcePulsarInstance() *schema.Resource {
 			if diff.HasChange("name") ||
 				diff.HasChanges("organization") ||
 				diff.HasChanges("availability_mode") ||
-				diff.HasChanges("pool_name") ||
-				diff.HasChanges("pool_namespace") {
+				diff.HasChanges("cloud_connection_name") {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_INSTANCE: " +
 					"The pulsar instance does not support updates, please recreate it")
 			}
@@ -87,17 +86,10 @@ func resourcePulsarInstance() *schema.Resource {
 				Description: descriptions["availability-mode"],
 				ForceNew:    true,
 			},
-			"pool_name": {
+			"cloud_connection_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["pool_name"],
-				ValidateFunc: validateNotBlank,
-				ForceNew:     true,
-			},
-			"pool_namespace": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  descriptions["pool_namespace"],
+				Description:  descriptions["cloud_connection_name"],
 				ValidateFunc: validateNotBlank,
 				ForceNew:     true,
 			},
@@ -128,8 +120,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	availabilityMode := d.Get("availability_mode").(string)
-	poolName := d.Get("pool_name").(string)
-	poolNamespace := d.Get("pool_namespace").(string)
+	cloudConnectionName := d.Get("cloud_connection_name").(string)
 	instanceType := d.Get("type").(string)
 	instanceEngine := d.Get("engine").(string)
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -137,14 +128,14 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_INSTANCE: %w", err))
 	}
 	poolRef := &cloudv1alpha1.PoolRef{
-		Namespace: poolNamespace,
-		Name:      poolName,
+		Namespace: namespace,
+		Name:      cloudConnectionName,
 	}
 	poolOption, err := clientSet.CloudV1alpha1().
 		PoolOptions(namespace).
-		Get(ctx, fmt.Sprintf("%s-%s", poolNamespace, poolName), metav1.GetOptions{})
+		Get(ctx, fmt.Sprintf("%s-%s", namespace, cloudConnectionName), metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_OPTION: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_GET_CLOUD_CONNECTION_OPTION: %w", err))
 	}
 	if instanceType == "" {
 		if poolOption.Spec.DeploymentType == cloudv1alpha1.PoolDeploymentTypeHosted {
