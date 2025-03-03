@@ -41,7 +41,6 @@ func TestApiKey(t *testing.T) {
 					"sndev",
 					apiKeyGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
@@ -111,7 +110,7 @@ func testCheckApiKeyExists(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourceApiKey(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+func testResourceDataSourceApiKey(organization, name, cloudConnectionName, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -119,8 +118,7 @@ resource "streamnative_pulsar_instance" "test-api-key-pulsar-instance" {
 	organization = "%s"
 	name = "%s"
 	availability_mode = "zonal"
-	pool_name = "%s"
-	pool_namespace = "%s"
+	cloud_connection_name = "%s"
 	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-api-key-pulsar-cluster" {
@@ -170,5 +168,5 @@ data "streamnative_apikey" "test-terraform-api-key" {
   name = streamnative_apikey.test-terraform-api-key.name
   private_key = streamnative_apikey.test-terraform-api-key.private_key
 }
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name, name)
+`, organization, name, cloudConnectionName, organization, name, name, location, releaseChannel, organization, name, name)
 }

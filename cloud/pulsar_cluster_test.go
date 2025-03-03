@@ -43,7 +43,6 @@ func TestPulsarCluster(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -67,7 +66,6 @@ func TestPulsarClusterNoConfig(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -153,7 +151,6 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -164,7 +161,6 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -187,7 +183,6 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -198,7 +193,6 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 					"sndev",
 					clusterGeneratedName,
 					"shared-gcp",
-					"streamnative",
 					"us-central1", "rapid"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -207,7 +201,7 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 	})
 }
 
-func testResourceDataSourcePulsarCluster(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+func testResourceDataSourcePulsarCluster(organization, name, cloudEnvironmentName, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -215,8 +209,7 @@ resource "streamnative_pulsar_instance" "test-pulsar-instance" {
 	organization = "%s"
 	name = "%s"
 	availability_mode = "zonal"
-	pool_name = "%s"
-	pool_namespace = "%s"
+	cloud_connection_name = "%s"
 	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
@@ -249,10 +242,10 @@ data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+`, organization, name, cloudEnvironmentName, organization, name, name, location, releaseChannel)
 }
 
-func testResourceDataSourcePulsarClusterWithoutConfig(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+func testResourceDataSourcePulsarClusterWithoutConfig(organization, name, cloudEnvironmentName, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -260,8 +253,7 @@ resource "streamnative_pulsar_instance" "test-pulsar-instance" {
 	organization = "%s"
 	name = "%s"
 	availability_mode = "zonal"
-	pool_name = "%s"
-	pool_namespace = "%s"
+	cloud_connection_name = "%s"
 	type = "dedicated"
 }
 resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
@@ -277,5 +269,5 @@ data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+`, organization, name, cloudEnvironmentName, organization, name, name, location, releaseChannel)
 }

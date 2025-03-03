@@ -40,8 +40,7 @@ func TestPulsarInstance(t *testing.T) {
 					"sndev",
 					"terraform-test-pulsar-instance-b",
 					"zonal",
-					"shared-gcp",
-					"streamnative"),
+					"shared-gcp"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarInstanceExists("streamnative_pulsar_instance.test-pulsar-instance"),
 				),
@@ -116,7 +115,7 @@ func testCheckPulsarInstanceExists(name string) resource.TestCheckFunc {
 }
 
 func testResourceDataSourcePulsarInstance(
-	organization string, name string, availabilityMode string, poolName string, poolNamespace string) string {
+	organization string, name string, availabilityMode string, cloudConnectionName string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
 }
@@ -124,13 +123,12 @@ resource "streamnative_pulsar_instance" "test-pulsar-instance" {
 	organization = "%s"
 	name = "%s"
 	availability_mode = "%s"
-	pool_name = "%s"
-	pool_namespace = "%s"
+	cloud_connection_name = "%s"
 }
 data "streamnative_pulsar_instance" "test-pulsar-instance" {
   depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
   name = streamnative_pulsar_instance.test-pulsar-instance.name
   organization = streamnative_pulsar_instance.test-pulsar-instance.organization
 }
-`, organization, name, availabilityMode, poolName, poolNamespace)
+`, organization, name, availabilityMode, cloudConnectionName)
 }
