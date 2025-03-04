@@ -56,5 +56,6 @@ jobs:
       - name: Run Acceptance Tests for the Provider
         run: |
           echo $E2E_TEST_ORG_OAUTH > $HOME/service_account.json
+          cat $HOME/service_account.json
           export KEY_FILE_PATH=$HOME/service_account.json
           make testacc
