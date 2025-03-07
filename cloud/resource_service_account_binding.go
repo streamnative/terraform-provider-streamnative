@@ -44,8 +44,7 @@ func resourceServiceAccountBinding() *schema.Resource {
 			}
 			if diff.HasChange("name") ||
 				diff.HasChanges("organization") ||
-				diff.HasChanges("pool_member_name") ||
-				diff.HasChanges("pool_member_namespace") ||
+				diff.HasChanges("cloud_environment_name") ||
 				diff.HasChanges("service_account_name") {
 				return fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT_BINDING: " +
 					"The service account binding does not support updates, please recreate it")
@@ -87,15 +86,9 @@ func resourceServiceAccountBinding() *schema.Resource {
 				Optional:    true,
 				Description: descriptions["cluster_name"],
 			},
-			"pool_member_name": {
+			"cloud_environment_name": {
 				Type:        schema.TypeString,
-				Description: descriptions["pool_member_name"],
-				Computed:    true,
-				Optional:    true,
-			},
-			"pool_member_namespace": {
-				Type:        schema.TypeString,
-				Description: descriptions["pool_member_namespace"],
+				Description: descriptions["cloud_environment_name"],
 				Computed:    true,
 				Optional:    true,
 			},
@@ -107,11 +100,10 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 	namespace := d.Get("organization").(string)
 	serviceAccountName := d.Get("service_account_name").(string)
 	clusterName := d.Get("cluster_name").(string)
-	poolMemberName := d.Get("pool_member_name").(string)
-	poolMemberNamespace := d.Get("pool_member_namespace").(string)
-	if poolMemberName == "" && poolMemberNamespace == "" && clusterName == "" {
+	cloudEnvironmentName := d.Get("cloud_environment_name").(string)
+	if cloudEnvironmentName == "" && clusterName == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_SERVICE_ACCOUNT_BINDING: " +
-			"either (pool_member_name & pool_member_namespace) or cluster_name must be provided"))
+			"either cloud_environment_name or cluster_name must be provided"))
 	}
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -119,17 +111,17 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_SERVICE_ACCOUNT_BINDING: %w", err))
 	}
 
+	name := fmt.Sprintf("%s.%s.%s", serviceAccountName, namespace, cloudEnvironmentName)
+
 	if clusterName != "" {
 		pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, clusterName, metav1.GetOptions{})
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 		}
 
-		poolMemberNamespace = pulsarCluster.Spec.PoolMemberRef.Namespace
-		poolMemberName = pulsarCluster.Spec.PoolMemberRef.Name
+		name = fmt.Sprintf("%s.%s.%s", serviceAccountName, pulsarCluster.Spec.PoolMemberRef.Namespace, pulsarCluster.Spec.PoolMemberRef.Name)
 	}
 
-	name := fmt.Sprintf("%s.%s.%s", serviceAccountName, poolMemberNamespace, poolMemberName)
 	sab := &v1alpha1.ServiceAccountBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -142,8 +134,8 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 		Spec: v1alpha1.ServiceAccountBindingSpec{
 			ServiceAccountName: serviceAccountName,
 			PoolMemberRef: v1alpha1.PoolMemberReference{
-				Name:      poolMemberName,
-				Namespace: poolMemberNamespace,
+				Name:      cloudEnvironmentName,
+				Namespace: namespace,
 			},
 		},
 	}
@@ -186,8 +178,7 @@ func resourceServiceAccountBindingRead(ctx context.Context, d *schema.ResourceDa
 	_ = d.Set("name", serviceAccountBinding.Name)
 	_ = d.Set("organization", serviceAccountBinding.Namespace)
 	_ = d.Set("service_account_name", serviceAccountBinding.Spec.ServiceAccountName)
-	_ = d.Set("pool_member_name", serviceAccountBinding.Spec.PoolMemberRef.Name)
-	_ = d.Set("pool_member_namespace", serviceAccountBinding.Spec.PoolMemberRef.Namespace)
+	_ = d.Set("cloud_environment_name", serviceAccountBinding.Spec.PoolMemberRef.Name)
 	d.SetId(fmt.Sprintf("%s/%s", serviceAccountBinding.Namespace, serviceAccountBinding.Name))
 
 	return nil
