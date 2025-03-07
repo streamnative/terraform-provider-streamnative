@@ -37,7 +37,7 @@ func TestServiceAccount(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceServiceAccount(
-					"o-q77cp", "terraform-test-service-account-b", true),
+					orgId, "terraform-test-service-account-b", true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
@@ -58,7 +58,7 @@ func TestServiceAccountRemovedExternally(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceServiceAccount(
-					"o-q77cp", "terraform-test-service-account-remove", true),
+					orgId, "terraform-test-service-account-remove", true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
@@ -71,14 +71,14 @@ func TestServiceAccountRemovedExternally(t *testing.T) {
 						t.Fatal(err)
 					}
 					err = clientSet.CloudV1alpha1().
-						ServiceAccounts("o-q77cp").
+						ServiceAccounts(orgId).
 						Delete(context.Background(), "terraform-test-service-account-remove", metav1.DeleteOptions{})
 					if err != nil {
 						t.Fatal(err)
 					}
 				},
 				Config: testResourceDataSourceServiceAccount(
-					"o-q77cp", "terraform-test-service-account-remove", true),
+					orgId, "terraform-test-service-account-remove", true),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},

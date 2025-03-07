@@ -37,10 +37,10 @@ func TestPulsarInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourcePulsarInstance(
-					"o-q77cp",
+					orgId,
 					"terraform-test-pulsar-instance-b",
 					"zonal",
-					"terraform-provider-test-gcp"),
+					cloudConnectionName),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarInstanceExists("streamnative_pulsar_instance.test-pulsar-instance"),
 				),

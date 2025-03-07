@@ -40,9 +40,9 @@ func TestPulsarCluster(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourcePulsarCluster(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -63,9 +63,9 @@ func TestPulsarClusterNoConfig(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -148,9 +148,9 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourcePulsarCluster(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -158,9 +158,9 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 			},
 			{
 				Config: testResourceDataSourcePulsarCluster(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -180,9 +180,9 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
@@ -190,9 +190,9 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 			},
 			{
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
-					"o-q77cp",
+					orgId,
 					clusterGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,

@@ -135,7 +135,7 @@ func resourcePulsarInstanceCreate(ctx context.Context, d *schema.ResourceData, m
 		PoolOptions(namespace).
 		Get(ctx, fmt.Sprintf("%s-%s", namespace, cloudConnectionName), metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_GET_CLOUD_CONNECTION_OPTION: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_GET_CLOUD_CONNECTION_OPTION: %w in namespace %s", err, namespace))
 	}
 	if instanceType == "" {
 		if poolOption.Spec.DeploymentType == cloudv1alpha1.PoolDeploymentTypeHosted {

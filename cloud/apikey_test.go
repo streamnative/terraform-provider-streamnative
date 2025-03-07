@@ -38,9 +38,9 @@ func TestApiKey(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceApiKey(
-					"o-q77cp",
+					orgId,
 					apiKeyGeneratedName,
-					"terraform-provider-test-gcp",
+					cloudConnectionName,
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckApiKeyExists("streamnative_apikey.test-terraform-api-key"),
