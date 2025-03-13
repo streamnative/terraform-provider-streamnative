@@ -86,6 +86,10 @@ func resourceServiceAccount() *schema.Resource {
 				Computed:    true,
 			},
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
+		},
 	}
 }
 
@@ -166,8 +170,11 @@ func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("private_key_data", privateKeyData)
 		d.SetId(fmt.Sprintf("%s/%s", serviceAccount.Namespace, serviceAccount.Name))
 	}
-	// Don't retry too frequently to avoid affecting the api-server.
-	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+
+	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
+		//Sleep 20 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 20)
+
 		dia := resourceServiceAccountRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT: %s", dia[0].Summary))
