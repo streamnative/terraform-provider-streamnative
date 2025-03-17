@@ -90,6 +90,12 @@ func resourceApiKey() *schema.Resource {
 				Required:    true,
 				Description: descriptions["instance_name"],
 			},
+			"token": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: descriptions["token"],
+			},
 			"service_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
