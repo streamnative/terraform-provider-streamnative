@@ -134,6 +134,7 @@ func resourceApiKey() *schema.Resource {
 			"private_key": {
 				Type:        schema.TypeString,
 				Computed:    true,
+				Sensitive:   true,
 				Description: descriptions["private_key"],
 			},
 			"key_id": {
