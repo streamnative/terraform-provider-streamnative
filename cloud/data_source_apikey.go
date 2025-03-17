@@ -18,6 +18,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lestrrat-go/jwx/v2/jwa"
@@ -25,7 +27,6 @@ import (
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 func dataSourceApiKey() *schema.Resource {
@@ -60,6 +61,7 @@ func dataSourceApiKey() *schema.Resource {
 			"private_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Sensitive:   true,
 				Description: descriptions["private_key"],
 			},
 			"instance_name": {
@@ -80,6 +82,7 @@ func dataSourceApiKey() *schema.Resource {
 			"token": {
 				Type:        schema.TypeString,
 				Computed:    true,
+				Sensitive:   true,
 				Description: descriptions["token"],
 			},
 			"ready": {
