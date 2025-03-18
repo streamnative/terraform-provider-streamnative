@@ -62,8 +62,8 @@ func dataSourcePulsarCluster() *schema.Resource {
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
+				Required:    true,
 				Description: descriptions["instance_name"],
-				Computed:    true,
 			},
 			"location": {
 				Type:        schema.TypeString,
