@@ -45,15 +45,6 @@ func resourceApiKey() *schema.Resource {
 				// This is create event, so we don't need to check the diff.
 				return nil
 			}
-			if diff.HasChange("name") ||
-				diff.HasChange("organization") ||
-				diff.HasChange("instance_name") ||
-				diff.HasChange("service_account_name") ||
-				diff.HasChange("expiration_time") {
-				return fmt.Errorf("ERROR_UPDATE_API_KEY: " +
-					"The api key does not support updates organization, " +
-					"name, instance_name, service_account_name and expiration_time, please recreate it")
-			}
 			return nil
 		},
 		Importer: &schema.ResourceImporter{
@@ -76,28 +67,39 @@ func resourceApiKey() *schema.Resource {
 			"organization": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				Description:  descriptions["apikey_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: descriptions["instance_name"],
+			},
+			"token": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: descriptions["token"],
 			},
 			"service_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: descriptions["service_account_name"],
 			},
 			"expiration_time": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
 				Description: descriptions["expiration_time"],
 			},
 			"revoke": {
@@ -128,6 +130,7 @@ func resourceApiKey() *schema.Resource {
 			"private_key": {
 				Type:        schema.TypeString,
 				Computed:    true,
+				Sensitive:   true,
 				Description: descriptions["private_key"],
 			},
 			"key_id": {
