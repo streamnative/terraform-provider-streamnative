@@ -962,7 +962,7 @@ func convertCpuAndMemoryToComputeUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 }
 
 func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
-	if pc != nil && pc.Spec.BookKeeper.Resources != nil {
+	if pc != nil && pc.Spec.BookKeeper != nil && pc.Spec.BookKeeper.Resources != nil {
 		cpu := pc.Spec.BookKeeper.Resources.Cpu.MilliValue()
 		memory := pc.Spec.BookKeeper.Resources.Memory.Value()
 		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
