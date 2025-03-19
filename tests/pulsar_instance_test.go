@@ -30,7 +30,7 @@ func TestPulsarInstance(t *testing.T) {
 		defer terraform.Destroy(t, terraformOptions)
 	}
 
-	// Run "terraform init" and "terraform apply". Fail the test if there are any errors.
+	// Run "terraform apply". Fail the test if there are any errors.
 	terraform.Apply(t, terraformOptions)
 
 	// Run `terraform output` to get the values of output variables and check they have the expected values.

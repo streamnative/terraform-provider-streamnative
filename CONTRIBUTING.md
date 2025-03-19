@@ -31,15 +31,9 @@ If you would like to contribute code to this project, fork the repository and se
 - Add the following into the file 
 ```
 provider_installation {
-
   dev_overrides {
       "terraform.local/local/streamnative" = "/Users/<Username>/go/bin" #Or your GOBIN if it's defined as a different path
   }
-
-  # For all other providers, install them directly from their origin provider
-  # registries as normal. If you omit this, Terraform will _only_ use
-  # the dev_overrides block, and so no other providers will be available.
-  direct {}
 }
 ```
 - Run `go install .` in the provider root
