@@ -62,7 +62,7 @@ jobs:
               "terraform.local/local/streamnative" = "$HOME/go/bin"
             }
           }" > $HOME/.terraformrc
-          export TERRAFORM_CONFIG=$HOME/.terraformrc
+          export GOPATH=$HOME/go
           go install .
           ls $HOME/go/bin
           cat $HOME/.terraformrc
