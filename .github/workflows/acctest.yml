@@ -61,8 +61,8 @@ jobs:
             dev_overrides {
               "terraform.local/local/streamnative" = "$HOME/go/bin"
             }
-            direct {}
           }" > $HOME/.terraformrc
+          export TERRAFORM_CONFIG=$HOME/.terraformrc
           go install .
           ls $HOME/go/bin
           cat $HOME/.terraformrc
