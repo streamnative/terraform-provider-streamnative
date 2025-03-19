@@ -23,8 +23,17 @@ description: |-
 ### Optional
 
 - `admin` (Boolean) Whether the service account is admin
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `private_key_data` (String) The private key data
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
