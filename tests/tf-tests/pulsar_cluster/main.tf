@@ -17,6 +17,7 @@ resource "streamnative_pulsar_instance" "test-instance" {
   availability_mode = "zonal"
   pool_name = "shared-gcp"
   pool_namespace = "streamnative"
+  type = "standard"
 }
 
 resource "streamnative_pulsar_cluster" "test-cluster" {
