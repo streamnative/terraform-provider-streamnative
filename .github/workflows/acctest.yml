@@ -46,13 +46,6 @@ jobs:
           terraform_version: 1.5.7
           terraform_wrapper: false
 
-      #- name: Build the terraform-provider-streamnative
-      #  run: |
-      #    make build
-      #    mkdir -p $HOME/.terraform.d/plugins/linux_amd64
-      #    sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
-      #    echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
-
       - name: Run Acceptance Tests for the Provider
         run: |
           touch $HOME/.terraformrc
