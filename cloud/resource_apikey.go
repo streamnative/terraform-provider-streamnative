@@ -25,6 +25,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	"github.com/lestrrat-go/jwx/v2/jwe"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	"github.com/xhit/go-str2duration/v2"
@@ -344,6 +346,25 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 				}
 				if err = d.Set("ready", "True"); err != nil {
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
+				}
+
+				privateKey := d.Get("private_key")
+				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil {
+					data, err := base64.StdEncoding.DecodeString(d.Get("private_key").(string))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_DECODE_PRIVATE_KEY: %w", err))
+					}
+					privateKey, err := util.ImportPrivateKey(string(data))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_IMPORT_PRIVATE_KEY: %w", err))
+					}
+					token, err := jwe.Decrypt([]byte(*apiKey.Status.EncryptedToken.JWE), jwe.WithKey(jwa.RSA_OAEP, privateKey))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_DECRYPT_API_KEY: %w", err))
+					}
+					if err = d.Set("token", string(token)); err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_SET_TOKEN: %w", err))
+					}
 				}
 			}
 		}
