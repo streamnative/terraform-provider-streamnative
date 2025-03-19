@@ -56,8 +56,7 @@ jobs:
       - name: Run Acceptance Tests for the Provider
         run: |
           touch $HOME/.terraformrc
-          echo "
-          provider_installation {
+          echo "provider_installation {
             dev_overrides {
               "terraform.local/local/streamnative" = "$HOME/go/bin"
             }
