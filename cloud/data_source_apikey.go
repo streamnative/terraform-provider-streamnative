@@ -18,6 +18,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -110,6 +113,11 @@ func dataSourceApiKey() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["revoked_at"],
 			},
+			"principal_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["principal_name"],
+			},
 		},
 	}
 }
@@ -186,5 +194,22 @@ func DataSourceApiKeyRead(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", apiKey.Namespace, apiKey.Name))
+	return setPrincipalName(apiKey, d)
+}
+
+func setPrincipalName(apiKey *v1alpha1.APIKey, d *schema.ResourceData) diag.Diagnostics {
+	defaultIssuer := os.Getenv("GLOBAL_DEFAULT_ISSUER")
+	if defaultIssuer == "" {
+		defaultIssuer = GlobalDefaultIssuer
+	}
+	u, err := url.Parse(defaultIssuer)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_PARSE_DEFAULT_ISSUER: %w", err))
+	}
+	err = d.Set("principal_name", fmt.Sprintf(
+		"%s@%s.%s", apiKey.Spec.ServiceAccountName, apiKey.Namespace, u.Host))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_PRINCIPAL_NAME: %w", err))
+	}
 	return nil
 }

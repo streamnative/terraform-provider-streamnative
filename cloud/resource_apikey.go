@@ -359,5 +359,5 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", apiKey.Namespace, apiKey.Name))
-	return nil
+	return setPrincipalName(apiKey, d)
 }

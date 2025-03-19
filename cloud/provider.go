@@ -182,6 +182,7 @@ func init() {
 		"rolebinding_condition_resource_names_topic_domain": "The conditional role binding resource name - topic domain(persistent/non-persistent)",
 		"rolebinding_condition_resource_names_topic_name":   "The conditional role binding resource name - topic name",
 		"rolebinding_condition_resource_names_subscription": "The conditional role binding resource name - subscription",
+		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 	}
 }
 
