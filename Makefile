@@ -21,6 +21,10 @@ build-dev: build
 testacc: fmtcheck
 	TF_ACC=1 go test $(TEST) -v -count 1 $(TESTARGS) -timeout 120m
 
+terratest: fmtcheck
+	go install .
+	go test -v ./tests/... -v -count 1 -timeout 120m
+
 fmt:
 	@echo "==> Fixing source code with gofmt..."
 	@gofmt -s -w cloud
