@@ -63,6 +63,7 @@ jobs:
           }" > $HOME/.terraformrc
           export GOPATH=$HOME/go
           terraform init
+          cat $HOME/.terraformrc
       #    echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
       #    export KEY_FILE_PATH=$HOME/service_account.json
       #    make terratest
