@@ -143,6 +143,11 @@ func resourceApiKey() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["revoked_at"],
 			},
+			"principal_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["principal_name"],
+			},
 		},
 	}
 }
