@@ -59,7 +59,7 @@ jobs:
           echo "
           provider_installation {
             dev_overrides {
-              "terraform.local/local/streamnative" = "$HOME/.terraform.d/plugins/linux_amd64/"
+              "terraform.local/local/streamnative" = "$HOME/go/bin"
             }
             direct {}
           }" > $HOME/.terraformrc
