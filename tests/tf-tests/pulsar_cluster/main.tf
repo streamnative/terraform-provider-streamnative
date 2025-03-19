@@ -31,24 +31,22 @@ resource "streamnative_pulsar_cluster" "test-cluster" {
   storage_unit    = 0.3
 
   config {
-    websocket_enabled   = true
-    function_enabled    = true
-    transaction_enabled = false
-    protocols {
-      mqtt = {
-        enabled = "false"
-      }
-      kafka = {
-        enabled = "true"
-      }
-    }
-    audit_log {
-      categories = ["Management", "Describe", "Produce", "Consume"]
-    }
-    custom = {
-      allowAutoTopicCreation = "true"
-    }
-  }
+		websocket_enabled = false
+		function_enabled = true
+		transaction_enabled = false
+		protocols {
+		  mqtt = {
+			enabled = "true"
+		  }
+		  kafka = {
+			enabled = "true"
+		  }
+		}
+		custom = {
+			"bookkeeper.journalSyncData" = "false"
+			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
+		}
+	}
 }
 
 output "resource_bookie_replicas" {
