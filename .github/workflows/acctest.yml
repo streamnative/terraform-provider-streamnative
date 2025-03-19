@@ -58,7 +58,7 @@ jobs:
           touch $HOME/.terraformrc
           echo "provider_installation {
             dev_overrides {
-              "terraform.local/local/streamnative" = "$HOME/go/bin"
+              \"terraform.local/local/streamnative\" = \"$HOME/go/bin\"
             }
           }" > $HOME/.terraformrc
           export GOPATH=$HOME/go
