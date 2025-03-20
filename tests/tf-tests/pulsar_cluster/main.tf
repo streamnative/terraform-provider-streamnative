@@ -71,6 +71,28 @@ resource "streamnative_pulsar_cluster" "test-cluster-no-config" {
   storage_unit    = 0.3
 }
 
-output "resource_bookie_replicas" {
-  value = streamnative_pulsar_cluster.test-cluster.bookie_replicas
+data "streamnative_pulsar_cluster" "test-cluster" {
+  organization = "sndev"
+  name = "tfpc-test"
+}
+
+data "streamnative_pulsar_cluster" "test-cluster-no-config" {
+  organization = "sndev"
+  name = "tfpc-nconf"
+}
+
+output "resource_pulsar_cluster" {
+  value = streamnative_pulsar_cluster.test-cluster
+}
+
+output "resource_pulsar_cluster_no_config" {
+  value = streamnative_pulsar_cluster.test-cluster-no-config
+}
+
+output "data_pulsar_cluster" {
+  value = data.streamnative_pulsar_cluster.test-cluster
+}
+
+output "data_pulsar_cluster_no_config" {
+  value = data.streamnative_pulsar_cluster.test-cluster-no-config
 }

@@ -28,7 +28,16 @@ func TestPulsarCluster(t *testing.T) {
 	terraform.Apply(t, terraformOptions)
 
 	// Run `terraform output` to get the values of output variables and check they have the expected values.
-	resourceBookieReplicas := terraform.Output(t, terraformOptions, "resource_bookie_replicas")
+	resourcePulsarCluster := terraform.OutputMap(t, terraformOptions, "resource_pulsar_cluster")
+	resourcePulsarClusterNoConfig := terraform.OutputMap(t, terraformOptions, "resource_pulsar_cluster_no_config")
+	//dataPulsarCluster := terraform.OutputMap(t, terraformOptions, "data_pulsar_cluster")
+	//dataPulsarClusterNoConfig := terraform.OutputMap(t, terraformOptions, "data_pulsar_cluster_no_config")
 
-	assert.Equal(t, "3", resourceBookieReplicas)
+	assert.Equal(t, "3", resourcePulsarCluster["bookie_replicas"])
+
+	assert.Equal(t, "3", resourcePulsarClusterNoConfig["bookie_replicas"])
+
+	//assert.Equal(t, "3", dataPulsarCluster["bookie_replicas"])
+
+	//assert.Equal(t, "3", dataPulsarClusterNoConfig["bookie_replicas"])
 }
