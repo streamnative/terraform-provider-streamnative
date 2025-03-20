@@ -26,66 +26,10 @@ data "streamnative_pulsar_instance" "test-instance" {
   organization = streamnative_pulsar_instance.test-instance.organization
 }
 
-output "resource_availability_mode" {
-  value = streamnative_pulsar_instance.test-instance.availability_mode
+output "resource_pulsar_instance" {
+  value = streamnative_pulsar_instance.test-instance
 }
 
-output "resource_id" {
-  value = streamnative_pulsar_instance.test-instance.id
-}
-
-output "resource_name" {
-  value = streamnative_pulsar_instance.test-instance.name
-}
-
-output "resource_organization" {
-  value = streamnative_pulsar_instance.test-instance.organization
-}
-
-output "resource_pool_name" {
-  value = streamnative_pulsar_instance.test-instance.pool_name
-}
-
-output "resource_pool_namespace" {
-  value = streamnative_pulsar_instance.test-instance.pool_namespace
-}
-
-output "resource_ready" {
-  value = streamnative_pulsar_instance.test-instance.ready
-}
-
-output "data_availability_mode" {
-  value = data.streamnative_pulsar_instance.test-instance.availability_mode
-}
-
-output "data_id" {
-  value = data.streamnative_pulsar_instance.test-instance.id
-}
-
-output "data_name" {
-  value = data.streamnative_pulsar_instance.test-instance.name
-}
-
-output "data_oauth2_audience" {
-  value = data.streamnative_pulsar_instance.test-instance.oauth2_audience
-}
-
-output "data_oauth2_issuer_url" {
-  value = data.streamnative_pulsar_instance.test-instance.oauth2_issuer_url
-}
-
-output "data_organization" {
-  value = data.streamnative_pulsar_instance.test-instance.organization
-}
-
-output "data_pool_name" {
-  value = data.streamnative_pulsar_instance.test-instance.pool_name
-}
-
-output "data_pool_namespace" {
-  value = data.streamnative_pulsar_instance.test-instance.pool_namespace
-}
-
-output "data_ready" {
-  value = data.streamnative_pulsar_instance.test-instance.ready
+output "data_pulsar_instance" {
+  value = data.streamnative_pulsar_instance.test-instance
 }

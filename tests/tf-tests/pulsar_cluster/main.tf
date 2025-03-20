@@ -20,6 +20,15 @@ resource "streamnative_pulsar_instance" "test-instance" {
   type = "standard"
 }
 
+resource "streamnative_pulsar_instance" "test-instance-no-config" {
+  organization = "sndev"
+  name = "terraform-pulsar-cluster-test-instance-no-config"
+  availability_mode = "zonal"
+  pool_name = "shared-gcp"
+  pool_namespace = "streamnative"
+  type = "standard"
+}
+
 resource "streamnative_pulsar_cluster" "test-cluster" {
   organization    = streamnative_pulsar_instance.test-instance.organization
   name            = "tfpc-test"
@@ -48,6 +57,18 @@ resource "streamnative_pulsar_cluster" "test-cluster" {
 			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
 		}
 	}
+}
+
+resource "streamnative_pulsar_cluster" "test-cluster-no-config" {
+  organization    = streamnative_pulsar_instance.test-instance-no-config.organization
+  name            = "tfpc-nconf"
+  instance_name   = streamnative_pulsar_instance.test-instance-no-config.name
+  location        = "us-central1"
+  release_channel = "rapid"
+  bookie_replicas = 3
+  broker_replicas = 2
+  compute_unit    = 0.3
+  storage_unit    = 0.3
 }
 
 output "resource_bookie_replicas" {
