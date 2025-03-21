@@ -23,7 +23,7 @@ testacc: fmtcheck
 
 terratest: fmtcheck
 	go install .
-	go test -v ./tests/... -v -count 1 -timeout 120m
+	go test -v ./tests/... -v -count 1 -timeout 120m -failfast
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."

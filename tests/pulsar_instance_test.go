@@ -20,7 +20,7 @@ func TestPulsarInstance(t *testing.T) {
 	// retryable errors in terraform testing.
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		// Set the path to the Terraform code that will be tested.
-		TerraformDir: "tf-tests/pulsar_instance",
+		TerraformDir: "tf-manifests/pulsar_instance",
 	})
 
 	skipDestroy := os.Getenv("SKIP_DESTROY")

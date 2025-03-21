@@ -350,6 +350,10 @@ func resourcePulsarCluster() *schema.Resource {
 				Description: descriptions["instance_type"],
 			},
 		},
+		//If nodes need to autoscale, this create event can take more than 10 minutes
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+		},
 	}
 }
 

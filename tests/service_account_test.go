@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPulsarCluster(t *testing.T) {
+func TestServiceAccount(t *testing.T) {
 	t.Parallel()
 	// Construct the terraform options with default retryable errors to handle the most common
 	// retryable errors in terraform testing.
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		// Set the path to the Terraform code that will be tested.
-		TerraformDir: "tf-manifests/pulsar_cluster",
+		TerraformDir: "tf-manifests/service_account",
 	})
 
 	skipDestroy := os.Getenv("SKIP_DESTROY")
@@ -28,16 +28,11 @@ func TestPulsarCluster(t *testing.T) {
 	terraform.Apply(t, terraformOptions)
 
 	// Run `terraform output` to get the values of output variables and check they have the expected values.
-	resourcePulsarCluster := terraform.OutputMap(t, terraformOptions, "resource_pulsar_cluster")
-	resourcePulsarClusterNoConfig := terraform.OutputMap(t, terraformOptions, "resource_pulsar_cluster_no_config")
-	//dataPulsarCluster := terraform.OutputMap(t, terraformOptions, "data_pulsar_cluster")
-	//dataPulsarClusterNoConfig := terraform.OutputMap(t, terraformOptions, "data_pulsar_cluster_no_config")
+	resourceServiceAccount := terraform.OutputMap(t, terraformOptions, "resource_service_account")
+	dataServiceAccount := terraform.OutputMap(t, terraformOptions, "data_service_account")
 
-	assert.Equal(t, "3", resourcePulsarCluster["bookie_replicas"])
+	assert.Equal(t, "terraform-test-service-account", resourceServiceAccount["name"])
 
-	assert.Equal(t, "3", resourcePulsarClusterNoConfig["bookie_replicas"])
+	assert.Equal(t, "terraform-test-service-account", dataServiceAccount["name"])
 
-	//assert.Equal(t, "3", dataPulsarCluster["bookie_replicas"])
-
-	//assert.Equal(t, "3", dataPulsarClusterNoConfig["bookie_replicas"])
 }
