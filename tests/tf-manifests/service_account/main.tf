@@ -21,3 +21,11 @@ data "streamnative_service_account" "test-service-account" {
   organization = streamnative_service_account.test-service-account.organization
   name = streamnative_service_account.test-service-account.name
 }
+
+output "resource_service_account" {
+  value = streamnative_service_account.test-service-account
+}
+
+output "data_service_account" {
+  value = data.streamnative_service_account.test-service-account
+}
