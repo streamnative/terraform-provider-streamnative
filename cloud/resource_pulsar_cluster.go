@@ -509,6 +509,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	err = retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
+		//Sleep 10 seconds between checks so we don't overload the API
+		time.Sleep(time.Second * 10)
+
 		dia := resourcePulsarClusterRead(ctx, d, meta)
 		if dia.HasError() {
 			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_READ_PULSAR_CLUSTER: %s", dia[0].Summary))
