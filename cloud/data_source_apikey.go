@@ -160,7 +160,7 @@ func DataSourceApiKeyRead(ctx context.Context, d *schema.ResourceData, meta inte
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
 				}
 				privateKey := d.Get("private_key")
-				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil {
+				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil && privateKey != "" {
 					data, err := base64.StdEncoding.DecodeString(d.Get("private_key").(string))
 					if err != nil {
 						return diag.FromErr(fmt.Errorf("ERROR_DECODE_PRIVATE_KEY: %w", err))

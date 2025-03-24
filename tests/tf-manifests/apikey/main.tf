@@ -22,7 +22,7 @@ resource "streamnative_pulsar_instance" "test-instance" {
 
 resource "streamnative_pulsar_cluster" "test-cluster" {
   organization    = streamnative_pulsar_instance.test-instance.organization
-  name            = "tf-apikey"
+  name            = "tfpc-apik"
   instance_name   = streamnative_pulsar_instance.test-instance.name
   location        = "us-central1"
   release_channel = "rapid"
