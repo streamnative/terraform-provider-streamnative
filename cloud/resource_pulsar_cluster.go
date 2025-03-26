@@ -171,6 +171,11 @@ func resourcePulsarCluster() *schema.Resource {
 					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
 				},
 			},
+			"volume": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["volume_name"],
+			},
 			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -461,6 +466,12 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		} else {
 			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
+		}
+		volumeName := d.Get("volume").(string)
+		if volumeName != "" {
+			pulsarCluster.Spec.Volume = &cloudv1alpha1.VolumeReference{
+				Name: volumeName,
+			}
 		}
 	}
 	if !ursaEnabled && !pulsarInstance.IsServerless() {

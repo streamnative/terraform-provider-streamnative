@@ -182,7 +182,7 @@ func init() {
 		"rolebinding_condition_resource_names_topic_domain": "The conditional role binding resource name - topic domain(persistent/non-persistent)",
 		"rolebinding_condition_resource_names_topic_name":   "The conditional role binding resource name - topic name",
 		"rolebinding_condition_resource_names_subscription": "The conditional role binding resource name - subscription",
-		"valume_name":   "The name of the volume",
+		"volume_name":   "The name of the volume",
 		"bucket":        "The bucket name",
 		"path":          "The path of the bucket",
 		"bucket_region": "The region of the bucket",

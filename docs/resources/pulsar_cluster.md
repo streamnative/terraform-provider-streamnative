@@ -35,6 +35,7 @@ description: |-
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number, Deprecated) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
 - `storage_unit_per_bookie` (Number) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
+- `volume` (String) The name of the volume
 
 ### Read-Only
 

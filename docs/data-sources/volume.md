@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the volume
 - `organization` (String) The organization name
 
 ### Read-Only

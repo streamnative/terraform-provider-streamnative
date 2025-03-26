@@ -18,7 +18,7 @@ description: |-
 ### Required
 
 - `bucket` (String) The bucket name
-- `name` (String)
+- `name` (String) The name of the volume
 - `organization` (String) The organization name
 - `path` (String) The path of the bucket
 - `region` (String) The region of the bucket
