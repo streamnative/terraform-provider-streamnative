@@ -469,6 +469,10 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 		volumeName := d.Get("volume").(string)
 		if volumeName != "" {
+			_, err := clientSet.CloudV1alpha1().Volumes(namespace).Get(ctx, volumeName, metav1.GetOptions{})
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_GET_VOLUME_ON_CREATE_PULSAR_CLUSTER: %w", err))
+			}
 			pulsarCluster.Spec.Volume = &cloudv1alpha1.VolumeReference{
 				Name: volumeName,
 			}
