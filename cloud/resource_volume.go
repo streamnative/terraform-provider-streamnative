@@ -120,7 +120,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	err = retry.RetryContext(ctx, 10*time.Minute, func() *retry.RetryError {
 		dia := resourceVolumeRead(ctx, d, meta)
 		if dia.HasError() {
-			return retry.RetryableError(fmt.Errorf("ERROR_READ_VOLUME: %w", dia[0].Summary))
+			return retry.RetryableError(fmt.Errorf("ERROR_READ_VOLUME: %s", dia[0].Summary))
 		}
 		ready := d.Get("ready").(string)
 		if ready == "False" {
