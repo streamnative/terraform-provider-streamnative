@@ -22,7 +22,7 @@ description: |-
 
 ### Optional
 
-- `private_key` (String) The private key for decrypting the encrypted token
+- `private_key` (String, Sensitive) The private key for decrypting the encrypted token
 
 ### Read-Only
 
@@ -32,7 +32,8 @@ description: |-
 - `instance_name` (String) The pulsar instance name
 - `issued_at` (String) The timestamp of when the key was issued, stored as an epoch in seconds
 - `key_id` (String) The key id of apikey
+- `principal_name` (String) The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side
 - `ready` (String) Apikey is ready, it will be set to 'True' after the api key is ready
 - `revoked_at` (String) The timestamp of when the key was revoked
 - `service_account_name` (String) The service account name
-- `token` (String) The token of the api key
+- `token` (String, Sensitive) The token of the api key
