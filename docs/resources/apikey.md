@@ -34,6 +34,8 @@ description: |-
 - `id` (String) The ID of this resource.
 - `issued_at` (String) The timestamp of when the key was issued, stored as an epoch in seconds
 - `key_id` (String) The key id of apikey
-- `private_key` (String) The private key for decrypting the encrypted token
+- `principal_name` (String) The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side
+- `private_key` (String, Sensitive) The private key for decrypting the encrypted token
 - `ready` (String) Apikey is ready, it will be set to 'True' after the api key is ready
 - `revoked_at` (String) The timestamp of when the key was revoked
+- `token` (String, Sensitive) The token of the api key
