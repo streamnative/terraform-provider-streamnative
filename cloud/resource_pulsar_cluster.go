@@ -464,7 +464,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	if ursaEnabled || pulsarInstance.IsServerless() {
-		if pulsarCluster.Spec.ReleaseChannel != "rapid" {
+		if pulsarCluster.Spec.ReleaseChannel != "" && pulsarCluster.Spec.ReleaseChannel != "rapid" {
 			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
 				"release_channel must be rapid for ursa engine or serverless instance"))
 		}
