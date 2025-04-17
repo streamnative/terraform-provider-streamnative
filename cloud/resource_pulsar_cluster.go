@@ -463,6 +463,12 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
 		}
 	}
+	if ursaEnabled || pulsarInstance.IsServerless() {
+		if pulsarCluster.Spec.ReleaseChannel != "rapid" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"release_channel must be rapid for ursa engine or serverless instance"))
+		}
+	}
 	if !ursaEnabled && !pulsarInstance.IsServerless() {
 		pulsarCluster.Spec.BookKeeper = bookkeeper
 	}
