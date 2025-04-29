@@ -182,6 +182,12 @@ func init() {
 		"rolebinding_condition_resource_names_topic_domain": "The conditional role binding resource name - topic domain(persistent/non-persistent)",
 		"rolebinding_condition_resource_names_topic_name":   "The conditional role binding resource name - topic name",
 		"rolebinding_condition_resource_names_subscription": "The conditional role binding resource name - subscription",
+		"volume_name":    "The name of the volume",
+		"bucket":         "The bucket name",
+		"path":           "The path of the bucket",
+		"bucket_region":  "The region of the bucket",
+		"role_arn":       "The role arn of the bucket, it is used to access the bucket",
+		"volume_ready":   "Volume is ready, it will be set to 'True' after the volume is ready",
 		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 	}
 }
@@ -218,6 +224,7 @@ func Provider() *schema.Provider {
 			"streamnative_apikey":                  resourceApiKey(),
 			"streamnative_pulsar_gateway":          resourcePulsarGateway(),
 			"streamnative_rolebinding":             resourceRoleBinding(),
+			"streamnative_volume":                  resourceVolume(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         dataSourceServiceAccount(),
@@ -232,6 +239,7 @@ func Provider() *schema.Provider {
 			"streamnative_resources":               dataSourceResources(),
 			"streamnative_pulsar_gateway":          dataSourcePulsarGateway(),
 			"streamnative_rolebinding":             dataSourceRoleBinding(),
+			"streamnative_volume":                  dataSourceVolume(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
