@@ -1,6 +1,6 @@
 module github.com/streamnative/terraform-provider-streamnative
 
-go 1.22.4
+go 1.23.0
 
 require (
 	github.com/99designs/keyring v1.2.1
@@ -149,7 +149,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -227,16 +227,16 @@ replace github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.3.1
 replace (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace => github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.19.1
 	github.com/streamnative/kube-instrumentation => github.com/streamnative/kube-instrumentation v0.3.2
-	go.opentelemetry.io/contrib/detectors/gcp => go.opentelemetry.io/contrib/detectors/gcp v1.19.0
+	go.opentelemetry.io/contrib/detectors/gcp => go.opentelemetry.io/contrib/detectors/gcp v1.35.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.44.0
-	go.opentelemetry.io/contrib/propagators/aws => go.opentelemetry.io/contrib/propagators/aws v1.19.0
+	go.opentelemetry.io/contrib/propagators/aws => go.opentelemetry.io/contrib/propagators/aws v1.35.0
 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.35.0
-	go.opentelemetry.io/otel/exporters/stdout => go.opentelemetry.io/otel/exporters/stdout v0.19.0
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace => go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.19.0
-	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.19.0
-	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.19.0
+	go.opentelemetry.io/otel/exporters/stdout => go.opentelemetry.io/otel/exporters/stdout v1.35.0
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace => go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.35.0
+	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.35.0
+	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v1.35.0
 	go.opentelemetry.io/otel/sdk/trace => go.opentelemetry.io/otel/sdk/trace v1.35.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.35.0
@@ -248,7 +248,7 @@ replace (
 	go.etcd.io/etcd/api/v3 => go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/pkg/v3 => go.etcd.io/etcd/client/pkg/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 => go.etcd.io/etcd/client/v3 v3.5.9
-	google.golang.org/grpc => google.golang.org/grpc v1.56.3
+	google.golang.org/grpc => google.golang.org/grpc v1.71.0
 	k8s.io/api => k8s.io/api v0.28.15
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.28.15
 	k8s.io/apimachinery => k8s.io/apimachinery v0.28.15
