@@ -9,7 +9,7 @@ import (
 )
 
 func TestPulsarCluster(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	// Construct the terraform options with default retryable errors to handle the most common
 	// retryable errors in terraform testing.
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
