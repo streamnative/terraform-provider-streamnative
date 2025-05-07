@@ -11,7 +11,7 @@ import (
 var org = "sndev"
 var ready = "True"
 var availabilityMode = "zonal"
-var poolName = "shared-gcp"
+var poolName = "shared-gcp-prod"
 var poolNamespace = "streamnative"
 
 func TestPulsarInstance(t *testing.T) {

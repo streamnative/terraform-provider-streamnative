@@ -15,7 +15,7 @@ resource "streamnative_pulsar_instance" "test-instance" {
   organization = "sndev"
   name = "terraform-pulsar-instance-test"
   availability_mode = "zonal"
-  pool_name = "shared-gcp"
+  pool_name = "shared-gcp-prod"
   pool_namespace = "streamnative"
   type = "standard"
 }
