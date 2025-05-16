@@ -48,8 +48,10 @@ data "streamnative_apikey" "test-admin-a" {
   depends_on = [streamnative_apikey.test-admin-a]
   organization = streamnative_apikey.test-admin-a.organization
   name = streamnative_apikey.test-admin-a.name
+  private_key = streamnative_apikey.test-admin-a.private_key
 }
 
 output "apikey" {
+  sensitive = true
   value = data.streamnative_apikey.test-admin-a
 }
