@@ -40,7 +40,7 @@ func TestPulsarInstance(t *testing.T) {
 					"sndev",
 					"terraform-test-pulsar-instance-b",
 					"zonal",
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarInstanceExists("streamnative_pulsar_instance.test-pulsar-instance"),
