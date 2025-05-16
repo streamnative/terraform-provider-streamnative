@@ -469,6 +469,24 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				"release_channel must be rapid for ursa engine or serverless instance"))
 		}
 	}
+	if pulsarInstance.IsServerless() {
+		if pulsarInstance.Spec.PoolRef.Namespace != "streamnative" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"pool member must be in streamnative namespace for serverless instance"))
+		}
+		if pulsarInstance.Spec.PoolRef.Name == "shared-aws" && location != "us-east-2" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"location must be us-east-2 for aws serverless instance"))
+		}
+		if pulsarInstance.Spec.PoolRef.Name == "shared-gcp" && location != "us-central1" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"location must be us-central1 for gcp serverless instance"))
+		}
+		if pulsarInstance.Spec.PoolRef.Name == "shared-azure" && location != "eastus" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"location must be eastus for azure serverless instance"))
+		}
+	}
 	if !ursaEnabled && !pulsarInstance.IsServerless() {
 		pulsarCluster.Spec.BookKeeper = bookkeeper
 	}
