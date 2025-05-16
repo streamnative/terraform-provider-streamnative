@@ -469,6 +469,12 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 				"release_channel must be rapid for ursa engine or serverless instance"))
 		}
 	}
+	if pulsarInstance.IsServerless() {
+		if location != "us-east-2" && location != "us-central1" && location != "eastus" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"location must be us-east-2 for aws, us-central1 for gcp or eastus for azure for serverless instance"))
+		}
+	}
 	if !ursaEnabled && !pulsarInstance.IsServerless() {
 		pulsarCluster.Spec.BookKeeper = bookkeeper
 	}
