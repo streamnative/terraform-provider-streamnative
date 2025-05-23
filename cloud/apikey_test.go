@@ -40,7 +40,7 @@ func TestApiKey(t *testing.T) {
 				Config: testResourceDataSourceApiKey(
 					"sndev",
 					apiKeyGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
