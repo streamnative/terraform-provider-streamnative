@@ -42,7 +42,7 @@ func TestPulsarCluster(t *testing.T) {
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
@@ -66,7 +66,7 @@ func TestPulsarClusterNoConfig(t *testing.T) {
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
@@ -152,7 +152,7 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
@@ -163,7 +163,7 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 				Config: testResourceDataSourcePulsarCluster(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				PlanOnly:           true,
@@ -186,7 +186,7 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
@@ -197,7 +197,7 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 				Config: testResourceDataSourcePulsarClusterWithoutConfig(
 					"sndev",
 					clusterGeneratedName,
-					"shared-gcp",
+					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
 				PlanOnly:           true,
