@@ -470,10 +470,6 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	if pulsarInstance.IsServerless() {
-		if pulsarInstance.Spec.PoolRef.Namespace != "streamnative" {
-			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
-				"pool member must be in streamnative namespace for serverless instance"))
-		}
 		if location != "us-east-2" && location != "us-central1" && location != "eastus" {
 			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
 				"location must be us-east-2 on aws, us-central1 on gcloud or eastus on azure for serverless instance"))
