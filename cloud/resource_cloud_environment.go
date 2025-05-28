@@ -278,8 +278,7 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 	if cc.Spec.ConnectionType == cloudv1alpha1.ConnectionTypeAzure {
 		if cloudEnvironment.Spec.Network.CIDR != "" {
 			if cloudEnvironment.Spec.Network.SubnetCIDR == "" {
-				return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " +
-					"Azure cloud environment requires network.subnet_cidr to be set when network.cidr is specified"))
+				cloudEnvironment.Spec.Network.SubnetCIDR = cloudEnvironment.Spec.Network.CIDR
 			}
 			if validate, _ := validateSubnetCIDR(cloudEnvironment.Spec.Network.SubnetCIDR, cloudEnvironment.Spec.Network.CIDR); !validate {
 				return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " +
