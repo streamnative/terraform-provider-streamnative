@@ -39,6 +39,8 @@ Read-Only:
 - `instance` (String)
 - `namespace` (String)
 - `organization` (String)
+- `secret` (String)
+- `service_account` (String)
 - `subscription` (String)
 - `tenant` (String)
 - `topic_domain` (String)
