@@ -53,3 +53,4 @@ Read-Only:
 
 - `cidr` (String)
 - `id` (String)
+- `subnet_cidr` (String)

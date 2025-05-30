@@ -17,8 +17,9 @@ package cloud
 import (
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -74,6 +75,10 @@ func dataSourceCloudEnvironment() *schema.Resource {
 							Optional: true,
 						},
 						"cidr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"subnet_cidr": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},

@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -125,6 +126,31 @@ func validateCidrRange(val interface{}, key string) (warns []string, errs []erro
 		}
 	}
 	return
+}
+
+func validateSubnetCIDR(subnetStr, parentStr string) (bool, error) {
+	subnetIP, subnetNet, err := net.ParseCIDR(subnetStr)
+	if err != nil {
+		return false, fmt.Errorf("invalid subnet CIDR: %v", err)
+	}
+	_, parentNet, err := net.ParseCIDR(parentStr)
+	if err != nil {
+		return false, fmt.Errorf("invalid parent CIDR: %v", err)
+	}
+
+	// Check if the subnet IP is within the parent network
+	if !parentNet.Contains(subnetIP) {
+		return false, nil
+	}
+
+	// Ensure the subnet is not broader than the parent (i.e., subnet mask >= parent mask)
+	subnetMaskSize, _ := subnetNet.Mask.Size()
+	parentMaskSize, _ := parentNet.Mask.Size()
+	if subnetMaskSize < parentMaskSize {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func validateAnnotations(value interface{}, key string) (ws []string, es []error) {
