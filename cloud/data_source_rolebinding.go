@@ -3,12 +3,13 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 func dataSourceRoleBinding() *schema.Resource {
@@ -112,6 +113,16 @@ func dataSourceRoleBinding() *schema.Resource {
 							Computed:    true,
 							Description: descriptions["rolebinding_condition_resource_names_subscription"],
 						},
+						"service_account": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_service_account"],
+						},
+						"secret": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_secret"],
+						},
 					},
 				},
 			},
@@ -203,14 +214,16 @@ func conditionParse(organization string, binding *v1alpha1.RoleBinding, d *schem
 		for idx := range resourceNames {
 			resourceName := resourceNames[idx]
 			resourceNamesData = append(resourceNamesData, map[string]string{
-				"organization": organization,
-				"instance":     resourceName.Instance,
-				"cluster":      resourceName.Cluster,
-				"tenant":       resourceName.Tenant,
-				"namespace":    resourceName.Namespace,
-				"topic_domain": resourceName.TopicDomain,
-				"topic_name":   resourceName.TopicName,
-				"subscription": resourceName.Subscription,
+				"organization":    organization,
+				"instance":        resourceName.Instance,
+				"cluster":         resourceName.Cluster,
+				"tenant":          resourceName.Tenant,
+				"namespace":       resourceName.Namespace,
+				"topic_domain":    resourceName.TopicDomain,
+				"topic_name":      resourceName.TopicName,
+				"subscription":    resourceName.Subscription,
+				"service_account": resourceName.ServiceAccount,
+				"secret":          resourceName.Secret,
 			})
 		}
 		if err := d.Set("condition_resource_names", resourceNamesData); err != nil {
