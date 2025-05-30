@@ -42,6 +42,8 @@ Optional:
 - `instance` (String) The conditional role binding resource name - instance
 - `namespace` (String) The conditional role binding resource name - namespace
 - `organization` (String) The conditional role binding resource name - organization
+- `secret` (String) The conditional role binding resource name - secret
+- `service_account` (String) The conditional role binding resource name - service account
 - `subscription` (String) The conditional role binding resource name - subscription
 - `tenant` (String) The conditional role binding resource name - tenant
 - `topic_domain` (String) The conditional role binding resource name - topic domain(persistent/non-persistent)

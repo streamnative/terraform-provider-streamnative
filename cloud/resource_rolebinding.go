@@ -3,14 +3,15 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
-	"time"
 )
 
 func resourceRoleBinding() *schema.Resource {
@@ -136,6 +137,16 @@ func resourceRoleBinding() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: descriptions["rolebinding_condition_resource_names_subscription"],
+						},
+						"service_account": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_service_account"],
+						},
+						"secret": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: descriptions["rolebinding_condition_resource_names_secret"],
 						},
 					},
 				},
@@ -360,14 +371,16 @@ func conditionSet(organization string, d *schema.ResourceData, binding *v1alpha1
 			resourceName := resourceNamesEntity[idx]
 			resourceElements := resourceName.(map[string]interface{})
 			bindingResourceNames = append(bindingResourceNames, v1alpha1.ResourceName{
-				Organization: organization,
-				Instance:     resourceElements["instance"].(string),
-				Cluster:      resourceElements["cluster"].(string),
-				Tenant:       resourceElements["tenant"].(string),
-				Namespace:    resourceElements["namespace"].(string),
-				TopicDomain:  resourceElements["topic_domain"].(string),
-				TopicName:    resourceElements["topic_name"].(string),
-				Subscription: resourceElements["subscription"].(string),
+				Organization:   organization,
+				Instance:       resourceElements["instance"].(string),
+				Cluster:        resourceElements["cluster"].(string),
+				Tenant:         resourceElements["tenant"].(string),
+				Namespace:      resourceElements["namespace"].(string),
+				TopicDomain:    resourceElements["topic_domain"].(string),
+				TopicName:      resourceElements["topic_name"].(string),
+				Subscription:   resourceElements["subscription"].(string),
+				ServiceAccount: resourceElements["service_account"].(string),
+				Secret:         resourceElements["secret"].(string),
 			})
 		}
 		binding.Spec.ResourceNames = bindingResourceNames
