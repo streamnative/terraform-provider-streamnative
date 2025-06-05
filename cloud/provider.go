@@ -216,6 +216,8 @@ func init() {
 		"iam_policy":                    "IAM policy JSON for S3Table catalog access. This policy should be applied to your AWS IAM role to allow access to S3Table resources.",
 		"principal_name":                "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 		"customized_metadata":           "The custom metadata in the api key token",
+		"enable_iam_account_creation":   "Whether to create an IAM account for the service account binding",
+		"aws_assume_role_arns":          "A list of AWS IAM roles' arn which can be assumed by the AWS IAM role created for the service account binding",
 	}
 }
 
