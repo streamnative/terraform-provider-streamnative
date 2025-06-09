@@ -184,7 +184,9 @@ func init() {
 		"rolebinding_condition_resource_names_subscription":    "The conditional role binding resource name - subscription",
 		"rolebinding_condition_resource_names_service_account": "The conditional role binding resource name - service account",
 		"rolebinding_condition_resource_names_secret":          "The conditional role binding resource name - secret",
-		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
+		"principal_name":              "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
+		"enable_iam_account_creation": "Whether to create an IAM account for the service account binding",
+		"aws_assume_role_arns":        "A list of AWS IAM roles' arn which can be assumed by the AWS IAM role created for the service account binding",
 	}
 }
 
