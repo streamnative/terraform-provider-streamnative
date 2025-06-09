@@ -21,11 +21,10 @@ import (
 	"strings"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -210,7 +209,7 @@ func resourceServiceAccountBindingRead(ctx context.Context, d *schema.ResourceDa
 	_ = d.Set("pool_member_name", serviceAccountBinding.Spec.PoolMemberRef.Name)
 	_ = d.Set("pool_member_namespace", serviceAccountBinding.Spec.PoolMemberRef.Namespace)
 	_ = d.Set("enable_iam_account_creation", serviceAccountBinding.Spec.EnableIAMAccountCreation)
-	_ = d.Set("aws_assume_role_arns", serviceAccountBinding.Spec.AWSAssumeRoleARNs)
+	_ = d.Set("aws_assume_role_arns", flattenStringSlice(serviceAccountBinding.Spec.AWSAssumeRoleARNs))
 	d.SetId(fmt.Sprintf("%s/%s", serviceAccountBinding.Namespace, serviceAccountBinding.Name))
 
 	return nil

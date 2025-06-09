@@ -19,10 +19,9 @@ import (
 	"fmt"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
