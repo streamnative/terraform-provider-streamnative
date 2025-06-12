@@ -3,6 +3,8 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,7 +12,6 @@ import (
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 func resourceVolume() *schema.Resource {
@@ -90,6 +91,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		Spec: v1alpha1.VolumeSpec{
 			Bucket: bucket,
 			Path:   path,
+			Region: region,
 			Type:   "aws",
 			AWS: &v1alpha1.AWSSpec{
 				RoleArn: roleArn,
@@ -184,7 +186,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, meta interf
 	if err = d.Set("path", volume.Spec.Path); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_PATH: %w", err))
 	}
-	if err = d.Set("region", volume.Spec.AWS.Region); err != nil {
+	if err = d.Set("region", volume.Spec.Region); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_REGION: %w", err))
 	}
 	if err = d.Set("role_arn", volume.Spec.AWS.RoleArn); err != nil {
@@ -225,6 +227,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 	volume.Spec.Bucket = bucket
 	volume.Spec.Path = path
+	volume.Spec.Region = region
 	volume.Spec.AWS.Region = region
 	volume.Spec.AWS.RoleArn = roleArn
 	_, err = clientSet.CloudV1alpha1().Volumes(namespace).Update(ctx, volume, metav1.UpdateOptions{})
