@@ -26,6 +26,9 @@ func flattenCloudEnvironmentNetwork(in *cloudv1alpha1.Network) []interface{} {
 	if in.CIDR != "" {
 		att["cidr"] = in.CIDR
 	}
+	if in.SubnetCIDR != "" {
+		att["subnet_cidr"] = in.SubnetCIDR
+	}
 
 	return []interface{}{att}
 }

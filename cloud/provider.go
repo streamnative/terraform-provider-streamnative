@@ -174,6 +174,7 @@ func init() {
 		"rolebinding_user_names":               "The list of users that are role binding names ",
 		"rolebinding_condition_cel":            "The conditional role binding CEL(Common Expression Language) expression",
 		"rolebinding_condition_resource_names": "The list of conditional role binding resource names",
+<<<<<<< HEAD
 		"rolebinding_condition_resource_names_organization": "The conditional role binding resource name - organization",
 		"rolebinding_condition_resource_names_instance":     "The conditional role binding resource name - instance",
 		"rolebinding_condition_resource_names_cluster":      "The conditional role binding resource name - cluster",
@@ -188,6 +189,18 @@ func init() {
 		"bucket_region":  "The region of the bucket",
 		"role_arn":       "The role arn of the bucket, it is used to access the bucket",
 		"volume_ready":   "Volume is ready, it will be set to 'True' after the volume is ready",
+=======
+		"rolebinding_condition_resource_names_organization":    "The conditional role binding resource name - organization",
+		"rolebinding_condition_resource_names_instance":        "The conditional role binding resource name - instance",
+		"rolebinding_condition_resource_names_cluster":         "The conditional role binding resource name - cluster",
+		"rolebinding_condition_resource_names_tenant":          "The conditional role binding resource name - tenant",
+		"rolebinding_condition_resource_names_namespace":       "The conditional role binding resource name - namespace",
+		"rolebinding_condition_resource_names_topic_domain":    "The conditional role binding resource name - topic domain(persistent/non-persistent)",
+		"rolebinding_condition_resource_names_topic_name":      "The conditional role binding resource name - topic name",
+		"rolebinding_condition_resource_names_subscription":    "The conditional role binding resource name - subscription",
+		"rolebinding_condition_resource_names_service_account": "The conditional role binding resource name - service account",
+		"rolebinding_condition_resource_names_secret":          "The conditional role binding resource name - secret",
+>>>>>>> main
 		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 	}
 }

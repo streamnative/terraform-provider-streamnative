@@ -52,5 +52,6 @@ data "streamnative_apikey" "test-admin-a" {
 }
 
 output "apikey" {
+  sensitive = true
   value = data.streamnative_apikey.test-admin-a
 }
