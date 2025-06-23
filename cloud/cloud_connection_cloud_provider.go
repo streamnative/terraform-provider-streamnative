@@ -56,3 +56,12 @@ func flattenCloudConnectionAzure(in *cloudv1alpha1.AzureConnection) []interface{
 
 	return []interface{}{att}
 }
+
+func flattenCloudConnectionAliCloud(in *cloudv1alpha1.AliCloudConnection) []interface{} {
+	att := make(map[string]interface{})
+	if in.AccountId != "" {
+		att["account_id"] = in.AccountId
+	}
+
+	return []interface{}{att}
+}

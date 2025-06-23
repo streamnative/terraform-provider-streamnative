@@ -133,6 +133,19 @@ func resourceCloudConnection() *schema.Resource {
 					},
 				},
 			},
+			"alicloud": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: descriptions["alicloud"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"account_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -144,6 +157,7 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 	aws := d.Get("aws").([]interface{})
 	gcp := d.Get("gcp").([]interface{})
 	azure := d.Get("azure").([]interface{})
+	alicloud := d.Get("alicloud").([]interface{})
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CLOUD_CONNECTION: %w", err))
@@ -164,6 +178,7 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 			AWS:            nil,
 			GCP:            nil,
 			Azure:          nil,
+			AliCloud:       nil,
 		},
 	}
 
@@ -208,8 +223,19 @@ func resourceCloudConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCP == nil && cloudConnection.Spec.Azure == nil {
-		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.account_id, gcp.project_id or azure block must be set"))
+	if len(alicloud) > 0 {
+		cloudConnection.Spec.AliCloud = &cloudv1alpha1.AliCloudConnection{}
+		for _, alicloudItem := range alicloud {
+			alicloudItemMap := alicloudItem.(map[string]interface{})
+			if alicloudItemMap["account_id"] != nil {
+				accountId := alicloudItemMap["account_id"].(string)
+				cloudConnection.Spec.AliCloud.AccountId = accountId
+			}
+		}
+	}
+
+	if cloudConnection.Spec.AWS == nil && cloudConnection.Spec.GCP == nil && cloudConnection.Spec.Azure == nil && cloudConnection.Spec.AliCloud == nil {
+		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_CONNECTION: " + "One of aws.account_id, gcp.project_id, azure block or alicloud.account_id must be set"))
 	}
 
 	cc, err := clientSet.CloudV1alpha1().CloudConnections(namespace).Create(ctx, cloudConnection, metav1.CreateOptions{
@@ -278,6 +304,13 @@ func resourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, me
 		err = d.Set("azure", flattenCloudConnectionAzure(cloudConnection.Spec.Azure))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_AZURE: %w", err))
+		}
+	}
+
+	if cloudConnection.Spec.AliCloud != nil {
+		err = d.Set("alicloud", flattenCloudConnectionAliCloud(cloudConnection.Spec.AliCloud))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_ALICLOUD: %w", err))
 		}
 	}
 
