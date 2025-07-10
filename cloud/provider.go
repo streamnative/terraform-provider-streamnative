@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mitchellh/go-homedir"
 	"github.com/streamnative/cloud-cli/pkg/auth"
 	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
@@ -253,16 +253,6 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
 
-	home, err := homedir.Dir()
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	configDir := filepath.Join(home, ".streamnative")
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(configDir, 0755); err != nil {
-			return nil, diag.FromErr(err)
-		}
-	}
 	defaultIssuer := os.Getenv("GLOBAL_DEFAULT_ISSUER")
 	if defaultIssuer == "" {
 		defaultIssuer = GlobalDefaultIssuer
@@ -277,6 +267,12 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	}
 	clientId := d.Get("client_id").(string)
 	clientSecret := d.Get("client_secret").(string)
+	keyFilePath := d.Get("key_file_path").(string)
+	configDir, err := getConfigDir(clientId, clientSecret, keyFilePath)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
 	var keyFile *auth.KeyFile
 	var flow *auth.ClientCredentialsFlow
 	var grant *auth.AuthorizationGrant
@@ -305,7 +301,6 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 			return nil, diag.FromErr(err)
 		}
 	} else {
-		keyFilePath := d.Get("key_file_path").(string)
 		credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
 		keyFile, err = credsProvider.GetClientCredentials()
 		if err != nil {
@@ -404,4 +399,24 @@ func makeKeyring(backendOverride string, configDir string) (keyring.Keyring, err
 
 func keyringPrompt(prompt string) (string, error) {
 	return "", nil
+}
+
+// getConfigDir generate a unique configuration directory based on the provided arguments
+func getConfigDir(clientId, clientSecret, keyFilePath string) (string, error) {
+	home, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %v", err)
+	}
+	combined := fmt.Sprintf("%s|%s|%s", keyFilePath, clientId, clientSecret)
+	hash := sha256.Sum256([]byte(combined))
+	dirName := fmt.Sprintf(".streamnative_%x", hash[:8])
+
+	configDir := filepath.Join(home, dirName)
+
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(configDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create config directory: %v", err)
+		}
+	}
+	return configDir, nil
 }
