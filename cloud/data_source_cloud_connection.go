@@ -17,8 +17,9 @@ package cloud
 import (
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -108,6 +109,19 @@ func dataSourceCloudConnection() *schema.Resource {
 					},
 				},
 			},
+			"alicloud": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: descriptions["alicloud"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"account_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -148,6 +162,13 @@ func dataSourceCloudConnectionRead(ctx context.Context, d *schema.ResourceData, 
 
 	if cloudConnection.Spec.Azure != nil {
 		err = d.Set("azure", flattenCloudConnectionAzure(cloudConnection.Spec.Azure))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_CONFIG: %w", err))
+		}
+	}
+
+	if cloudConnection.Spec.AliCloud != nil {
+		err = d.Set("alicloud", flattenCloudConnectionAliCloud(cloudConnection.Spec.AliCloud))
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_CONNECTION_CONFIG: %w", err))
 		}
