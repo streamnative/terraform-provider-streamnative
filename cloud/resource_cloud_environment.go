@@ -476,7 +476,8 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	// Get CloudEnvironment to update the annotation
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+		//If we can't find the CE, just return, as the CE is already deleted
+		return nil
 	}
 
 	cloudEnvironment.Annotations["cloud.streamnative.io/destroy-protected"] = "false"
