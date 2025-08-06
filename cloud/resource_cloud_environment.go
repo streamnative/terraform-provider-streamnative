@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -476,8 +477,12 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	// Get CloudEnvironment to update the annotation
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		//If we can't find the CE, just return, as the CE is already deleted
-		return nil
+		if errors.IsNotFound(err) {
+			//If we can't find the CE, just return, as the CE is already deleted
+			return nil
+		} else {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+		}
 	}
 
 	cloudEnvironment.Annotations["cloud.streamnative.io/destroy-protected"] = "false"
