@@ -17,14 +17,16 @@ package cloud
 import (
 	"context"
 	"fmt"
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 	"strings"
 	"time"
+
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -471,6 +473,25 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	namespace := d.Get("organization").(string)
 	name := strings.Split(d.Id(), "/")[1]
 	waitForCompletion := d.Get("wait_for_completion")
+
+	// Get CloudEnvironment to update the annotation
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			//If we can't find the CE, just return, as the CE is already deleted
+			return nil
+		} else {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+		}
+	}
+
+	cloudEnvironment.Annotations["cloud.streamnative.io/destroy-protected"] = "false"
+
+	if _, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Update(ctx, cloudEnvironment, metav1.UpdateOptions{
+		FieldManager: "terraform-update",
+	}); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
 
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_CLOUD_ENVIRONMENT: %w", err))
