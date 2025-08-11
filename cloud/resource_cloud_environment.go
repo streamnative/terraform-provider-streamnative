@@ -20,14 +20,15 @@ import (
 	"strings"
 	"time"
 
+	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 )
 
 func resourceCloudEnvironment() *schema.Resource {
@@ -56,9 +57,10 @@ func resourceCloudEnvironment() *schema.Resource {
 				diff.HasChanges("cloud_connection_name") ||
 				diff.HasChanges("region") ||
 				diff.HasChanges("network_id") ||
-				diff.HasChanges("network_cidr") {
+				diff.HasChanges("network_cidr") ||
+				diff.HasChanges("network_subnet_cidr") {
 				return fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-					"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it")
+					"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr, network_subnet_cidr. Please recreate it")
 			}
 			return nil
 		},
@@ -116,6 +118,11 @@ func resourceCloudEnvironment() *schema.Resource {
 							Optional: true,
 						},
 						"cidr": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateCidrRange,
+						},
+						"subnet_cidr": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateCidrRange,
@@ -260,11 +267,26 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 				networkCidr := networkItemMap["cidr"].(string)
 				cloudEnvironment.Spec.Network.CIDR = networkCidr
 			}
+			if networkItemMap["subnet_cidr"] != nil {
+				subnetCidr := networkItemMap["subnet_cidr"].(string)
+				cloudEnvironment.Spec.Network.SubnetCIDR = subnetCidr
+			}
 		}
 	}
 
 	if cloudEnvironment.Spec.Network.ID == "" && cloudEnvironment.Spec.Network.CIDR == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " + "One of network.id or network.cidr must be set"))
+	}
+	if cc.Spec.ConnectionType == cloudv1alpha1.ConnectionTypeAzure {
+		if cloudEnvironment.Spec.Network.CIDR != "" {
+			if cloudEnvironment.Spec.Network.SubnetCIDR == "" {
+				cloudEnvironment.Spec.Network.SubnetCIDR = cloudEnvironment.Spec.Network.CIDR
+			}
+			if validate, _ := validateSubnetCIDR(cloudEnvironment.Spec.Network.SubnetCIDR, cloudEnvironment.Spec.Network.CIDR); !validate {
+				return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: " +
+					"Azure cloud environment requires network.subnet_cidr to be a subnet of network.cidr"))
+			}
+		}
 	}
 
 	expandDns := func() error {
@@ -393,9 +415,10 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 		d.HasChanges("cloud_connection_name") ||
 		d.HasChanges("region") ||
 		d.HasChanges("network_id") ||
-		d.HasChanges("network_cidr") {
+		d.HasChanges("network_cidr") ||
+		d.HasChanges("network_subnet_cidr") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: " +
-			"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr. Please recreate it"))
+			"The cloud environment does not support updates on the attributes: organization, cloud_connection_name, region, network_id, network_cidr, network_subnet_cidr. Please recreate it"))
 	}
 
 	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -450,6 +473,25 @@ func resourceCloudEnvironmentDelete(ctx context.Context, d *schema.ResourceData,
 	namespace := d.Get("organization").(string)
 	name := strings.Split(d.Id(), "/")[1]
 	waitForCompletion := d.Get("wait_for_completion")
+
+	// Get CloudEnvironment to update the annotation
+	cloudEnvironment, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			//If we can't find the CE, just return, as the CE is already deleted
+			return nil
+		} else {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: %w", err))
+		}
+	}
+
+	cloudEnvironment.Annotations["cloud.streamnative.io/destroy-protected"] = "false"
+
+	if _, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Update(ctx, cloudEnvironment, metav1.UpdateOptions{
+		FieldManager: "terraform-update",
+	}); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: %w", err))
+	}
 
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_DELETE_CLOUD_ENVIRONMENT: %w", err))
