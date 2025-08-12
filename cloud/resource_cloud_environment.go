@@ -82,11 +82,6 @@ func resourceCloudEnvironment() *schema.Resource {
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
-			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: descriptions["cloud_environment_name"],
-			},
 			"environment_type": {
 				Type:         schema.TypeString,
 				Required:     true,
