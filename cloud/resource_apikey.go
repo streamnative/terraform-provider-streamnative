@@ -25,6 +25,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/lestrrat-go/jwx/v2/jwa"
+	"github.com/lestrrat-go/jwx/v2/jwe"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	"github.com/xhit/go-str2duration/v2"
@@ -44,15 +46,6 @@ func resourceApiKey() *schema.Resource {
 			if oldOrg.(string) == "" && oldName.(string) == "" {
 				// This is create event, so we don't need to check the diff.
 				return nil
-			}
-			if diff.HasChange("name") ||
-				diff.HasChange("organization") ||
-				diff.HasChange("instance_name") ||
-				diff.HasChange("service_account_name") ||
-				diff.HasChange("expiration_time") {
-				return fmt.Errorf("ERROR_UPDATE_API_KEY: " +
-					"The api key does not support updates organization, " +
-					"name, instance_name, service_account_name and expiration_time, please recreate it")
 			}
 			return nil
 		},
@@ -76,28 +69,39 @@ func resourceApiKey() *schema.Resource {
 			"organization": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				Description:  descriptions["organization"],
 				ValidateFunc: validateNotBlank,
 			},
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				Description:  descriptions["apikey_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: descriptions["instance_name"],
+			},
+			"token": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: descriptions["token"],
 			},
 			"service_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: descriptions["service_account_name"],
 			},
 			"expiration_time": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
 				Description: descriptions["expiration_time"],
 			},
 			"revoke": {
@@ -128,6 +132,7 @@ func resourceApiKey() *schema.Resource {
 			"private_key": {
 				Type:        schema.TypeString,
 				Computed:    true,
+				Sensitive:   true,
 				Description: descriptions["private_key"],
 			},
 			"key_id": {
@@ -139,6 +144,11 @@ func resourceApiKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["revoked_at"],
+			},
+			"principal_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["principal_name"],
 			},
 		},
 	}
@@ -179,7 +189,7 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 			t = t.Add(ago)
 		} else if expirationTime != "0" {
-			layout := "2006-02-01T15:04:05Z"
+			layout := "2006-01-02T15:04:05Z"
 			t, err = time.Parse(layout, expirationTime)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("ERROR_PARSE_EXPIRATION_TIME: %w", err))
@@ -342,6 +352,25 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 				if err = d.Set("ready", "True"); err != nil {
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
 				}
+
+				privateKey := d.Get("private_key")
+				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil {
+					data, err := base64.StdEncoding.DecodeString(d.Get("private_key").(string))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_DECODE_PRIVATE_KEY: %w", err))
+					}
+					privateKey, err := util.ImportPrivateKey(string(data))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_IMPORT_PRIVATE_KEY: %w", err))
+					}
+					token, err := jwe.Decrypt([]byte(*apiKey.Status.EncryptedToken.JWE), jwe.WithKey(jwa.RSA_OAEP, privateKey))
+					if err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_DECRYPT_API_KEY: %w", err))
+					}
+					if err = d.Set("token", string(token)); err != nil {
+						return diag.FromErr(fmt.Errorf("ERROR_SET_TOKEN: %w", err))
+					}
+				}
 			}
 		}
 		if apiKey.Status.RevokedAt != nil {
@@ -351,5 +380,5 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		}
 	}
 	d.SetId(fmt.Sprintf("%s/%s", apiKey.Namespace, apiKey.Name))
-	return nil
+	return setPrincipalName(apiKey, d)
 }

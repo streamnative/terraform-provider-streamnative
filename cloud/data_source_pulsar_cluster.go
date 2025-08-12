@@ -62,8 +62,8 @@ func dataSourcePulsarCluster() *schema.Resource {
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
-				Description: descriptions["instance_name"],
 				Computed:    true,
+				Description: descriptions["instance_name"],
 			},
 			"location": {
 				Type:        schema.TypeString,
@@ -368,9 +368,7 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 		_ = d.Set("release_channel", releaseChannel)
 	}
 
-	if instanceName != "" {
-		_ = d.Set("instance_name", instanceName)
-	}
+	_ = d.Set("instance_name", pulsarInstance.Name)
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }

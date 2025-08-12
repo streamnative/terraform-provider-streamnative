@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mitchellh/go-homedir"
 	"github.com/streamnative/cloud-cli/pkg/auth"
 	"github.com/streamnative/cloud-cli/pkg/auth/store"
 	"github.com/streamnative/cloud-cli/pkg/cmd"
@@ -174,14 +174,23 @@ func init() {
 		"rolebinding_user_names":               "The list of users that are role binding names ",
 		"rolebinding_condition_cel":            "The conditional role binding CEL(Common Expression Language) expression",
 		"rolebinding_condition_resource_names": "The list of conditional role binding resource names",
-		"rolebinding_condition_resource_names_organization": "The conditional role binding resource name - organization",
-		"rolebinding_condition_resource_names_instance":     "The conditional role binding resource name - instance",
-		"rolebinding_condition_resource_names_cluster":      "The conditional role binding resource name - cluster",
-		"rolebinding_condition_resource_names_tenant":       "The conditional role binding resource name - tenant",
-		"rolebinding_condition_resource_names_namespace":    "The conditional role binding resource name - namespace",
-		"rolebinding_condition_resource_names_topic_domain": "The conditional role binding resource name - topic domain(persistent/non-persistent)",
-		"rolebinding_condition_resource_names_topic_name":   "The conditional role binding resource name - topic name",
-		"rolebinding_condition_resource_names_subscription": "The conditional role binding resource name - subscription",
+		"rolebinding_condition_resource_names_organization":    "The conditional role binding resource name - organization",
+		"rolebinding_condition_resource_names_instance":        "The conditional role binding resource name - instance",
+		"rolebinding_condition_resource_names_cluster":         "The conditional role binding resource name - cluster",
+		"rolebinding_condition_resource_names_tenant":          "The conditional role binding resource name - tenant",
+		"rolebinding_condition_resource_names_namespace":       "The conditional role binding resource name - namespace",
+		"rolebinding_condition_resource_names_topic_domain":    "The conditional role binding resource name - topic domain(persistent/non-persistent)",
+		"rolebinding_condition_resource_names_topic_name":      "The conditional role binding resource name - topic name",
+		"rolebinding_condition_resource_names_subscription":    "The conditional role binding resource name - subscription",
+		"rolebinding_condition_resource_names_service_account": "The conditional role binding resource name - service account",
+		"rolebinding_condition_resource_names_secret":          "The conditional role binding resource name - secret",
+		"volume_name":    "The name of the volume",
+		"bucket":         "The bucket name",
+		"path":           "The path of the bucket",
+		"bucket_region":  "The region of the bucket",
+		"role_arn":       "The role arn of the bucket, it is used to access the bucket",
+		"volume_ready":   "Volume is ready, it will be set to 'True' after the volume is ready",
+		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 	}
 }
 
@@ -217,6 +226,7 @@ func Provider() *schema.Provider {
 			"streamnative_apikey":                  resourceApiKey(),
 			"streamnative_pulsar_gateway":          resourcePulsarGateway(),
 			"streamnative_rolebinding":             resourceRoleBinding(),
+			"streamnative_volume":                  resourceVolume(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         dataSourceServiceAccount(),
@@ -231,6 +241,7 @@ func Provider() *schema.Provider {
 			"streamnative_resources":               dataSourceResources(),
 			"streamnative_pulsar_gateway":          dataSourcePulsarGateway(),
 			"streamnative_rolebinding":             dataSourceRoleBinding(),
+			"streamnative_volume":                  dataSourceVolume(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -242,16 +253,6 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	_ = terraformVersion
 
-	home, err := homedir.Dir()
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
-	configDir := filepath.Join(home, ".streamnative")
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(configDir, 0755); err != nil {
-			return nil, diag.FromErr(err)
-		}
-	}
 	defaultIssuer := os.Getenv("GLOBAL_DEFAULT_ISSUER")
 	if defaultIssuer == "" {
 		defaultIssuer = GlobalDefaultIssuer
@@ -266,6 +267,12 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	}
 	clientId := d.Get("client_id").(string)
 	clientSecret := d.Get("client_secret").(string)
+	keyFilePath := d.Get("key_file_path").(string)
+	configDir, err := getConfigDir(clientId, clientSecret, keyFilePath)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
 	var keyFile *auth.KeyFile
 	var flow *auth.ClientCredentialsFlow
 	var grant *auth.AuthorizationGrant
@@ -294,7 +301,6 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 			return nil, diag.FromErr(err)
 		}
 	} else {
-		keyFilePath := d.Get("key_file_path").(string)
 		credsProvider := auth.NewClientCredentialsProviderFromKeyFile(keyFilePath)
 		keyFile, err = credsProvider.GetClientCredentials()
 		if err != nil {
@@ -393,4 +399,24 @@ func makeKeyring(backendOverride string, configDir string) (keyring.Keyring, err
 
 func keyringPrompt(prompt string) (string, error) {
 	return "", nil
+}
+
+// getConfigDir generate a unique configuration directory based on the provided arguments
+func getConfigDir(clientId, clientSecret, keyFilePath string) (string, error) {
+	home, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %v", err)
+	}
+	combined := fmt.Sprintf("%s|%s|%s", keyFilePath, clientId, clientSecret)
+	hash := sha256.Sum256([]byte(combined))
+	dirName := fmt.Sprintf(".streamnative_%x", hash[:8])
+
+	configDir := filepath.Join(home, dirName)
+
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(configDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create config directory: %v", err)
+		}
+	}
+	return configDir, nil
 }

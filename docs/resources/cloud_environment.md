@@ -43,6 +43,7 @@ Optional:
 
 - `cidr` (String)
 - `id` (String)
+- `subnet_cidr` (String)
 
 
 <a id="nestedblock--default_gateway"></a>

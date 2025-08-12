@@ -171,6 +171,11 @@ func resourcePulsarCluster() *schema.Resource {
 					return d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless)
 				},
 			},
+			"volume": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["volume_name"],
+			},
 			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -461,6 +466,22 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		} else {
 			pulsarCluster.Annotations[UrsaEngineAnnotation] = UrsaEngineValue
+		}
+		volumeName := d.Get("volume").(string)
+		if volumeName != "" {
+			_, err := clientSet.CloudV1alpha1().Volumes(namespace).Get(ctx, volumeName, metav1.GetOptions{})
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_GET_VOLUME_ON_CREATE_PULSAR_CLUSTER: %w", err))
+			}
+			pulsarCluster.Spec.Volume = &cloudv1alpha1.VolumeReference{
+				Name: volumeName,
+			}
+		}
+	}
+	if ursaEnabled || pulsarInstance.IsServerless() {
+		if pulsarCluster.Spec.ReleaseChannel != "" && pulsarCluster.Spec.ReleaseChannel != "rapid" {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"release_channel must be rapid for ursa engine or serverless instance"))
 		}
 	}
 	if !ursaEnabled && !pulsarInstance.IsServerless() {
@@ -962,7 +983,7 @@ func convertCpuAndMemoryToComputeUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 }
 
 func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
-	if pc != nil && pc.Spec.BookKeeper.Resources != nil {
+	if pc != nil && pc.Spec.BookKeeper != nil && pc.Spec.BookKeeper.Resources != nil {
 		cpu := pc.Spec.BookKeeper.Resources.Cpu.MilliValue()
 		memory := pc.Spec.BookKeeper.Resources.Memory.Value()
 		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
