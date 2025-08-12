@@ -25,6 +25,8 @@ var (
 	testAccProvider          *schema.Provider
 	testAccProviderFactories map[string]func() (*schema.Provider, error)
 )
+var orgId = "o-q77cp"
+var cloudConnectionName = "terraform-provider-test-gcp"
 
 func init() {
 	testAccProvider = Provider()

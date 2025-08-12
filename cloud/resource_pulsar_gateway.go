@@ -82,10 +82,10 @@ func resourcePulsarGateway() *schema.Resource {
 				Description:  descriptions["gateway_access"],
 				ValidateFunc: validation.StringInSlice([]string{"public", "private"}, false),
 			},
-			"pool_member_name": {
+			"cloud_environment_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  descriptions["pool_member_name"],
+				Description:  descriptions["cloud_environment_name"],
 				ValidateFunc: validateNotBlank,
 			},
 			"private_service": {
@@ -123,16 +123,16 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	access := d.Get("access").(string)
-	poolMemberName := d.Get("pool_member_name").(string)
+	cloudEnvironmentName := d.Get("cloud_environment_name").(string)
 	waitForCompletion := d.Get("wait_for_completion").(bool)
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_PULSAR_GATEWAY: %w", err))
 	}
-	_, err = clientSet.CloudV1alpha1().PoolMembers(namespace).Get(ctx, poolMemberName, metav1.GetOptions{})
+	_, err = clientSet.CloudV1alpha1().PoolMembers(namespace).Get(ctx, cloudEnvironmentName, metav1.GetOptions{})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_GET_POOL_MEMBER_ON_CREATE_PULSAR_GATEWAY: %w", err))
+		return diag.FromErr(fmt.Errorf("ERROR_GET_CLOUD_ENVIRONMENT_ON_CREATE_PULSAR_GATEWAY: %w", err))
 	}
 	pulsarGateway := &cloudv1alpha1.PulsarGateway{
 		TypeMeta: metav1.TypeMeta{
@@ -149,7 +149,7 @@ func resourcePulsarGatewayCreate(ctx context.Context, d *schema.ResourceData, me
 			},
 			PoolMemberRef: cloudv1alpha1.PoolMemberReference{
 				Namespace: namespace,
-				Name:      poolMemberName,
+				Name:      cloudEnvironmentName,
 			},
 		},
 	}

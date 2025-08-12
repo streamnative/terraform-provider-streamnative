@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
