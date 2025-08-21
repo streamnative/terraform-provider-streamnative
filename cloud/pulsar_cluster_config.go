@@ -36,9 +36,6 @@ func flattenPulsarClusterConfig(in *cloudv1alpha1.Config) []interface{} {
 	if in.AuditLog != nil {
 		att["audit_log"] = flattenAuditLog(in.AuditLog)
 	}
-	if in.LakehouseStorage != nil {
-		att["lakehouse_storage"] = flattenLakehouseStorage(in.LakehouseStorage)
-	}
 	if in.Custom != nil {
 		att["custom"] = in.Custom
 	}
@@ -82,19 +79,5 @@ func flattenCategories(in []string) []interface{} {
 	for i, category := range in {
 		att[i] = category
 	}
-	return att
-}
-
-func flattenLakehouseStorage(in *cloudv1alpha1.LakehouseStorageConfig) map[string]interface{} {
-	att := make(map[string]interface{})
-	if in.LakehouseType != nil {
-		att["lakehouse_type"] = *in.LakehouseType
-	}
-	if in.CatalogType != nil {
-		att["catalog_type"] = *in.CatalogType
-	}
-	att["catalog_credentials"] = in.CatalogCredentials
-	att["catalog_connection_url"] = in.CatalogConnectionUrl
-	att["catalog_warehouse"] = in.CatalogWarehouse
 	return att
 }
