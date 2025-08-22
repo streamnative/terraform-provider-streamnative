@@ -1,4 +1,4 @@
-package util
+package rbac
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 )
+
+const resourceNotSet = "__RESOURCE_UNSET__"
 
 type iteratorProcessor func(reflect.Value, string) error
 
@@ -29,18 +31,20 @@ func iterateStructWithProcessor(s reflect.Value, prefix string, processor iterat
 		fullFlagName := prefix + flagName
 		if fieldValue.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
-				fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				elem := fieldValue.Type().Elem()
+				if elem.Kind() == reflect.Struct {
+					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				}
 			}
-			pointedToValue := fieldValue.Elem()
-			switch pointedToValue.Kind() {
-			case reflect.String:
-				break
+			switch fieldValue.Type().Elem().Kind() {
 			case reflect.Struct:
-				if err := iterateStructWithProcessor(pointedToValue, fullFlagName+"_", processor); err != nil {
+				if err := iterateStructWithProcessor(fieldValue.Elem(), fullFlagName+"_", processor); err != nil {
 					return err
 				}
+			case reflect.String:
+				break
 			default:
-				return fmt.Errorf("unsupported pointer element type for field %s: %s", strings.ToLower(fullFlagName), pointedToValue.Kind())
+				return fmt.Errorf("expected a struct pointer to a struct pointer, got %s", fieldValue.Elem().Kind())
 			}
 			if err := processor(fieldValue, strings.ToLower(fullFlagName)); err != nil {
 				return err
@@ -58,9 +62,19 @@ func ParseToResourceNameRestriction(rawData map[string]interface{}) (*cloudv1alp
 	if err := iterateStructWithProcessor(reflect.ValueOf(restriction).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
 		if value, exist := rawData[fullName]; exist {
 			if reflect.TypeOf(value).Kind() == reflect.String {
-				updated = true
-				fieldValue.SetString(value.(string))
+				vstr := value.(string)
+				if vstr != resourceNotSet {
+					updated = true
+					if fieldValue.IsNil() {
+						fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+					}
+					fieldValue.Elem().SetString(vstr)
+				}
 			}
+		}
+		pointedToValue := fieldValue.Elem()
+		if pointedToValue.Kind() == reflect.Struct && pointedToValue.IsZero() {
+			fieldValue.Set(reflect.Zero(fieldValue.Type()))
 		}
 		return nil
 	}); err != nil {
@@ -69,14 +83,13 @@ func ParseToResourceNameRestriction(rawData map[string]interface{}) (*cloudv1alp
 	return restriction, updated
 }
 
-func ParseToRaw(restriction *cloudv1alpha1.ResourceNameRestriction) (map[string]string, bool) {
-	m := make(map[string]string)
+func ParseToRaw(restriction *cloudv1alpha1.ResourceNameRestriction) (map[string]interface{}, bool) {
+	m := make(map[string]interface{})
 	updated := false
 	if err := iterateStructWithProcessor(reflect.ValueOf(restriction).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
-		pointedToValue := fieldValue.Elem()
-		if pointedToValue.Kind() == reflect.String {
+		if (fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil()) && fieldValue.Elem().Kind() == reflect.String {
 			updated = true
-			m[fullName] = fieldValue.String()
+			m[fullName] = fieldValue.Elem().String()
 		}
 		return nil
 	}); err != nil {
@@ -89,11 +102,12 @@ func GenerateResourceRoleBinding() map[string]*schema.Schema {
 	schemas := make(map[string]*schema.Schema)
 	restriction := &cloudv1alpha1.ResourceNameRestriction{}
 	if err := iterateStructWithProcessor(reflect.ValueOf(restriction).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
-		pointedToValue := fieldValue.Elem()
+		pointedToValue := fieldValue.Type().Elem()
 		if pointedToValue.Kind() == reflect.String {
 			schemas[fullName] = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  resourceNotSet,
 			}
 		}
 		return nil
@@ -107,7 +121,7 @@ func GenerateDataRoleBinding() map[string]*schema.Schema {
 	schemas := make(map[string]*schema.Schema)
 	restriction := &cloudv1alpha1.ResourceNameRestriction{}
 	if err := iterateStructWithProcessor(reflect.ValueOf(restriction).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
-		pointedToValue := fieldValue.Elem()
+		pointedToValue := fieldValue.Type().Elem()
 		if pointedToValue.Kind() == reflect.String {
 			schemas[fullName] = &schema.Schema{
 				Type:     schema.TypeString,

@@ -3,13 +3,14 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	"github.com/streamnative/terraform-provider-streamnative/cloud/rbac"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -91,6 +92,14 @@ func resourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"resource_name_restriction": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: rbac.GenerateResourceRoleBinding(),
+				},
+			},
 			"condition_resource_names": {
 				ConflictsWith: []string{"condition_cel"},
 				Type:          schema.TypeList,
@@ -168,6 +177,7 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 	predefinedRoleName := d.Get("cluster_role_name").(string)
 	serviceAccountNames := d.Get("service_account_names").([]interface{})
 	userNames := d.Get("user_names").([]interface{})
+	resourceNameRestriction := d.Get("resource_name_restriction").([]interface{})
 
 	clientSet, err := getClientSet(getFactoryFromMeta(m))
 	if err != nil {
@@ -211,6 +221,12 @@ func resourceRoleBindingCreate(ctx context.Context, d *schema.ResourceData, m in
 				Name:     userName.(string),
 				Kind:     "User",
 			})
+		}
+	}
+
+	if resourceNameRestriction != nil && len(resourceNameRestriction) > 0 {
+		if restriction, updated := rbac.ParseToResourceNameRestriction(resourceNameRestriction[0].(map[string]interface{})); updated {
+			rb.Spec.ResourceNameRestriction = restriction
 		}
 	}
 
