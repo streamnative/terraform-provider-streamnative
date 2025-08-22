@@ -81,6 +81,7 @@ func dataSourceRoleBinding() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: descriptions["rolebinding_condition_resource_names"],
+				Deprecated:  "condition_resource_names has deprecated, please use resource_name_restriction instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"organization": {
