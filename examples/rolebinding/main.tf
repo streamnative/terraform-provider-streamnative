@@ -26,7 +26,7 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/matt/Downloads/o-y8z75-terraform-t1.json"
+  key_file_path = "/path/to/your/service/account/key.json"
 }
 
 resource "streamnative_rolebinding" "basic_role_binding_2" {
