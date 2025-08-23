@@ -24,9 +24,10 @@ description: |-
 
 - `cluster_role_name` (String) The predefined role name
 - `condition_cel` (String) The conditional role binding CEL(Common Expression Language) expression
-- `condition_resource_names` (List of Object) The list of conditional role binding resource names (see [below for nested schema](#nestedatt--condition_resource_names))
+- `condition_resource_names` (List of Object, Deprecated) The list of conditional role binding resource names (see [below for nested schema](#nestedatt--condition_resource_names))
 - `id` (String) The ID of this resource.
 - `ready` (Boolean) The RoleBinding is ready, it will be set to 'True' after the cluster is ready
+- `resource_name_restriction` (List of Object) (see [below for nested schema](#nestedatt--resource_name_restriction))
 - `service_account_names` (List of String) The list of service accounts that are role binding names
 - `user_names` (List of String) The list of users that are role binding names
 
@@ -45,3 +46,24 @@ Read-Only:
 - `tenant` (String)
 - `topic_domain` (String)
 - `topic_name` (String)
+
+
+<a id="nestedatt--resource_name_restriction"></a>
+### Nested Schema for `resource_name_restriction`
+
+Read-Only:
+
+- `cloud_apikey_name` (String)
+- `cloud_secret_name` (String)
+- `cloud_serviceaccount_name` (String)
+- `common_cluster` (String)
+- `common_instance` (String)
+- `common_namespace` (String)
+- `common_organization` (String)
+- `common_tenant` (String)
+- `common_topic` (String)
+- `kafka_consumergroup_name` (String)
+- `kafka_transaction_id` (String)
+- `pulsar_subscription_name` (String)
+- `pulsar_topic_domain` (String)
+- `schema_subject` (String)
