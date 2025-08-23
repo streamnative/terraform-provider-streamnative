@@ -84,9 +84,10 @@ func ParseToResourceNameRestriction(rawData map[string]interface{}) (*cloudv1alp
 }
 
 func ParseToRaw(restriction *cloudv1alpha1.ResourceNameRestriction) (map[string]interface{}, bool) {
+	dc := restriction.DeepCopy()
 	m := make(map[string]interface{})
 	updated := false
-	if err := iterateStructWithProcessor(reflect.ValueOf(restriction).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
+	if err := iterateStructWithProcessor(reflect.ValueOf(dc).Elem(), "", func(fieldValue reflect.Value, fullName string) error {
 		if (fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil()) && fieldValue.Elem().Kind() == reflect.String {
 			updated = true
 			m[fullName] = fieldValue.Elem().String()

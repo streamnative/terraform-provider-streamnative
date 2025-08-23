@@ -1,7 +1,6 @@
 package rbac
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
@@ -40,7 +39,7 @@ func TestParser(t *testing.T) {
 	parsedRestriction, updated := ParseToResourceNameRestriction(raw)
 	assert.True(t, updated)
 	assert.NotNil(t, parsedRestriction)
-	assert.True(t, reflect.DeepEqual(restriction, parsedRestriction))
+	assert.EqualValues(t, restriction, parsedRestriction)
 }
 
 func TestParserIgnoreUnset(t *testing.T) {
@@ -53,11 +52,11 @@ func TestParserIgnoreUnset(t *testing.T) {
 	}
 	parsedRestriction, updated := ParseToResourceNameRestriction(raw)
 	assert.True(t, updated)
-	assert.True(t, reflect.DeepEqual(&v1alpha1.ResourceNameRestriction{
+	assert.EqualValues(t, &v1alpha1.ResourceNameRestriction{
 		Common: &v1alpha1.CommonAttributes{
 			Organization: ptr.To("org-1"),
 			Instance:     ptr.To("ins-1"),
 			Cluster:      ptr.To("cluster-1"),
 		},
-	}, parsedRestriction))
+	}, parsedRestriction)
 }
