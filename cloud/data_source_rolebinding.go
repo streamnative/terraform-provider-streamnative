@@ -3,8 +3,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+
 	"strings"
+
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	"github.com/streamnative/terraform-provider-streamnative/cloud/rbac"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -67,10 +70,18 @@ func dataSourceRoleBinding() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"resource_name_restriction": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: rbac.GenerateDataRoleBinding(),
+				},
+			},
 			"condition_resource_names": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: descriptions["rolebinding_condition_resource_names"],
+				Deprecated:  "condition_resource_names has deprecated, please use resource_name_restriction instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"organization": {
@@ -187,6 +198,14 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(fmt.Errorf("ERROR_SET_CONDITION: %w", err))
 	}
 
+	if roleBinding.Spec.ResourceNameRestriction != nil {
+		if rawData, updated := rbac.ParseToRaw(roleBinding.Spec.ResourceNameRestriction); updated {
+			if err = d.Set("resource_name_restriction", []interface{}{rawData}); err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_SET_RESOURCE_NAME_RESTRICTION: %w", err))
+			}
+		}
+	}
+
 	if len(roleBinding.Status.Conditions) >= 1 {
 		for _, condition := range roleBinding.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
@@ -196,6 +215,7 @@ func DataSourceRoleBindingRead(ctx context.Context, d *schema.ResourceData, meta
 			}
 		}
 	}
+
 	d.SetId(fmt.Sprintf("%s/%s", roleBinding.Namespace, roleBinding.Name))
 	return nil
 }

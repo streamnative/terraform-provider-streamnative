@@ -29,12 +29,11 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
-resource "streamnative_rolebinding" "basic_role_binding" {
+resource "streamnative_rolebinding" "basic_role_binding_2" {
   organization      = "o-y8z75"
-  name              = "basic_role_binding"
+  name              = "basic_role_binding_2"
   cluster_role_name = "org-readonly"
   user_names = ["user-1"]
-  service_account_names = ["serviceaccount-1"]
 }
 
 resource "streamnative_rolebinding" "conditional_role_binding_resource_names" {
@@ -62,10 +61,33 @@ resource "streamnative_rolebinding" "conditional_role_binding_cel" {
   condition_cel     = "srn.instance == 'instance-1' && srn.cluster == 'cluster-1' && srn.tenant == 'tenant-1' && srn.namespace == 'ns-1' && srn.topic_name == 'tp-1'"
 }
 
+
+resource "streamnative_rolebinding" "rb_resource_name_restriction" {
+  name         = "rb_resource_name_restriction"
+  organization = "o-y8z75"
+  cluster_role_name = "topic-producer"
+  service_account_names = ["sv-1"]
+  resource_name_restriction {
+    common_instance = "instance-1"
+    common_cluster = "cluster-1"
+    common_tenant = "tenant-1"
+    common_namespace = "ns-1"
+    common_topic = "allPartition('topic-1')"
+    pulsar_topic_domain = "persistent"
+  }
+}
+
+data "streamnative_rolebinding" "rb_resource_name_restriction" {
+  depends_on = [streamnative_rolebinding.rb_resource_name_restriction]
+  name         = "rb_resource_name_restriction"
+  organization = "o-y8z75"
+}
+
+
 data "streamnative_rolebinding" "basic_role_binding" {
-  depends_on = [streamnative_rolebinding.basic_role_binding]
-  organization = streamnative_rolebinding.basic_role_binding.organization
-  name         = streamnative_rolebinding.basic_role_binding.name
+  depends_on = [streamnative_rolebinding.basic_role_binding_2]
+  organization = streamnative_rolebinding.basic_role_binding_2.organization
+  name         = streamnative_rolebinding.basic_role_binding_2.name
 }
 
 data "streamnative_rolebinding" "conditional_role_binding_resource_names" {
@@ -84,6 +106,7 @@ output "streamnative_rolebindings" {
   value = [
     data.streamnative_rolebinding.basic_role_binding,
     data.streamnative_rolebinding.conditional_role_binding_cel,
-    data.streamnative_rolebinding.conditional_role_binding_resource_names
+    data.streamnative_rolebinding.conditional_role_binding_resource_names,
+    data.streamnative_rolebinding.rb_resource_name_restriction
   ]
 }
