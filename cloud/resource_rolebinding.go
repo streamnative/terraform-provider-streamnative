@@ -40,6 +40,9 @@ func resourceRoleBinding() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				organizationRoleBinding := strings.Split(d.Id(), "/")
+				if len(organizationRoleBinding) != 2 {
+					return nil, fmt.Errorf("invalid rolebinding import ID format: %q. Expected format: 'organization/name'", d.Id())
+				}
 				if err := d.Set("organization", organizationRoleBinding[0]); err != nil {
 					return nil, fmt.Errorf("ERROR_IMPORT_ORGANIZATION: %w", err)
 				}
