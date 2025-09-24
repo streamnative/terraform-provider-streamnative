@@ -344,9 +344,13 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	if err = d.Set("organization", apiKey.Namespace); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_ORGANIZATION: %w", err))
 	}
-	if err = d.Set("customized_metadata", apiKey.Spec.CustomizedMetadata); err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_SET_CUSTOMIZED_METADATA: %w", err))
+
+	if apiKey.Spec.CustomizedMetadata != nil && len(apiKey.Spec.CustomizedMetadata) > 0 {
+		if err = d.Set("customized_metadata", apiKey.Spec.CustomizedMetadata); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_CUSTOMIZED_METADATA: %w", err))
+		}
 	}
+
 	if err = d.Set("name", apiKey.Name); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_NAME: %w", err))
 	}
