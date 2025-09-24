@@ -184,13 +184,14 @@ func init() {
 		"rolebinding_condition_resource_names_subscription":    "The conditional role binding resource name - subscription",
 		"rolebinding_condition_resource_names_service_account": "The conditional role binding resource name - service account",
 		"rolebinding_condition_resource_names_secret":          "The conditional role binding resource name - secret",
-		"volume_name":    "The name of the volume",
-		"bucket":         "The bucket name",
-		"path":           "The path of the bucket",
-		"bucket_region":  "The region of the bucket",
-		"role_arn":       "The role arn of the bucket, it is used to access the bucket",
-		"volume_ready":   "Volume is ready, it will be set to 'True' after the volume is ready",
-		"principal_name": "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
+		"volume_name":         "The name of the volume",
+		"bucket":              "The bucket name",
+		"path":                "The path of the bucket",
+		"bucket_region":       "The region of the bucket",
+		"role_arn":            "The role arn of the bucket, it is used to access the bucket",
+		"volume_ready":        "Volume is ready, it will be set to 'True' after the volume is ready",
+		"principal_name":      "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
+		"customized_metadata": "The custom metadata in the api key token",
 	}
 }
 
