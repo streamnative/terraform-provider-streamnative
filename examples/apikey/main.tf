@@ -26,15 +26,18 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/path/to/your/service/account/key.json"
+  key_file_path = "/Users/matt/Desktop/sndev-terraform-ci-test.json"
 }
 
 resource "streamnative_apikey" "test-admin-a" {
   organization = "sndev"
   name = "test-admin-i"
-  instance_name = "terraform-test-api-key-pulsar-instance"
+  instance_name = "cong-test"
   service_account_name = "test-tf-admin"
   description = "This is a test api key for terraform"
+  customized_metadata = {
+   "client_id": "abc"
+  }
   # If you want to revoke the api key, you can set revoke to true
   # By default, after revoking an apikey object, all connections using that apikey will
   # fail after 1 minute due to an authentication exception.
