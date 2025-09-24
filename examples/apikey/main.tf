@@ -26,13 +26,13 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/matt/Desktop/sndev-terraform-ci-test.json"
+  key_file_path = "/path/to/your/service/account/key.json"
 }
 
 resource "streamnative_apikey" "test-admin-a" {
   organization = "sndev"
   name = "test-admin-i"
-  instance_name = "cong-test"
+  instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "test-tf-admin"
   description = "This is a test api key for terraform"
   customized_metadata = {

@@ -22,12 +22,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwe"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
