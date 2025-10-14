@@ -86,6 +86,11 @@ func resourceApiKey() *schema.Resource {
 				ForceNew:    true,
 				Description: descriptions["instance_name"],
 			},
+			"customized_metadata": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: descriptions["customized_metadata"],
+			},
 			"token": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -221,6 +226,14 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	revoke := d.Get("revoke").(bool)
 	ak.Spec.Revoke = revoke
+	metadata := d.Get("customized_metadata").(map[string]interface{})
+	if metadata != nil && len(metadata) > 0 {
+		customizedMetadata := map[string]string{}
+		for k, v := range metadata {
+			customizedMetadata[k] = v.(string)
+		}
+		ak.Spec.CustomizedMetadata = customizedMetadata
+	}
 	_, err = clientSet.CloudV1alpha1().APIKeys(namespace).Create(ctx, ak, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -331,6 +344,13 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	if err = d.Set("organization", apiKey.Namespace); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_ORGANIZATION: %w", err))
 	}
+
+	if apiKey.Spec.CustomizedMetadata != nil && len(apiKey.Spec.CustomizedMetadata) > 0 {
+		if err = d.Set("customized_metadata", apiKey.Spec.CustomizedMetadata); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_CUSTOMIZED_METADATA: %w", err))
+		}
+	}
+
 	if err = d.Set("name", apiKey.Name); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_NAME: %w", err))
 	}

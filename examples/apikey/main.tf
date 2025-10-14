@@ -35,6 +35,9 @@ resource "streamnative_apikey" "test-admin-a" {
   instance_name = "terraform-test-api-key-pulsar-instance"
   service_account_name = "test-tf-admin"
   description = "This is a test api key for terraform"
+  customized_metadata = {
+   "client_id": "abc"
+  }
   # If you want to revoke the api key, you can set revoke to true
   # By default, after revoking an apikey object, all connections using that apikey will
   # fail after 1 minute due to an authentication exception.

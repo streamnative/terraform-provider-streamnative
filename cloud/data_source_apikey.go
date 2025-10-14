@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"net/url"
 	"os"
 	"strings"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwe"
+	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,6 +76,11 @@ func dataSourceApiKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["service_account_name"],
+			},
+			"customized_metadata": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: descriptions["customized_metadata"],
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -148,6 +153,11 @@ func DataSourceApiKeyRead(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 	if err = d.Set("instance_name", apiKey.Spec.InstanceName); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_INSTANCE_NAME: %w", err))
+	}
+	if apiKey.Spec.CustomizedMetadata != nil && len(apiKey.Spec.CustomizedMetadata) > 0 {
+		if err = d.Set("customized_metadata", apiKey.Spec.CustomizedMetadata); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_CUSTOMIZED_METADATA: %w", err))
+		}
 	}
 	if err = d.Set("service_account_name", apiKey.Spec.ServiceAccountName); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_SERVICE_ACCOUNT_NAME: %w", err))
