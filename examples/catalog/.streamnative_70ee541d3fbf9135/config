@@ -1,0 +1,9 @@
+server: https://api.test.cloud.gcp.streamnative.dev
+certificate-authority-data: ""
+insecure-skip-tls-verify: false
+auth:
+  issuer: https://auth.test.cloud.gcp.streamnative.dev/
+  audience: https://api.test.cloud.gcp.streamnative.dev
+  client-id: LpUb866syG4CVwhg18AcxccrgGieIiVX
+context: {}
+logs: {}

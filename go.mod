@@ -12,6 +12,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/streamnative/cloud-api-server v1.33.1-0.20250924010600-2dad16b92d25
 	github.com/streamnative/cloud-cli v0.22.0-rc.1
+	github.com/streamnative/sn-operator/api v0.13.0-rc.15
 	github.com/stretchr/testify v1.10.0
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.32.3
@@ -163,7 +164,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/streamnative/function-mesh/api v0.0.0-20240802074023-ee53ec49a51d // indirect
-	github.com/streamnative/sn-operator/api v0.13.0-rc.15 // indirect
 	github.com/streamnative/sn-operator/api/commons v0.13.0-rc.15 // indirect
 	github.com/streamnative/sn-operator/pkg/commons v0.13.0-rc.15 // indirect
 	github.com/streamnative/unified-rbac/sdk/sdk-go v0.14.0 // indirect
