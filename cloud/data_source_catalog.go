@@ -78,12 +78,12 @@ func dataSourceCatalog() *schema.Resource {
 			},
 			"s3_table_bucket": {
 				Type:        schema.TypeString,
-				Description: "S3 table bucket ARN. Must be in format: arn:aws:s3tables:region:account:bucket/name (e.g., arn:aws:s3tables:ap-northeast-1:592060915564:bucket/test-s3-table-bucket)",
+				Description: descriptions["catalog_s3_table_bucket"],
 				Computed:    true,
 			},
 			"s3_table_region": {
 				Type:        schema.TypeString,
-				Description: "AWS region extracted from S3 table bucket ARN or name",
+				Description: descriptions["catalog_s3_table_region"],
 				Computed:    true,
 			},
 			"ready": {

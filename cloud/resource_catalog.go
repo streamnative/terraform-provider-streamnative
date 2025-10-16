@@ -89,12 +89,12 @@ func resourceCatalog() *schema.Resource {
 			"s3_table_bucket": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "S3 table bucket ARN. Must be in format: arn:aws:s3tables:region:account:bucket/name (e.g., arn:aws:s3tables:ap-northeast-1:592060915564:bucket/test-s3-table-bucket)",
+				Description: descriptions["catalog_s3_table_bucket"],
 			},
 			"s3_table_region": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "AWS region extracted from S3 table bucket ARN or name",
+				Description: descriptions["catalog_s3_table_region"],
 			},
 			"ready": {
 				Type:        schema.TypeString,

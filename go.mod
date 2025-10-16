@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.33.1-0.20250924010600-2dad16b92d25
+	github.com/streamnative/cloud-api-server v1.33.1-0.20251016034408-ab3b11106545
 	github.com/streamnative/cloud-cli v0.22.0-rc.1
 	github.com/streamnative/sn-operator/api v0.13.0-rc.15
 	github.com/stretchr/testify v1.10.0
