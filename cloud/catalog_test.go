@@ -59,7 +59,7 @@ resource "streamnative_catalog" "s3_table_catalog" {
   # mode is optional and defaults to "EXTERNAL"
 
   # S3Table configuration with ARN format (required)
-  s3_table_bucket = "arn:aws:s3tables:ap-northeast-1:598203581484:bucket/s3-table-test"
+  s3_table_bucket = "arn:aws:s3tables:ap-northeast-1:577003581484:bucket/s3-table-test"
 }
 
 data "streamnative_catalog" "s3_table_catalog" {
@@ -104,7 +104,7 @@ data "streamnative_catalog" "s3_table_catalog" {
 
 func TestCatalogS3TableRegionExtraction(t *testing.T) {
 	// Test the region extraction function
-	region, err := extractS3TableRegion("arn:aws:s3tables:ap-northeast-1:598203581484:bucket/s3-table-test")
+	region, err := extractS3TableRegion("arn:aws:s3tables:ap-northeast-1:577003581484:bucket/s3-table-test")
 	assert.NoError(t, err)
 	assert.Equal(t, "ap-northeast-1", region)
 
@@ -121,12 +121,12 @@ func TestCatalogS3TableRegionExtraction(t *testing.T) {
 
 func TestCatalogS3TableURIGeneration(t *testing.T) {
 	// Test URI generation
-	uri, err := generateS3TableURI("arn:aws:s3tables:us-east-2:598203581484:bucket/test-bucket")
+	uri, err := generateS3TableURI("arn:aws:s3tables:us-east-2:577003581484:bucket/test-bucket")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://s3tables.us-east-2.amazonaws.com/iceberg", uri)
 
 	// Test with different region
-	uri, err = generateS3TableURI("arn:aws:s3tables:eu-west-1:598203581484:bucket/test-bucket")
+	uri, err = generateS3TableURI("arn:aws:s3tables:eu-west-1:577003581484:bucket/test-bucket")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://s3tables.eu-west-1.amazonaws.com/iceberg", uri)
 }
