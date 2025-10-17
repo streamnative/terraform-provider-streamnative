@@ -958,6 +958,10 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		changed = true
 	}
 
+	if d.Get("apply_lakehouse_to_all_topics").(bool) && pulsarCluster.IsUsingUrsaEngine() {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+			"you don't set this apply_lakehouse_to_all_topics option for ursa engine cluster"))
+	}
 	// Handle SDT annotation based on apply_lakehouse_to_all_topics
 	if d.HasChange("apply_lakehouse_to_all_topics") || d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") {
 		if shouldApplyLakehouseToAllTopics(d) {
