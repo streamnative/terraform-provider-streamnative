@@ -529,6 +529,10 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	if d.Get("lakehouse_storage_enabled").(bool) {
+		if ursaEnabled {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"you don't set this option for ursa engine cluster"))
+		}
 		if pulsarCluster.Spec.Config == nil {
 			pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
 		}
@@ -568,15 +572,21 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			lakehouseStorageEnabled = true
 		}
 
-		tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName, lakehouseStorageEnabled)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
+		if (lakehouseStorageEnabled || ursaEnabled) && catalog != nil {
+			tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName)
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
+			}
+			pulsarCluster.Spec.TableFormat = tableFormat
 		}
-		pulsarCluster.Spec.TableFormat = tableFormat
 	}
 
 	// Handle SDT annotation based on apply_lakehouse_to_all_topics
 	if shouldApplyLakehouseToAllTopics(d) {
+		if ursaEnabled {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"you don't set this apply_lakehouse_to_all_topics option for ursa engine cluster"))
+		}
 		if pulsarCluster.Annotations == nil {
 			pulsarCluster.Annotations = make(map[string]string)
 		}
@@ -935,11 +945,12 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	// Handle table format determination when catalog or lakehouse storage changes
-	if d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") {
+	if (pulsarCluster.Spec.TableFormat == "" || pulsarCluster.Spec.TableFormat == "none") &&
+		d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") || pulsarCluster.IsUsingUrsaEngine() {
 		catalogName := d.Get("catalog").(string)
-		lakehouseStorageEnabled := d.Get("lakehouse_storage_enabled").(bool)
+		lakehouseStorageEnabled = d.Get("lakehouse_storage_enabled").(bool)
 
-		tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName, lakehouseStorageEnabled)
+		tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName)
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
 		}
@@ -1241,11 +1252,7 @@ func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 }
 
 // determineTableFormat determines the table format based on catalog type and configuration
-func determineTableFormat(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName string, lakehouseStorageEnabled bool) (string, error) {
-	// If lakehouse storage is not enabled, return empty string
-	if !lakehouseStorageEnabled {
-		return "", nil
-	}
+func determineTableFormat(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName string) (string, error) {
 
 	// If no catalog is specified, return "none"
 	if catalogName == "" {
