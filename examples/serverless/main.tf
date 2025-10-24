@@ -26,14 +26,14 @@ terraform {
 
 provider "streamnative" {
   # Please replace path use your own key file path
-  key_file_path = "/Users/tuteng/Downloads/o-uvzjb-testadmin.json"
+  key_file_path = "/Users/tuteng/Downloads/max-admin.json"
 }
 
 resource "streamnative_pulsar_instance" "test-serverless" {
-  organization = "o-uvzjb"
+  organization = "max"
   name = "test-serverless"
   availability_mode = "zonal"
-  pool_name = "functions-aws"
+  pool_name = "shared-aws"
   pool_namespace = "streamnative"
   type = "serverless"
 }
@@ -54,6 +54,12 @@ resource "streamnative_pulsar_cluster" "test-serverless" {
   display_name            = "test-serverless"
   instance_name   = streamnative_pulsar_instance.test-serverless.name
   location        = "us-east-2"
+  # enable lakehouse storage
+  # lakehouse_storage_enabled = true
+  # set your own catalog
+  # catalog = "guangning-s3-table-test1"
+  # if you want to apply lakehouse to all topics, uncomment the following line
+  # apply_lakehouse_to_all_topics = true
 }
 
 locals {

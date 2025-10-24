@@ -22,18 +22,22 @@ description: |-
 
 ### Read-Only
 
+- `apply_lakehouse_to_all_topics` (Boolean) Whether to apply lakehouse storage to all topics in the cluster
 - `bookie_replicas` (Number) The number of bookie replicas
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
 - `broker_replicas` (Number) The number of broker replicas
+- `catalog` (String) The name of the catalog to use for this pulsar cluster
 - `compute_unit` (Number, Deprecated) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
 - `compute_unit_per_broker` (Number) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
 - `config` (List of Object) (see [below for nested schema](#nestedatt--config))
 - `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster.
 - `http_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways
+- `iam_policy` (String) IAM policy JSON for S3Table catalog access. This policy should be applied to your AWS IAM role to allow access to S3Table resources.
 - `id` (String) The ID of this resource.
 - `instance_name` (String) The pulsar instance name
 - `kafka_service_url` (String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url.
 - `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url. There'll be multiple service urls if the cluster attached with multiple gateways
+- `lakehouse_storage_enabled` (Boolean) Controls the lakehouse storage config of pulsar cluster
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `mqtt_service_url` (String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.
 - `mqtt_service_urls` (List of String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.  There'll be multiple service urls if the cluster attached with multiple gateways
@@ -44,6 +48,7 @@ description: |-
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number, Deprecated) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
 - `storage_unit_per_broker` (Number) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
+- `table_format` (String) The table format used by the pulsar cluster (iceberg, delta, or none)
 - `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways

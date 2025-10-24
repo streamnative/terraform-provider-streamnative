@@ -54,6 +54,9 @@ Read-Only:
 Read-Only:
 
 - `cloud_apikey_name` (String)
+- `cloud_catalog_name` (String)
+- `cloud_connection_name` (String)
+- `cloud_environment_name` (String)
 - `cloud_secret_name` (String)
 - `cloud_serviceaccount_name` (String)
 - `common_cluster` (String)

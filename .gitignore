@@ -71,3 +71,5 @@ temp/**
 .vscode/
 sa_key.json
 sa_key_test.json
+
+.streamnative_*

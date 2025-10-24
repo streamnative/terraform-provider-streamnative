@@ -18,7 +18,7 @@ description: |-
 ### Required
 
 - `organization` (String) The organization name
-- `resource` (String) The name of StreamNative Cloud resource, should be plural format, valid values are "pools, poolmembers, pulsarclusters, pulsarinstances, cloudconnections, cloudenvironments".
+- `resource` (String) The name of StreamNative Cloud resource, should be plural format, valid values are "pools, poolmembers, pulsarclusters, pulsarinstances, cloudconnections, cloudenvironments, catalogs".
 
 ### Read-Only
 
