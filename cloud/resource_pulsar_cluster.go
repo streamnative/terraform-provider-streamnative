@@ -910,32 +910,6 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 			if d.HasChanges("audit_log") {
 				changed = true
 			}
-			if configItemMap["lakehouse_storage"] != nil {
-				lakehouseStorageItemMap := configItemMap["lakehouse_storage"].(map[string]interface{})
-				tflog.Debug(ctx, "lakehouseStorageItemMap:", lakehouseStorageItemMap)
-				pulsarClusterLakehouseStorage := &cloudv1alpha1.LakehouseStorageConfig{}
-				if len(lakehouseStorageItemMap) > 0 {
-					if _, ok := lakehouseStorageItemMap["lakehouse_type"]; ok {
-						lakehouseType := lakehouseStorageItemMap["lakehouse_type"].(string)
-						pulsarClusterLakehouseStorage.LakehouseType = &lakehouseType
-					}
-					if _, ok := lakehouseStorageItemMap["catalog_type"]; ok {
-						catalogType := lakehouseStorageItemMap["catalog_type"].(string)
-						pulsarClusterLakehouseStorage.CatalogType = &catalogType
-					}
-					if _, ok := lakehouseStorageItemMap["catalog_credentials"]; ok {
-						pulsarClusterLakehouseStorage.CatalogCredentials = lakehouseStorageItemMap["catalog_credentials"].(string)
-					}
-					if _, ok := lakehouseStorageItemMap["catalog_connection_url"]; ok {
-						pulsarClusterLakehouseStorage.CatalogConnectionUrl = lakehouseStorageItemMap["catalog_connection_url"].(string)
-					}
-					if _, ok := lakehouseStorageItemMap["catalog_warehouse"]; ok {
-						pulsarClusterLakehouseStorage.CatalogWarehouse = lakehouseStorageItemMap["catalog_warehouse"].(string)
-					}
-					pulsarCluster.Spec.Config.LakehouseStorage = pulsarClusterLakehouseStorage
-					changed = true
-				}
-			}
 			if configItemMap["custom"] != nil {
 				custom := configItemMap["custom"].(map[string]interface{})
 				if len(custom) > 0 {
