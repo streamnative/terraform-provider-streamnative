@@ -1,6 +1,8 @@
 module github.com/streamnative/terraform-provider-streamnative
 
-go 1.23.8
+go 1.23.12
+
+toolchain go1.24.10
 
 require (
 	github.com/99designs/keyring v1.2.2
@@ -10,9 +12,9 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.33.1-0.20251016034408-ab3b11106545
+	github.com/streamnative/cloud-api-server v1.41.3
 	github.com/streamnative/cloud-cli v0.22.0-rc.1
-	github.com/streamnative/sn-operator/api v0.13.0-rc.15
+	github.com/streamnative/sn-operator/api v0.13.2-rc.2
 	github.com/stretchr/testify v1.10.0
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/apimachinery v0.32.3
