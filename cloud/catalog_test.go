@@ -54,7 +54,7 @@ provider "streamnative" {
 }
 
 resource "streamnative_catalog" "s3_table_catalog" {
-  organization = "max"
+  organization = "sndev"
   name         = "%s"
   # mode is optional and defaults to "EXTERNAL"
 
