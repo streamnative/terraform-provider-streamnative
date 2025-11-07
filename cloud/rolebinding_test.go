@@ -57,7 +57,7 @@ provider "streamnative" {
 }
 
 resource "streamnative_service_account" "test-service-account" {
-	organization = sndev"
+	organization = "sndev"
 	name = "%s"
 }
 
