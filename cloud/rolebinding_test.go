@@ -57,7 +57,7 @@ provider "streamnative" {
 }
 
 resource "streamnative_rolebinding" "rolebinding_demo" {
-  organization = "o-y8z75"
+  organization = "sndev"
   name         = "%s"
   cluster_role_name = "metrics-viewer"
   service_account_names = ["%s"]
