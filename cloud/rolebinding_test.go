@@ -56,8 +56,14 @@ func TestPredefinedBinding(t *testing.T) {
 provider "streamnative" {
 }
 
+resource "streamnative_service_account" "test-service-account" {
+	organization = "sndev"
+	name = "%s"
+}
+
 resource "streamnative_rolebinding" "rolebinding_demo" {
-  organization = "o-y8z75"
+  depends_on = [streamnative_service_account.test-service-account]
+  organization = "sndev"
   name         = "%s"
   cluster_role_name = "metrics-viewer"
   service_account_names = ["%s"]
@@ -68,7 +74,7 @@ data "streamnative_rolebinding" "rolebinding_demo" {
   organization = streamnative_rolebinding.rolebinding_demo.organization
   name         = streamnative_rolebinding.rolebinding_demo.name
 }
-`, rolebindingName, serviceAccount),
+`, serviceAccount, rolebindingName, serviceAccount),
 				Check: func(state *terraform.State) error {
 					rs, ok := state.RootModule().Resources["streamnative_rolebinding.rolebinding_demo"]
 					if !ok {
