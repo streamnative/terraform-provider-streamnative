@@ -22,13 +22,16 @@ description: |-
 
 ### Optional
 
+- `apply_lakehouse_to_all_topics` (Boolean) Whether to apply lakehouse storage to all topics in the cluster
 - `bookie_replicas` (Number) The number of bookie replicas
 - `broker_replicas` (Number) The number of broker replicas
+- `catalog` (String) The name of the catalog to use for this pulsar cluster
 - `compute_unit` (Number, Deprecated) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
 - `compute_unit_per_broker` (Number) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
 - `config` (Block List) (see [below for nested schema](#nestedblock--config))
 - `display_name` (String) The pulsar cluster display name
 - `endpoint_access` (Block List) (see [below for nested schema](#nestedblock--endpoint_access))
+- `lakehouse_storage_enabled` (Boolean) Controls the lakehouse storage config of pulsar cluster
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `name` (String) The pulsar cluster name
 - `pool_member_name` (String) The infrastructure pool member name
@@ -42,6 +45,7 @@ description: |-
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
 - `http_tls_service_url` (String) The service url of the pulsar cluster, use it to management the pulsar cluster.
 - `http_tls_service_urls` (List of String) The service url of the pulsar cluster, use it to management the pulsar cluster. There'll be multiple service urls if the cluster attached with multiple gateways
+- `iam_policy` (String) IAM policy JSON for S3Table catalog access. This policy should be applied to your AWS IAM role to allow access to S3Table resources.
 - `id` (String) The ID of this resource.
 - `kafka_service_url` (String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url.
 - `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url. There'll be multiple service urls if the cluster attached with multiple gateways
@@ -63,7 +67,6 @@ Optional:
 - `audit_log` (Block List) (see [below for nested schema](#nestedblock--config--audit_log))
 - `custom` (Map of String) Controls the custom config of pulsar cluster
 - `function_enabled` (Boolean) Whether the function is enabled
-- `lakehouse_storage` (Map of String)
 - `protocols` (Block List) (see [below for nested schema](#nestedblock--config--protocols))
 - `transaction_enabled` (Boolean) Whether the transaction is enabled
 - `websocket_enabled` (Boolean)
