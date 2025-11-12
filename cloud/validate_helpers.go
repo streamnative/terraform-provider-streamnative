@@ -19,6 +19,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	utilValidation "k8s.io/apimachinery/pkg/util/validation"
 )
@@ -78,6 +79,16 @@ func validateCUSU(val interface{}, key string) (warns []string, errs []error) {
 	if v < 0.2 || v > 8 {
 		errs = append(errs, fmt.Errorf(
 			"%q should be greater than or equal to 0.2 and less than or equal to 8, got: %f", key, v))
+	}
+	return
+}
+
+func validateDuration(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(string)
+	_, err := time.ParseDuration(v)
+	if err != nil {
+		errs = append(errs, fmt.Errorf(
+			"%q must be a valid Go duration string (e.g., \"2h0m0s\", \"30m0s\", \"1h30m0s\"), got: %s. Error: %v", key, v, err))
 	}
 	return
 }

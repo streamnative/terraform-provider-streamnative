@@ -481,7 +481,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	maintenance_window {
 		window {
 			start_time = "02:00"
-			duration = "2h"
+			duration = "2h0m0s"
 		}
 		recurrence = "0,1"
 	}
@@ -533,7 +533,7 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	maintenance_window {
 		window {
 			start_time = "03:00"
-			duration = "3h"
+			duration = "3h0m0s"
 		}
 		recurrence = "2,3,4"
 	}
