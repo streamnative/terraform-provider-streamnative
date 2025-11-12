@@ -287,6 +287,40 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["iam_policy"],
 			},
+			"maintenance_window": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Maintenance window configuration for the Pulsar cluster",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"window": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Maintenance execution window",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"start_time": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Start time of the maintenance window",
+									},
+
+									"duration": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Duration of the maintenance window",
+									},
+								},
+							},
+						},
+						"recurrence": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Recurrence pattern for maintenance (0-6 for Monday to Sunday)",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -448,6 +482,14 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	_ = d.Set("apply_lakehouse_to_all_topics", applyToAllTopics)
+
+	// Set maintenance window if configured
+	if pulsarCluster.Spec.MaintenanceWindow != nil {
+		err = d.Set("maintenance_window", flattenMaintenanceWindow(pulsarCluster.Spec.MaintenanceWindow))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_MAINTENANCE_WINDOW: %w", err))
+		}
+	}
 
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil

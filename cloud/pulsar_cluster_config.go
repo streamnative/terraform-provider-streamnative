@@ -81,3 +81,40 @@ func flattenCategories(in []string) []interface{} {
 	}
 	return att
 }
+
+func flattenMaintenanceWindow(in *cloudv1alpha1.MaintenanceWindow) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	if in.Window != nil {
+		att["window"] = flattenWindow(in.Window)
+	}
+	if in.Recurrence != "" {
+		att["recurrence"] = in.Recurrence
+	}
+
+	return []interface{}{att}
+}
+
+func flattenWindow(in *cloudv1alpha1.Window) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	// Set StartTime if provided
+	if in.StartTime != "" {
+		att["start_time"] = in.StartTime
+	}
+
+	// Set Duration if provided
+	if in.Duration != nil {
+		att["duration"] = in.Duration.Duration.String()
+	}
+
+	return []interface{}{att}
+}
