@@ -374,6 +374,44 @@ func resourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["iam_policy"],
 			},
+			"maintenance_window": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: "Maintenance window configuration for the pulsar cluster",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"window": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Computed:    true,
+							Description: "Maintenance execution window",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"start_time": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+										Description: "Start time of the maintenance window",
+									},
+									"duration": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+										Description: "Duration of the maintenance window",
+									},
+								},
+							},
+						},
+						"recurrence": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "Recurrence pattern for maintenance (0-6 for Monday to Sunday)",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -763,6 +801,16 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_CONFIG: %w", err))
 		}
+	}
+
+	// Set maintenance window if configured
+	if pulsarCluster.Spec.MaintenanceWindow != nil {
+		err = d.Set("maintenance_window", flattenMaintenanceWindow(pulsarCluster.Spec.MaintenanceWindow))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_MAINTENANCE_WINDOW: %w", err))
+		}
+	} else {
+		_ = d.Set("maintenance_window", []interface{}{})
 	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
@@ -1215,6 +1263,56 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 			}
 		}
 	}
+
+	// Handle maintenance_window configuration
+	if d.HasChange("maintenance_window") {
+		maintenanceWindow := d.Get("maintenance_window").([]interface{})
+		if len(maintenanceWindow) > 0 {
+			for _, mwItem := range maintenanceWindow {
+				mwItemMap := mwItem.(map[string]interface{})
+
+				if pulsarCluster.Spec.MaintenanceWindow == nil {
+					pulsarCluster.Spec.MaintenanceWindow = &cloudv1alpha1.MaintenanceWindow{}
+				}
+
+				// Handle recurrence
+				if recurrence, ok := mwItemMap["recurrence"]; ok && recurrence != "" {
+					pulsarCluster.Spec.MaintenanceWindow.Recurrence = recurrence.(string)
+				}
+
+				// Handle window configuration
+				if window, ok := mwItemMap["window"].([]interface{}); ok && len(window) > 0 {
+					for _, windowItem := range window {
+						windowItemMap := windowItem.(map[string]interface{})
+
+						if pulsarCluster.Spec.MaintenanceWindow.Window == nil {
+							pulsarCluster.Spec.MaintenanceWindow.Window = &cloudv1alpha1.Window{}
+						}
+
+						// Handle start_time
+						if startTime, ok := windowItemMap["start_time"]; ok && startTime != "" {
+							pulsarCluster.Spec.MaintenanceWindow.Window.StartTime = startTime.(string)
+						}
+
+						// Handle duration
+						if durationStr, ok := windowItemMap["duration"]; ok && durationStr != "" {
+							duration, err := time.ParseDuration(durationStr.(string))
+							if err != nil {
+								tflog.Warn(ctx, fmt.Sprintf("Failed to parse maintenance window duration: %v", err))
+							} else {
+								pulsarCluster.Spec.MaintenanceWindow.Window.Duration = &metav1.Duration{Duration: duration}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			// If maintenance_window is empty, clear the maintenance window configuration
+			pulsarCluster.Spec.MaintenanceWindow = nil
+		}
+		changed = true
+	}
+
 	tflog.Debug(ctx, "get pulsarcluster changed: %v", map[string]interface{}{
 		"pulsarcluster": *pulsarCluster.Spec.Config,
 	})

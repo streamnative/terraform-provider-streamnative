@@ -77,66 +77,167 @@ func TestPulsarClusterNoConfig(t *testing.T) {
 	})
 }
 
-func testCheckPulsarClusterDestroy(s *terraform.State) error {
-	time.Sleep(30 * time.Second)
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "streamnative_pulsar_cluster" {
-			continue
-		}
-		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
-		organizationCluster := strings.Split(rs.Primary.ID, "/")
-		_, err = clientSet.CloudV1alpha1().
-			PulsarClusters(organizationCluster[0]).
-			Get(context.Background(), organizationCluster[1], metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}
-		return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_STILL_EXISTS: "%s"`, rs.Primary.ID)
-	}
-	return nil
+func TestPulsarClusterWithMaintenanceWindow(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+		},
+	})
 }
 
-func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_NOT_FOUND: "%s"`, name)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("ERROR_RESOURCE_PULSAR_CLUSTER_ID_NOT_SET")
-		}
-		meta := testAccProvider.Meta()
-		clientSet, err := getClientSet(getFactoryFromMeta(meta))
-		if err != nil {
-			return err
-		}
-		organizationCluster := strings.Split(rs.Primary.ID, "/")
-		pulsarCluster, err := clientSet.CloudV1alpha1().
-			PulsarClusters(organizationCluster[0]).
-			Get(context.Background(), organizationCluster[1], metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if pulsarCluster.Status.Conditions != nil {
-			ready := false
-			for _, condition := range pulsarCluster.Status.Conditions {
-				if condition.Type == "Ready" && condition.Status == "True" {
-					ready = true
-				}
-			}
-			if !ready {
-				return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_NOT_READY: "%s"`, rs.Primary.ID)
-			}
-		}
-		return nil
-	}
+func TestPulsarClusterAddMaintenanceWindow(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+		},
+	})
+}
+
+func TestPulsarClusterRemoveMaintenanceWindow(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+		},
+	})
+}
+
+func TestPulsarClusterUpdateMaintenanceWindow(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindowUpdated(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+		},
+	})
+}
+
+func TestPulsarClusterMaintenanceWindowConfigDrift(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithMaintenanceWindow(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
 }
 
 func TestPulsarClusterConfigDrift(t *testing.T) {
@@ -207,6 +308,68 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 	})
 }
 
+func testCheckPulsarClusterDestroy(s *terraform.State) error {
+	time.Sleep(30 * time.Second)
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "streamnative_pulsar_cluster" {
+			continue
+		}
+		meta := testAccProvider.Meta()
+		clientSet, err := getClientSet(getFactoryFromMeta(meta))
+		if err != nil {
+			return err
+		}
+		organizationCluster := strings.Split(rs.Primary.ID, "/")
+		_, err = clientSet.CloudV1alpha1().
+			PulsarClusters(organizationCluster[0]).
+			Get(context.Background(), organizationCluster[1], metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_STILL_EXISTS: "%s"`, rs.Primary.ID)
+	}
+	return nil
+}
+
+func testCheckPulsarClusterExists(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_NOT_FOUND: "%s"`, name)
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("ERROR_RESOURCE_PULSAR_CLUSTER_ID_NOT_SET")
+		}
+		meta := testAccProvider.Meta()
+		clientSet, err := getClientSet(getFactoryFromMeta(meta))
+		if err != nil {
+			return err
+		}
+		organizationCluster := strings.Split(rs.Primary.ID, "/")
+		pulsarCluster, err := clientSet.CloudV1alpha1().
+			PulsarClusters(organizationCluster[0]).
+			Get(context.Background(), organizationCluster[1], metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if pulsarCluster.Status.Conditions != nil {
+			ready := false
+			for _, condition := range pulsarCluster.Status.Conditions {
+				if condition.Type == "Ready" && condition.Status == "True" {
+					ready = true
+				}
+			}
+			if !ready {
+				return fmt.Errorf(`ERROR_RESOURCE_PULSAR_CLUSTER_NOT_READY: "%s"`, rs.Primary.ID)
+			}
+		}
+		return nil
+	}
+}
+
 func testResourceDataSourcePulsarCluster(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
@@ -270,6 +433,110 @@ resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
 	instance_name = "%s"
 	location = "%s"
 	release_channel = "%s"
+	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
+}
+data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+  depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
+  organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
+  name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+}
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+}
+
+func testResourceDataSourcePulsarClusterWithMaintenanceWindow(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+	return fmt.Sprintf(`
+provider "streamnative" {
+}
+resource "streamnative_pulsar_instance" "test-pulsar-instance" {
+	organization = "%s"
+	name = "%s"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
+	type = "dedicated"
+}
+resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+	organization = "%s"
+	name = "%s"
+	instance_name = "%s"
+	location = "%s"
+	release_channel = "%s"
+	config {
+		websocket_enabled = false
+		function_enabled = true
+		transaction_enabled = false
+		protocols {
+		  mqtt = {
+			enabled = "true"
+		  }
+		  kafka = {
+			enabled = "true"
+		  }
+		}
+		custom = {
+			"bookkeeper.journalSyncData" = "false"
+			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
+		}
+	}
+	maintenance_window {
+		window {
+			start_time = "02:00"
+			duration = "2h"
+		}
+		recurrence = "0,1"
+	}
+	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
+}
+data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+  depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
+  organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
+  name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+}
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+}
+
+func testResourceDataSourcePulsarClusterWithMaintenanceWindowUpdated(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+	return fmt.Sprintf(`
+provider "streamnative" {
+}
+resource "streamnative_pulsar_instance" "test-pulsar-instance" {
+	organization = "%s"
+	name = "%s"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
+	type = "dedicated"
+}
+resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+	organization = "%s"
+	name = "%s"
+	instance_name = "%s"
+	location = "%s"
+	release_channel = "%s"
+	config {
+		websocket_enabled = false
+		function_enabled = true
+		transaction_enabled = false
+		protocols {
+		  mqtt = {
+			enabled = "true"
+		  }
+		  kafka = {
+			enabled = "true"
+		  }
+		}
+		custom = {
+			"bookkeeper.journalSyncData" = "false"
+			"managedLedgerOffloadAutoTriggerSizeThresholdBytes" = "0"
+		}
+	}
+	maintenance_window {
+		window {
+			start_time = "03:00"
+			duration = "3h"
+		}
+		recurrence = "2,3,4"
+	}
 	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
 }
 data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
