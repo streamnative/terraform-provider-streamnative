@@ -39,6 +39,7 @@ description: |-
 - `kafka_service_urls` (List of String) If you want to connect to the pulsar cluster using the kafka protocol, use this kafka service url. There'll be multiple service urls if the cluster attached with multiple gateways
 - `lakehouse_storage_enabled` (Boolean) Controls the lakehouse storage config of pulsar cluster
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
+- `maintenance_window` (List of Object) Maintenance window configuration for the Pulsar cluster (see [below for nested schema](#nestedatt--maintenance_window))
 - `mqtt_service_url` (String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.
 - `mqtt_service_urls` (List of String) If you want to connect to the pulsar cluster using the mqtt protocol, use this mqtt service url.  There'll be multiple service urls if the cluster attached with multiple gateways
 - `pulsar_tls_service_url` (String) The service url of the pulsar cluster, use it to produce and consume message.
@@ -81,3 +82,21 @@ Read-Only:
 
 - `kafka` (Map of String)
 - `mqtt` (Map of String)
+
+
+
+<a id="nestedatt--maintenance_window"></a>
+### Nested Schema for `maintenance_window`
+
+Read-Only:
+
+- `recurrence` (String)
+- `window` (List of Object) (see [below for nested schema](#nestedobjatt--maintenance_window--window))
+
+<a id="nestedobjatt--maintenance_window--window"></a>
+### Nested Schema for `maintenance_window.window`
+
+Read-Only:
+
+- `duration` (String)
+- `start_time` (String)
