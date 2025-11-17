@@ -26,6 +26,7 @@ description: |-
 
 ### Read-Only
 
+- `customized_metadata` (Map of String) The custom metadata in the api key token
 - `description` (String)
 - `expires_at` (String) The timestamp of when the key expires
 - `id` (String) The ID of this resource.

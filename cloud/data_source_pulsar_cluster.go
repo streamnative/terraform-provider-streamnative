@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
@@ -261,6 +262,31 @@ func dataSourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["instance_type"],
 			},
+			"lakehouse_storage_enabled": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: descriptions["lakehouse_storage"],
+			},
+			"catalog": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["catalog"],
+			},
+			"table_format": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The table format used by the pulsar cluster (iceberg, delta, or none)",
+			},
+			"apply_lakehouse_to_all_topics": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: descriptions["apply_lakehouse_to_all_topics"],
+			},
+			"iam_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["iam_policy"],
+			},
 		},
 	}
 }
@@ -368,6 +394,61 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	_ = d.Set("instance_name", pulsarInstance.Name)
+
+	// Set lakehouse_storage_enabled
+	if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
+		_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+	} else {
+		_ = d.Set("lakehouse_storage_enabled", false)
+	}
+
+	// Set catalog information
+	if len(pulsarCluster.Spec.Catalogs) > 0 {
+		catalogName := pulsarCluster.Spec.Catalogs[0]
+		_ = d.Set("catalog", catalogName)
+
+		// Try to get account ID from pool options using instance pool information
+		var accountID string
+		if pulsarCluster.Spec.PoolMemberRef.Name != "" || pulsarInstance.Spec.PoolRef.Name != "" {
+			accountIDFromPool, err := getAccountIDFromPoolOptions(ctx,
+				clientSet,
+				pulsarCluster.Namespace,
+				fmt.Sprintf("%s-%s", pulsarInstance.Spec.PoolRef.Namespace, pulsarInstance.Spec.PoolRef.Name),
+				pulsarCluster.Spec.Location,
+				pulsarCluster.Spec.PoolMemberRef.Name)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("Failed to get account ID from pool options: %v", err))
+			} else {
+				accountID = accountIDFromPool
+			}
+		}
+
+		// Get S3Table warehouse
+		s3TableWarehouse, err := getS3TableWarehouse(ctx, clientSet, pulsarCluster.Namespace, catalogName)
+		if err != nil {
+			tflog.Warn(ctx, fmt.Sprintf("Failed to get S3Table warehouse: %v", err))
+		}
+
+		// Generate and set IAM policy for S3Table catalog
+		iamPolicy := generateIAMPolicy(pulsarCluster.Namespace, pulsarCluster.Name, catalogName, accountID, s3TableWarehouse)
+		_ = d.Set("iam_policy", iamPolicy)
+	} else {
+		_ = d.Set("catalog", "")
+		_ = d.Set("iam_policy", "")
+	}
+
+	// Set table format
+	_ = d.Set("table_format", pulsarCluster.Spec.TableFormat)
+
+	// Set apply_lakehouse_to_all_topics based on annotation
+	applyToAllTopics := false
+	if pulsarCluster.Annotations != nil {
+		if sdtEnabled, exists := pulsarCluster.Annotations["cloud.streamnative.io/sdt-enabled"]; exists && sdtEnabled == "true" {
+			applyToAllTopics = true
+		}
+	}
+	_ = d.Set("apply_lakehouse_to_all_topics", applyToAllTopics)
+
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }

@@ -21,11 +21,14 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	cloudclient "github.com/streamnative/cloud-api-server/pkg/client/clientset_generated/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -247,11 +250,6 @@ func resourcePulsarCluster() *schema.Resource {
 								},
 							},
 						},
-						"lakehouse_storage": {
-							Type:        schema.TypeMap,
-							Optional:    true,
-							Description: descriptions["lakehouse_storage"],
-						},
 						"custom": {
 							Type:        schema.TypeMap,
 							Optional:    true,
@@ -357,6 +355,28 @@ func resourcePulsarCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: descriptions["instance_type"],
+			},
+			"catalog": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["catalog"],
+			},
+			"lakehouse_storage_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["lakehouse_storage"],
+			},
+			"apply_lakehouse_to_all_topics": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["apply_lakehouse_to_all_topics"],
+			},
+			"iam_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: descriptions["iam_policy"],
 			},
 		},
 	}
@@ -514,6 +534,72 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarInstance.IsUsingUrsaEngine() {
 		getPulsarClusterChanged(ctx, pulsarCluster, d)
 	}
+
+	if d.Get("lakehouse_storage_enabled").(bool) {
+		if ursaEnabled {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"you don't set this option for ursa engine cluster"))
+		}
+		if pulsarCluster.Spec.Config == nil {
+			pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+		}
+		pulsarCluster.Spec.Config.LakehouseStorage = &cloudv1alpha1.LakehouseStorageConfig{
+			Enabled: pointer.Bool(true),
+		}
+
+	}
+
+	// Handle catalog configuration
+	catalogName := d.Get("catalog").(string)
+	var catalog *cloudv1alpha1.Catalog
+	if catalogName != "" {
+		// Get catalog information
+		catalog, err = clientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_GET_CATALOG: %w", err))
+		}
+
+		// Check if it's an S3Table catalog
+		if catalog.Spec.S3Table != nil {
+			// Validate region match
+			if err := validateCatalogRegionMatch(ctx, clientSet, namespace, catalogName, location); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// Add catalog to the cluster
+		pulsarCluster.Spec.Catalogs = []string{catalogName}
+
+		// Determine table format based on catalog and lakehouse storage
+		lakehouseStorageEnabled := false
+		if pulsarCluster.Spec.Config != nil &&
+			pulsarCluster.Spec.Config.LakehouseStorage != nil &&
+			pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil &&
+			*pulsarCluster.Spec.Config.LakehouseStorage.Enabled {
+			lakehouseStorageEnabled = true
+		}
+
+		if (lakehouseStorageEnabled || ursaEnabled) && catalog != nil {
+			tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName)
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
+			}
+			pulsarCluster.Spec.TableFormat = tableFormat
+		}
+	}
+
+	// Handle SDT annotation based on apply_lakehouse_to_all_topics
+	if shouldApplyLakehouseToAllTopics(d) {
+		if ursaEnabled {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"you don't set this apply_lakehouse_to_all_topics option for ursa engine cluster"))
+		}
+		if pulsarCluster.Annotations == nil {
+			pulsarCluster.Annotations = make(map[string]string)
+		}
+		pulsarCluster.Annotations["cloud.streamnative.io/sdt-enabled"] = "true"
+	}
+
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -521,6 +607,47 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%s/%s", pc.Namespace, pc.Name))
+
+	// Generate and set IAM policy if catalog is configured
+	if catalog != nil && catalog.Spec.S3Table != nil {
+		// Try to get account ID from pool options using instance pool information
+		var accountID string
+		if pool_member_name != "" || location != "" {
+			accountIDFromPool, err := getAccountIDFromPoolOptions(
+				ctx, clientSet,
+				pulsarCluster.Namespace,
+				fmt.Sprintf("%s-%s", pulsarInstance.Spec.PoolRef.Namespace, pulsarInstance.Spec.PoolRef.Name),
+				location,
+				pool_member_name)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("Failed to get account ID from pool options: %v", err))
+				tflog.Warn(ctx, "Using placeholder account ID in IAM policy")
+			} else {
+				accountID = accountIDFromPool
+				tflog.Info(ctx, fmt.Sprintf("Retrieved account ID from pool options: %s", accountID))
+			}
+		}
+
+		// Get S3Table warehouse
+		s3TableWarehouse := ""
+		if catalog.Spec.S3Table != nil {
+			s3TableWarehouse = catalog.Spec.S3Table.Warehouse
+		}
+
+		iamPolicy := generateIAMPolicy(namespace, name, catalogName, accountID, s3TableWarehouse)
+		_ = d.Set("iam_policy", iamPolicy)
+
+		// Log IAM policy information for user reference
+		tflog.Info(ctx, "🎉 Pulsar cluster created successfully with S3Table catalog!")
+		tflog.Info(ctx, fmt.Sprintf("Cluster: %s", name))
+		tflog.Info(ctx, fmt.Sprintf("Organization: %s", namespace))
+		tflog.Info(ctx, fmt.Sprintf("Catalog: %s", catalogName))
+		if accountID != "" {
+			tflog.Info(ctx, fmt.Sprintf("Account ID: %s", accountID))
+		}
+		tflog.Info(ctx, "IAM Policy has been generated and is available in the 'iam_policy' output.")
+		tflog.Info(ctx, "Please apply this IAM policy to your AWS IAM role to enable S3Table access.")
+	}
 	if pc.Status.Conditions != nil {
 		ready := false
 		for _, condition := range pc.Status.Conditions {
@@ -663,6 +790,63 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	storageUnit := convertCpuAndMemoryToStorageUnit(pulsarCluster)
 	_ = d.Set("compute_unit_per_broker", computeUnit)
 	_ = d.Set("storage_unit_per_bookie", storageUnit)
+
+	// Set lakehouse_storage_enabled
+	if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
+		_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+	} else {
+		_ = d.Set("lakehouse_storage_enabled", false)
+	}
+
+	// Set catalog information
+	if len(pulsarCluster.Spec.Catalogs) > 0 {
+		catalogName := pulsarCluster.Spec.Catalogs[0]
+		_ = d.Set("catalog", catalogName)
+
+		// Get catalog information
+		catalog, err := clientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_GET_CATALOG: %w", err))
+		}
+
+		var accountID string
+		// Check if it's an S3Table catalog
+		if catalog.Spec.S3Table != nil {
+			// Validate region match
+			if err := validateCatalogRegionMatch(
+				ctx, clientSet, namespace, catalogName, pulsarCluster.Spec.Location); err != nil {
+				return diag.FromErr(err)
+			}
+			// Try to get account ID from pool options using instance pool information
+			if pulsarCluster.Spec.PoolMemberRef.Name != "" || pulsarCluster.Spec.Location != "" {
+				accountIDFromPool, err := getAccountIDFromPoolOptions(
+					ctx, clientSet,
+					pulsarCluster.Namespace,
+					fmt.Sprintf("%s-%s", pulsarInstance.Spec.PoolRef.Namespace, pulsarInstance.Spec.PoolRef.Name),
+					pulsarCluster.Spec.Location,
+					pulsarCluster.Spec.PoolMemberRef.Name)
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to get account ID from pool options: %v", err))
+				} else {
+					accountID = accountIDFromPool
+				}
+			}
+
+			// Get S3Table warehouse
+			s3TableWarehouse, err := getS3TableWarehouse(ctx, clientSet, pulsarCluster.Namespace, catalogName)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("Failed to get S3Table warehouse: %v", err))
+			}
+
+			// Generate and set IAM policy for S3Table catalog
+			iamPolicy := generateIAMPolicy(pulsarCluster.Namespace, pulsarCluster.Name, catalogName, accountID, s3TableWarehouse)
+			_ = d.Set("iam_policy", iamPolicy)
+		}
+	} else {
+		_ = d.Set("catalog", "")
+		_ = d.Set("iam_policy", "")
+	}
+
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
 	return nil
 }
@@ -670,9 +854,12 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	serverless := d.Get("type")
 	displayNameChanged := d.HasChange("display_name")
-	if !displayNameChanged && serverless == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+	lakehouseStorageChanged := d.HasChange("lakehouse_storage_enabled")
+	lakehouseStorageEnabled := d.Get("lakehouse_storage_enabled").(bool)
+	if !displayNameChanged && serverless == string(cloudv1alpha1.PulsarInstanceTypeServerless) &&
+		lakehouseStorageChanged && !lakehouseStorageEnabled {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
-			"only display_name can be updated for serverless instance"))
+			"Disabling lakehouse_storage_enabled or changed display_name is not allowed for serverless pulsar cluster"))
 	}
 	if d.HasChange("organization") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
@@ -694,10 +881,6 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 			"The pulsar cluster release channel does not support updates"))
 	}
-	if d.HasChanges("lakehouse_type", "catalog_type", "catalog_credentials", "catalog_connection_url", "catalog_warehouse") {
-		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
-			"The pulsar cluster lakehouse storage does not support updates"))
-	}
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	if d.Get("type") == cloudv1alpha1.PulsarInstanceTypeServerless {
@@ -717,6 +900,11 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	pulsarCluster, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
+	}
+
+	// Validate lakehouse_storage_enabled update: once enabled, cannot be disabled
+	if diagErr := validateLakehouseStorageUpdate(d, pulsarCluster); diagErr != nil {
+		return diagErr
 	}
 	if d.HasChange("bookie_replicas") {
 		bookieReplicas := int32(3)
@@ -750,6 +938,95 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		displayName := d.Get("display_name").(string)
 		pulsarCluster.Spec.DisplayName = displayName
 	}
+
+	// Handle catalog configuration changes
+	if d.HasChange("catalog") {
+		catalogName := d.Get("catalog").(string)
+		if catalogName != "" {
+			// Validate catalog configuration
+			if err := validateCatalogConfiguration(ctx, clientSet, namespace, catalogName, pulsarCluster.Spec.Location); err != nil {
+				return diag.FromErr(err)
+			}
+			// Add catalog to the cluster
+			pulsarCluster.Spec.Catalogs = []string{catalogName}
+		} else {
+			// Remove catalog
+			pulsarCluster.Spec.Catalogs = nil
+		}
+		changed = true
+	}
+
+	// Handle table format determination when catalog or lakehouse storage changes
+	if (pulsarCluster.Spec.TableFormat == "" || pulsarCluster.Spec.TableFormat == "none") &&
+		d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") || pulsarCluster.IsUsingUrsaEngine() {
+		catalogName := d.Get("catalog").(string)
+		lakehouseStorageEnabled = d.Get("lakehouse_storage_enabled").(bool)
+
+		tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
+		}
+		pulsarCluster.Spec.TableFormat = tableFormat
+		changed = true
+	}
+
+	if d.Get("apply_lakehouse_to_all_topics").(bool) && pulsarCluster.IsUsingUrsaEngine() {
+		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+			"you don't set this apply_lakehouse_to_all_topics option for ursa engine cluster"))
+	}
+	// Handle SDT annotation based on apply_lakehouse_to_all_topics
+	if d.HasChange("apply_lakehouse_to_all_topics") || d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") {
+		if shouldApplyLakehouseToAllTopics(d) {
+			if pulsarCluster.Annotations == nil {
+				pulsarCluster.Annotations = make(map[string]string)
+			}
+			pulsarCluster.Annotations["cloud.streamnative.io/sdt-enabled"] = "true"
+		} else {
+			// Remove the annotation if conditions are not met
+			if pulsarCluster.Annotations != nil {
+				delete(pulsarCluster.Annotations, "cloud.streamnative.io/sdt-enabled")
+			}
+		}
+		changed = true
+	}
+
+	// Update IAM policy if catalog changes
+	if d.HasChange("catalog") {
+		catalogName := d.Get("catalog").(string)
+		if catalogName != "" {
+			// Try to get account ID from pool options using instance pool information
+			var accountID string
+			// Get pulsar instance to access pool information
+			pulsarInstance, err := clientSet.CloudV1alpha1().PulsarInstances(namespace).Get(ctx, pulsarCluster.Spec.InstanceName, metav1.GetOptions{})
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("Failed to get pulsar instance: %v", err))
+			} else if pulsarCluster.Spec.PoolMemberRef.Name != "" || pulsarCluster.Spec.Location != "" {
+				accountIDFromPool, err := getAccountIDFromPoolOptions(ctx,
+					clientSet,
+					pulsarCluster.Namespace,
+					fmt.Sprintf("%s-%s", pulsarInstance.Spec.PoolRef.Namespace, pulsarInstance.Spec.PoolRef.Name),
+					pulsarCluster.Spec.Location,
+					pulsarCluster.Spec.PoolMemberRef.Name)
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to get account ID from pool options: %v", err))
+				} else {
+					accountID = accountIDFromPool
+				}
+			}
+
+			// Get S3Table warehouse
+			s3TableWarehouse, err := getS3TableWarehouse(ctx, clientSet, namespace, catalogName)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("Failed to get S3Table warehouse: %v", err))
+			}
+
+			iamPolicy := generateIAMPolicy(namespace, name, catalogName, accountID, s3TableWarehouse)
+			_ = d.Set("iam_policy", iamPolicy)
+		} else {
+			_ = d.Set("iam_policy", "")
+		}
+	}
+
 	if d.HasChange("bookie_replicas") ||
 		d.HasChange("broker_replicas") ||
 		d.HasChange("compute_unit") ||
@@ -822,6 +1099,19 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 	changed := false
 	if pulsarCluster.Spec.Config == nil {
 		pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+	}
+
+	// Handle lakehouse_storage_enabled at the top level
+	if d.HasChange("lakehouse_storage_enabled") {
+		enabledBool := d.Get("lakehouse_storage_enabled").(bool)
+		if enabledBool {
+			pulsarCluster.Spec.Config.LakehouseStorage = &cloudv1alpha1.LakehouseStorageConfig{
+				Enabled: &enabledBool,
+			}
+		} else {
+			pulsarCluster.Spec.Config.LakehouseStorage = nil
+		}
+		changed = true
 	}
 	config := d.Get("config").([]interface{})
 	if len(config) > 0 {
@@ -1067,4 +1357,223 @@ func isServerlessOrUrsa(d *schema.ResourceData) bool {
 	// Note: We cannot check for ursa in DiffSuppressFunc because we don't have access to the instance
 	// Ursa checking is handled in CustomizeDiff via suppressBookieForServerlessOrUrsa
 	return false
+}
+
+// determineTableFormat determines the table format based on catalog type and configuration
+func determineTableFormat(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName string) (string, error) {
+
+	// If no catalog is specified, return "none"
+	if catalogName == "" {
+		return "none", nil
+	}
+
+	// Get catalog information
+	catalog, err := cloudClientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("ERROR_GET_CATALOG: %w", err)
+	}
+
+	// Check catalog type and set table format accordingly
+	if catalog.Spec.Unity != nil {
+		// For Unity catalog, check URI to determine format
+		if strings.Contains(catalog.Spec.Unity.URI, "/api/2.1/unity-catalog/iceberg-rest") {
+			return "iceberg", nil
+		}
+		return "delta", nil
+	}
+
+	if catalog.Spec.OpenCatalog != nil || catalog.Spec.S3Table != nil {
+		// For OpenCatalog and S3Table, always use iceberg
+		return "iceberg", nil
+	}
+
+	// Default to "none" if catalog type is not recognized
+	return "none", nil
+}
+
+// shouldApplyLakehouseToAllTopics checks if the SDT annotation should be added
+func shouldApplyLakehouseToAllTopics(d *schema.ResourceData) bool {
+	// Check if lakehouse storage is enabled
+	lakehouseStorageEnabled := d.Get("lakehouse_storage_enabled").(bool)
+	if lakehouseStorageEnabled {
+		// Check if catalog is set
+		catalogName := d.Get("catalog").(string)
+		if catalogName == "" {
+			return false
+		}
+
+		// Check if apply_lakehouse_to_all_topics is enabled
+		applyToAllTopics := d.Get("apply_lakehouse_to_all_topics").(bool)
+		return applyToAllTopics
+	}
+	return false
+}
+
+// validateCatalogConfiguration validates catalog configuration for the cluster
+func validateCatalogConfiguration(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName, clusterLocation string) error {
+	// Get catalog information
+	catalog, err := cloudClientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("ERROR_GET_CATALOG: %w", err)
+	}
+
+	// Check if it's an S3Table catalog
+	if catalog.Spec.S3Table != nil {
+		// Validate region match
+		if err := validateCatalogRegionMatch(ctx, cloudClientSet, namespace, catalogName, clusterLocation); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateCatalogRegionMatch validates that S3Table catalog region matches cluster location
+func validateCatalogRegionMatch(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName, clusterLocation string) error {
+	// Get catalog information
+	catalog, err := cloudClientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("ERROR_GET_CATALOG: %w", err)
+	}
+
+	// Check if it's an S3Table catalog
+	if catalog.Spec.S3Table == nil {
+		return nil // Not an S3Table catalog, no validation needed
+	}
+
+	// Extract region from S3Table warehouse ARN
+	catalogRegion, err := extractS3TableRegion(catalog.Spec.S3Table.Warehouse)
+	if err != nil {
+		return fmt.Errorf("ERROR_EXTRACT_CATALOG_REGION: %w", err)
+	}
+
+	// Check if regions match
+	if catalogRegion != clusterLocation {
+		return fmt.Errorf("You can only select a catalog in the same region (%s) as this cluster", clusterLocation)
+	}
+
+	return nil
+}
+
+// getAccountIDFromPoolOptions retrieves the account ID from PoolOptions API
+func getAccountIDFromPoolOptions(ctx context.Context,
+	cloudClientSet *cloudclient.Clientset,
+	namespace, poolName,
+	location, poolmemberName string) (string, error) {
+
+	// Get pool options
+	poolOption, err := cloudClientSet.CloudV1alpha1().PoolOptions(namespace).Get(ctx, poolName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("ERROR_GET_POOL_OPTIONS: %w", err)
+	}
+	if len(poolOption.Status.Environments) > 0 {
+		for _, environment := range poolOption.Status.Environments {
+			if environment.Name == poolmemberName {
+				return environment.AwsAccountId, nil
+			}
+			if environment.Region == location {
+				return environment.AwsAccountId, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("ERROR_POOL_OPTIONS_STRUCTURE: PoolOptions.Status.Environments field needs to be added to the API structure")
+}
+
+// generateIAMPolicy generates IAM policy JSON for S3Table catalog access
+func generateIAMPolicy(organization, clusterName, catalogName string, accountID string, s3TableWarehouse string) string {
+	// Use the provided account ID or fallback to placeholder
+	actualAccountID := accountID
+	if actualAccountID == "" {
+		actualAccountID = "YOUR_ACCOUNT_ID"
+	}
+
+	// Use the provided warehouse or fallback to placeholder
+	actualWarehouse := s3TableWarehouse
+	if actualWarehouse == "" {
+		actualWarehouse = "YOUR_S3_TABLE_BUCKET_ARN"
+	}
+
+	policy := fmt.Sprintf(`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3ListTableBucket",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::%s:role/StreamNative/sncloud-role/authorization.streamnative.io/iamaccounts/IamAccount-%s-%s-broker"
+      },
+      "Action": [
+        "s3tables:ListTableBuckets"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
+      "Sid": "DataAccessPermissionsForS3TableBucket",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::%s:role/StreamNative/sncloud-role/authorization.streamnative.io/iamaccounts/IamAccount-%s-%s-broker"
+      },
+      "Action": [
+        "s3tables:GetTableBucket",
+        "s3tables:CreateNamespace",
+        "s3tables:GetNamespace",
+        "s3tables:ListNamespaces",
+        "s3tables:CreateTable",
+        "s3tables:GetTable",
+        "s3tables:ListTables",
+        "s3tables:UpdateTableMetadataLocation",
+        "s3tables:GetTableMetadataLocation",
+        "s3tables:GetTableData",
+        "s3tables:PutTableData"
+      ],
+      "Resource": [
+        "%s",
+        "%s/*"
+      ]
+    }
+  ]
+}`, actualAccountID, organization, clusterName, actualAccountID, organization, clusterName, actualWarehouse, actualWarehouse)
+
+	return policy
+}
+
+// getS3TableWarehouse retrieves the warehouse field from S3Table catalog
+func getS3TableWarehouse(ctx context.Context, cloudClientSet *cloudclient.Clientset, namespace, catalogName string) (string, error) {
+	if catalogName == "" {
+		return "", nil
+	}
+
+	// Get catalog information
+	catalog, err := cloudClientSet.CloudV1alpha1().Catalogs(namespace).Get(ctx, catalogName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("ERROR_GET_CATALOG: %w", err)
+	}
+
+	// Check if it's an S3Table catalog and get warehouse
+	if catalog.Spec.S3Table != nil && catalog.Spec.S3Table.Warehouse != "" {
+		return catalog.Spec.S3Table.Warehouse, nil
+	}
+
+	return "", nil
+}
+
+// validateLakehouseStorageUpdate validates that lakehouse_storage_enabled cannot be disabled once enabled
+func validateLakehouseStorageUpdate(d *schema.ResourceData, pulsarCluster *cloudv1alpha1.PulsarCluster) diag.Diagnostics {
+	if d.HasChange("lakehouse_storage_enabled") {
+		newEnabled := d.Get("lakehouse_storage_enabled").(bool)
+		// Check if lakehouse storage was previously enabled
+		if pulsarCluster.Spec.Config != nil &&
+			pulsarCluster.Spec.Config.LakehouseStorage != nil &&
+			pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil &&
+			*pulsarCluster.Spec.Config.LakehouseStorage.Enabled {
+			// If it was enabled and trying to set to false, reject the update
+			if !newEnabled {
+				return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+					"lakehouse_storage_enabled cannot be disabled once it has been enabled"))
+			}
+		}
+	}
+	return nil
 }
