@@ -17,6 +17,7 @@ require (
 	github.com/streamnative/sn-operator/api v0.13.2-rc.2
 	github.com/stretchr/testify v1.10.0
 	github.com/xhit/go-str2duration/v2 v2.1.0
+	k8s.io/api v0.30.9
 	k8s.io/apimachinery v0.32.3
 	k8s.io/cli-runtime v0.30.9
 	k8s.io/client-go v12.0.0+incompatible
@@ -212,7 +213,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	istio.io/api v1.24.2-0.20241206152109-43afb8563706 // indirect
 	istio.io/client-go v1.24.2 // indirect
-	k8s.io/api v0.30.9 // indirect
 	k8s.io/apiextensions-apiserver v0.30.1 // indirect
 	k8s.io/apiserver v0.30.9 // indirect
 	k8s.io/component-base v0.30.9 // indirect
