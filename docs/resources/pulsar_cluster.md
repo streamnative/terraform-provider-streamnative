@@ -33,6 +33,7 @@ description: |-
 - `endpoint_access` (Block List) (see [below for nested schema](#nestedblock--endpoint_access))
 - `lakehouse_storage_enabled` (Boolean) Controls the lakehouse storage config of pulsar cluster
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
+- `maintenance_window` (Block List) Maintenance window configuration for the pulsar cluster (see [below for nested schema](#nestedblock--maintenance_window))
 - `name` (String) The pulsar cluster name
 - `pool_member_name` (String) The infrastructure pool member name
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
@@ -95,3 +96,20 @@ Optional:
 Optional:
 
 - `gateway` (String)
+
+
+<a id="nestedblock--maintenance_window"></a>
+### Nested Schema for `maintenance_window`
+
+Optional:
+
+- `recurrence` (String) Recurrence pattern for maintenance (0-6 for Monday to Sunday)
+- `window` (Block List) Maintenance execution window (see [below for nested schema](#nestedblock--maintenance_window--window))
+
+<a id="nestedblock--maintenance_window--window"></a>
+### Nested Schema for `maintenance_window.window`
+
+Optional:
+
+- `duration` (String) Duration of the maintenance window in Go duration format (e.g., "2h0m0s", "30m0s", "1h30m0s")
+- `start_time` (String) Start time of the maintenance window
