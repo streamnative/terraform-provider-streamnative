@@ -65,6 +65,10 @@ func init() {
 		"cluster_display_name":         "The pulsar cluster display name",
 		"admin":                        "Whether the service account is admin",
 		"private_key_data":             "The private key data",
+		"secret_name":                  "The secret name",
+		"secret_data":                  "The secret data map",
+		"secret_string_data":           "Write-only string data that will be stored encrypted by the API server",
+		"secret_type":                  "The Kubernetes secret type",
 		"availability-mode":            "The availability mode, supporting 'zonal' and 'regional'",
 		"pool_name":                    "The infrastructure pool name",
 		"pool_namespace":               "The infrastructure pool namespace",
@@ -249,6 +253,7 @@ func Provider() *schema.Provider {
 			"streamnative_rolebinding":             resourceRoleBinding(),
 			"streamnative_volume":                  resourceVolume(),
 			"streamnative_catalog":                 resourceCatalog(),
+			"streamnative_secret":                  resourceSecret(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"streamnative_service_account":         dataSourceServiceAccount(),
@@ -265,6 +270,7 @@ func Provider() *schema.Provider {
 			"streamnative_rolebinding":             dataSourceRoleBinding(),
 			"streamnative_volume":                  dataSourceVolume(),
 			"streamnative_catalog":                 dataSourceCatalog(),
+			"streamnative_secret":                  dataSourceSecret(),
 		},
 	}
 	provider.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
