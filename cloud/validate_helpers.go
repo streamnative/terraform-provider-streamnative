@@ -34,8 +34,8 @@ func validateNotBlank(val interface{}, key string) (warns []string, errs []error
 
 func validateEngine(val interface{}, key string) (warns []string, errs []error) {
 	v := val.(string)
-	if v != "" && v != "ursa" {
-		errs = append(errs, fmt.Errorf("%q must be pulsar", key))
+	if v != "" && v != "classic" && v != "ursa" {
+		errs = append(errs, fmt.Errorf("%q must be empty, classic, or ursa", key))
 	}
 	return
 }
