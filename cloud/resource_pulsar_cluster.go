@@ -67,6 +67,10 @@ func resourcePulsarCluster() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+		Timeouts: &schema.ResourceTimeout{
+			// Pulsar clusters can take time to tear down; allow 30m to avoid spurious test failures.
+			Delete: schema.DefaultTimeout(30 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
 			"organization": {
 				Type:         schema.TypeString,
