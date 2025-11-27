@@ -67,24 +67,28 @@ func resourceSecret() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: descriptions["instance_name"],
 			},
 			"location": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: descriptions["location"],
 			},
 			"pool_member_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: descriptions["pool_member_name"],
 			},
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: descriptions["secret_type"],
 			},
 			"data": {
@@ -92,6 +96,7 @@ func resourceSecret() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				Sensitive:    true,
+				ForceNew:     true,
 				AtLeastOneOf: []string{"data", "string_data"},
 				Description:  descriptions["secret_data"],
 				Elem: &schema.Schema{
@@ -102,6 +107,7 @@ func resourceSecret() *schema.Resource {
 				Type:         schema.TypeMap,
 				Optional:     true,
 				Sensitive:    true,
+				ForceNew:     true,
 				AtLeastOneOf: []string{"data", "string_data"},
 				Description:  descriptions["secret_string_data"],
 				Elem: &schema.Schema{
