@@ -65,7 +65,7 @@ func TestSecretStringData(t *testing.T) {
 			{
 				Config: testResourceDataSourceSecretWithStringData("sndev", "terraform-test-secret-stringdata", stringData),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckSecretExists("streamnative_secret.test-secret", stringData),
+					testCheckSecretExistsWithEncryptedData("streamnative_secret.test-secret", stringData),
 				),
 			},
 		},
@@ -141,7 +141,7 @@ func TestSecretUpdate(t *testing.T) {
 			{
 				Config: testResourceDataSourceSecretWithParams("sndev", "terraform-test-secret-update", nil, updatedStringData, updatedType, updatedInstance),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckSecretState("streamnative_secret.test-secret", updatedStringData, &updatedType, &updatedInstance),
+					testCheckSecretStateWithEncryptedData("streamnative_secret.test-secret", updatedStringData, &updatedType, &updatedInstance),
 				),
 			},
 		},
@@ -175,6 +175,14 @@ func testCheckSecretDestroy(s *terraform.State) error {
 }
 
 func testCheckSecretExists(name string, expectedData map[string]string) resource.TestCheckFunc {
+	return testCheckSecretExistsWithEncryption(name, expectedData, false)
+}
+
+func testCheckSecretExistsWithEncryptedData(name string, expectedData map[string]string) resource.TestCheckFunc {
+	return testCheckSecretExistsWithEncryption(name, expectedData, true)
+}
+
+func testCheckSecretExistsWithEncryption(name string, expectedData map[string]string, encrypted bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -195,13 +203,8 @@ func testCheckSecretExists(name string, expectedData map[string]string) resource
 		if err != nil {
 			return err
 		}
-		if len(secret.Data) != len(expectedData) {
-			return fmt.Errorf("unexpected secret data length: got %d, expected %d", len(secret.Data), len(expectedData))
-		}
-		for k, v := range expectedData {
-			if secret.Data[k] != v {
-				return fmt.Errorf("secret data mismatch for key %q: got %q, expected %q", k, secret.Data[k], v)
-			}
+		if err := checkSecretData(secret.Data, expectedData, encrypted); err != nil {
+			return err
 		}
 		return nil
 	}
@@ -275,6 +278,14 @@ func buildHCLMap(values map[string]string) string {
 }
 
 func testCheckSecretState(name string, expectedData map[string]string, expectedType *string, expectedInstanceName *string) resource.TestCheckFunc {
+	return testCheckSecretStateWithEncryption(name, expectedData, expectedType, expectedInstanceName, false)
+}
+
+func testCheckSecretStateWithEncryptedData(name string, expectedData map[string]string, expectedType *string, expectedInstanceName *string) resource.TestCheckFunc {
+	return testCheckSecretStateWithEncryption(name, expectedData, expectedType, expectedInstanceName, true)
+}
+
+func testCheckSecretStateWithEncryption(name string, expectedData map[string]string, expectedType *string, expectedInstanceName *string, encryptedData bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -295,15 +306,8 @@ func testCheckSecretState(name string, expectedData map[string]string, expectedT
 		if err != nil {
 			return err
 		}
-		if expectedData != nil {
-			if len(secret.Data) != len(expectedData) {
-				return fmt.Errorf("unexpected secret data length: got %d, expected %d", len(secret.Data), len(expectedData))
-			}
-			for k, v := range expectedData {
-				if secret.Data[k] != v {
-					return fmt.Errorf("secret data mismatch for key %q: got %q, expected %q", k, secret.Data[k], v)
-				}
-			}
+		if err := checkSecretData(secret.Data, expectedData, encryptedData); err != nil {
+			return err
 		}
 		if expectedType != nil {
 			if secret.Type == nil {
@@ -320,4 +324,32 @@ func testCheckSecretState(name string, expectedData map[string]string, expectedT
 		}
 		return nil
 	}
+}
+
+func checkSecretData(secretData map[string]string, expectedData map[string]string, encrypted bool) error {
+	if expectedData == nil {
+		return nil
+	}
+	if len(secretData) != len(expectedData) {
+		return fmt.Errorf("unexpected secret data length: got %d, expected %d", len(secretData), len(expectedData))
+	}
+	for k, expected := range expectedData {
+		actual, ok := secretData[k]
+		if !ok {
+			return fmt.Errorf("secret data missing key %q", k)
+		}
+		if encrypted {
+			if actual == "" {
+				return fmt.Errorf("secret data missing encrypted value for key %q", k)
+			}
+			if actual == expected {
+				return fmt.Errorf("secret data for key %q is not encrypted", k)
+			}
+			continue
+		}
+		if actual != expected {
+			return fmt.Errorf("secret data mismatch for key %q: got %q, expected %q", k, actual, expected)
+		}
+	}
+	return nil
 }
