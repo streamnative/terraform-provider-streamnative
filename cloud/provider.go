@@ -217,7 +217,7 @@ func init() {
 		"principal_name":                "The principal name of apikey, it is the principal name of the service account that the apikey is associated with, it is used to grant permission on pulsar side",
 		"customized_metadata":           "The custom metadata in the api key token",
 		"enable_iam_account_creation":   "Whether to create an IAM account for the service account binding",
-		"aws_assume_role_arns":          "A list of AWS IAM roles' arn which can be assumed by the AWS IAM role created for the service account binding",
+		"aws_assume_role_arns":          "A list of AWS IAM role ARNs which can be assumed by the AWS IAM role created for the service account binding",
 	}
 }
 

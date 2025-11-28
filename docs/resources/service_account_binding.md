@@ -22,7 +22,7 @@ description: |-
 
 ### Optional
 
-- `aws_assume_role_arns` (List of String) A list of AWS IAM roles' arn which can be assumed by the AWS IAM role created for the service account binding
+- `aws_assume_role_arns` (List of String) A list of AWS IAM role ARNs which can be assumed by the AWS IAM role created for the service account binding
 - `cluster_name` (String) The pulsar cluster name
 - `enable_iam_account_creation` (Boolean) Whether to create an IAM account for the service account binding
 - `pool_member_name` (String) The infrastructure pool member name
