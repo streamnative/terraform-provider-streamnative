@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: Tests
-on: [ pull_request ]
+on: [pull_request]
 jobs:
   acctest:
     name: Run acceptance tests
@@ -53,8 +53,8 @@ jobs:
           sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
           echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
 
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Run Acceptance Tests for the Provider
         run: |
