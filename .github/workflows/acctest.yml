@@ -56,8 +56,16 @@ jobs:
 #      - name: Setup tmate session
 #        uses: mxschmitt/action-tmate@v3
 
-      - name: Run Acceptance Tests for the Provider
+      - name: Ready the environment
         run: |
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
           export KEY_FILE_PATH=$HOME/service_account.json
-          make testacc
+
+      - name: Run Acceptance Tests for the Provider
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 120
+          max_attempts: 3
+          retry_on: error
+          command: |
+            make testacc
