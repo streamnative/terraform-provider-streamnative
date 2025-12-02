@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: Tests
-on: [ pull_request ]
+on: [pull_request]
 jobs:
   acctest:
     name: Run acceptance tests
@@ -53,13 +53,12 @@ jobs:
           sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
           echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
 
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
+      #      - name: Setup tmate session
+      #        uses: mxschmitt/action-tmate@v3
 
       - name: Ready the environment
         run: |
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
-          export KEY_FILE_PATH=$HOME/service_account.json
 
       - name: Run Acceptance Tests for the Provider
         uses: nick-fields/retry@v2
@@ -68,4 +67,5 @@ jobs:
           max_attempts: 3
           retry_on: error
           command: |
+            export KEY_FILE_PATH=$HOME/service_account.json
             make testacc
