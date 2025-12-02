@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +34,7 @@ func TestSecret(t *testing.T) {
 		"username": "tf-user",
 		"password": "tf-password",
 	}
+	secretName := randomSecretName("terraform-test-secret")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -41,7 +43,7 @@ func TestSecret(t *testing.T) {
 		CheckDestroy:      testCheckSecretDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceDataSourceSecret("sndev", "terraform-test-secret", data),
+				Config: testResourceDataSourceSecret("sndev", secretName, data),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckSecretExists("streamnative_secret.test-secret", data),
 				),
@@ -55,6 +57,7 @@ func TestSecretStringData(t *testing.T) {
 		"username": "tf-user-string",
 		"password": "tf-password-string",
 	}
+	secretName := randomSecretName("terraform-test-secret-stringdata")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -63,7 +66,7 @@ func TestSecretStringData(t *testing.T) {
 		CheckDestroy:      testCheckSecretDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceDataSourceSecretWithStringData("sndev", "terraform-test-secret-stringdata", stringData),
+				Config: testResourceDataSourceSecretWithStringData("sndev", secretName, stringData),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckSecretExistsWithEncryptedData("streamnative_secret.test-secret", stringData),
 				),
@@ -76,6 +79,7 @@ func TestSecretRemovedExternally(t *testing.T) {
 	data := map[string]string{
 		"token": "removed-secret",
 	}
+	secretName := randomSecretName("terraform-test-secret-remove")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -84,7 +88,7 @@ func TestSecretRemovedExternally(t *testing.T) {
 		CheckDestroy:      testCheckSecretDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceDataSourceSecret("sndev", "terraform-test-secret-remove", data),
+				Config: testResourceDataSourceSecret("sndev", secretName, data),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckSecretExists("streamnative_secret.test-secret", data),
 				),
@@ -98,12 +102,12 @@ func TestSecretRemovedExternally(t *testing.T) {
 					}
 					err = clientSet.CloudV1alpha1().
 						Secrets("sndev").
-						Delete(context.Background(), "terraform-test-secret-remove", metav1.DeleteOptions{})
+						Delete(context.Background(), secretName, metav1.DeleteOptions{})
 					if err != nil && !apierrors.IsNotFound(err) {
 						t.Fatal(err)
 					}
 				},
-				Config:             testResourceDataSourceSecret("sndev", "terraform-test-secret-remove", data),
+				Config:             testResourceDataSourceSecret("sndev", secretName, data),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},
@@ -120,6 +124,7 @@ func TestSecretUpdate(t *testing.T) {
 		"username": "tf-user-updated",
 		"password": "tf-password-updated",
 	}
+	secretName := randomSecretName("terraform-test-secret-update")
 	initialType := "Opaque"
 	updatedType := "kubernetes.io/basic-auth"
 	initialInstance := "pulsar-instance-a"
@@ -133,13 +138,13 @@ func TestSecretUpdate(t *testing.T) {
 		CheckDestroy:      testCheckSecretDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testResourceDataSourceSecretWithParams("sndev", "terraform-test-secret-update", initialData, nil, initialType, initialInstance),
+				Config: testResourceDataSourceSecretWithParams("sndev", secretName, initialData, nil, initialType, initialInstance),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckSecretState("streamnative_secret.test-secret", initialData, &initialType, &initialInstance),
 				),
 			},
 			{
-				Config: testResourceDataSourceSecretWithParams("sndev", "terraform-test-secret-update", nil, updatedStringData, updatedType, updatedInstance),
+				Config: testResourceDataSourceSecretWithParams("sndev", secretName, nil, updatedStringData, updatedType, updatedInstance),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckSecretStateWithEncryptedData("streamnative_secret.test-secret", updatedStringData, &updatedType, &updatedInstance),
 				),
@@ -352,4 +357,8 @@ func checkSecretData(secretData map[string]string, expectedData map[string]strin
 		}
 	}
 	return nil
+}
+
+func randomSecretName(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
 }
