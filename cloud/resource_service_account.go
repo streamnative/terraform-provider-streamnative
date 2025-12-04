@@ -84,6 +84,7 @@ func resourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: descriptions["private_key_data"],
 				Computed:    true,
+				Sensitive:   true,
 			},
 		},
 		Timeouts: &schema.ResourceTimeout{
