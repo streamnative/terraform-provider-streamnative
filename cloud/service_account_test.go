@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +29,7 @@ import (
 )
 
 func TestServiceAccount(t *testing.T) {
+	serviceAccountName := randomServiceAccountName("terraform-test-service-account")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -37,7 +39,7 @@ func TestServiceAccount(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceServiceAccount(
-					"sndev", "terraform-test-service-account-b", true),
+					"sndev", serviceAccountName, true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
@@ -47,6 +49,7 @@ func TestServiceAccount(t *testing.T) {
 }
 
 func TestServiceAccountRemovedExternally(t *testing.T) {
+	serviceAccountName := randomServiceAccountName("terraform-test-service-account-remove")
 	// This test case is to simulate the situation that the service account is removed externally
 	// and the terraform state still has the resource
 	resource.Test(t, resource.TestCase{
@@ -58,7 +61,7 @@ func TestServiceAccountRemovedExternally(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testResourceDataSourceServiceAccount(
-					"sndev", "terraform-test-service-account-remove", true),
+					"sndev", serviceAccountName, true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountExists("streamnative_service_account.test-service-account"),
 				),
@@ -72,13 +75,13 @@ func TestServiceAccountRemovedExternally(t *testing.T) {
 					}
 					err = clientSet.CloudV1alpha1().
 						ServiceAccounts("sndev").
-						Delete(context.Background(), "terraform-test-service-account-remove", metav1.DeleteOptions{})
+						Delete(context.Background(), serviceAccountName, metav1.DeleteOptions{})
 					if err != nil {
 						t.Fatal(err)
 					}
 				},
 				Config: testResourceDataSourceServiceAccount(
-					"sndev", "terraform-test-service-account-remove", true),
+					"sndev", serviceAccountName, true),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},
@@ -160,4 +163,8 @@ data "streamnative_service_account" "test-service-account" {
   name = streamnative_service_account.test-service-account.name
 }
 `, organization, name, admin)
+}
+
+func randomServiceAccountName(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
 }
