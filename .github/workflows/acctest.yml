@@ -16,12 +16,14 @@ name: Tests
 on:
   pull_request:
   pull_request_target:
-    types: [labeled, synchronize]
+    types: [labeled]
 
 jobs:
   acctest:
     name: Run acceptance tests
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'ok-to-test'))
     runs-on: ubuntu-latest
     env:
       ACC_TEST_SERVICE_ACCOUNT: ${{ secrets.ACC_TEST_SERVICE_ACCOUNT }}
