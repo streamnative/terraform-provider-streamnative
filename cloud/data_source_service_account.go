@@ -63,6 +63,7 @@ func dataSourceServiceAccount() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: descriptions["private_key_data"],
 				Computed:    true,
+				Sensitive:   true,
 			},
 		},
 	}
