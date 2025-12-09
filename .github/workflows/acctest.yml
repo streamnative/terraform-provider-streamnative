@@ -13,10 +13,17 @@
 # limitations under the License.
 
 name: Tests
-on: [ pull_request ]
+on:
+  pull_request:
+  pull_request_target:
+    types: [labeled]
+
 jobs:
   acctest:
     name: Run acceptance tests
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'ok-to-test'))
     runs-on: ubuntu-latest
     env:
       ACC_TEST_SERVICE_ACCOUNT: ${{ secrets.ACC_TEST_SERVICE_ACCOUNT }}
@@ -27,6 +34,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Go
         uses: actions/setup-go@v3
@@ -53,11 +62,19 @@ jobs:
           sudo mv terraform-provider-streamnative $HOME/.terraform.d/plugins/linux_amd64/
           echo "The terraform-provider-streamnative location:" `readlink -f $HOME/.terraform.d/plugins/linux_amd64/`
 
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
+      #      - name: Setup tmate session
+      #        uses: mxschmitt/action-tmate@v3
 
-      - name: Run Acceptance Tests for the Provider
+      - name: Ready the environment
         run: |
           echo $ACC_TEST_SERVICE_ACCOUNT > $HOME/service_account.json
-          export KEY_FILE_PATH=$HOME/service_account.json
-          make testacc
+
+      - name: Run Acceptance Tests for the Provider
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 120
+          max_attempts: 3
+          retry_on: error
+          command: |
+            export KEY_FILE_PATH=$HOME/service_account.json
+            make testacc
