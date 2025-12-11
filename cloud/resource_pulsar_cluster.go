@@ -45,9 +45,6 @@ func resourcePulsarCluster() *schema.Resource {
 			oldOrg, _ := diff.GetChange("organization")
 			oldName, newName := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
-				// This is create event, so we don't need to check the diff.
-				// But we still need to check if bookie_replicas should be suppressed for serverless/ursa
-				suppressBookieForServerlessOrUrsa(ctx, diff, i)
 				// For serverless clusters, make lakehouse_storage_enabled computed
 				makeLakehouseStorageComputedForServerless(ctx, diff, i)
 				return nil
@@ -60,8 +57,6 @@ func resourcePulsarCluster() *schema.Resource {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 					"The pulsar cluster organization, name, instance_name, location, pool_member_name does not support updates, please recreate it")
 			}
-			// Suppress bookie_replicas changes for serverless or ursa clusters
-			suppressBookieForServerlessOrUrsa(ctx, diff, i)
 			// For serverless clusters, make lakehouse_storage_enabled computed
 			makeLakehouseStorageComputedForServerless(ctx, diff, i)
 			return nil
@@ -1397,94 +1392,6 @@ func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
 	}
 	return 0.5 // default value
-}
-
-// suppressBookieForServerlessOrUrsa suppresses bookie_replicas and storage_unit_per_bookie
-// changes for serverless or ursa clusters, and hides them in plan output
-func suppressBookieForServerlessOrUrsa(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) {
-	isServerless := false
-	isUrsa := false
-
-	// Get instance information to check type and ursa status
-	instanceName := diff.Get("instance_name").(string)
-	namespace := diff.Get("organization").(string)
-	if instanceName == "" || namespace == "" {
-		return
-	}
-
-	clientSet, err := getClientSet(getFactoryFromMeta(meta))
-	if err != nil {
-		// If we can't get client, skip suppression
-		return
-	}
-
-	pulsarInstance, err := clientSet.CloudV1alpha1().
-		PulsarInstances(namespace).
-		Get(ctx, instanceName, metav1.GetOptions{})
-	if err != nil {
-		// If we can't get instance, skip suppression
-		return
-	}
-
-	// Check if instance is serverless
-	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
-		isServerless = true
-	}
-
-	// Check if instance is ursa
-	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
-	if ok && ursaEngine == UrsaEngineValue {
-		isUrsa = true
-	}
-
-	// If serverless or ursa, suppress and hide bookie-related fields
-	if isServerless || isUrsa {
-		// Clear changes if any
-		if diff.HasChange("bookie_replicas") {
-			diff.Clear("bookie_replicas")
-		}
-		if diff.HasChange("storage_unit_per_bookie") {
-			diff.Clear("storage_unit_per_bookie")
-		}
-		if diff.HasChange("storage_unit") {
-			diff.Clear("storage_unit")
-		}
-
-		// Hide fields in plan by removing them from the diff for new resources
-		// This prevents them from showing up in terraform plan output
-		if diff.Id() == "" {
-			// This is a create operation, remove fields from diff to hide them
-			// For fields with default values, we need to check if they were explicitly set
-			// If not explicitly set, we can try to remove them from the diff
-			// However, for TypeInt and TypeFloat, we can't set to nil, so we use a workaround:
-			// Set them to their default values and rely on DiffSuppressFunc to suppress them
-			// But since DiffSuppressFunc already handles this, we just need to ensure
-			// the fields are not shown in the plan. The best way is to use SetNewComputed
-			// which marks them as "known after apply", but that still shows in plan.
-			// Instead, we'll use a different approach: set them to a sentinel value and suppress
-			// But actually, the DiffSuppressFunc should already handle this.
-			// The issue is that default values still show in plan even with DiffSuppressFunc.
-			// Let's try using SetNew to set them to nil (which may not work for TypeInt/Float)
-			// or use SetNewComputed which marks them as computed.
-			// Actually, the best approach is to use SetNewComputed which should work.
-			diff.SetNewComputed("bookie_replicas")
-			diff.SetNewComputed("storage_unit_per_bookie")
-			diff.SetNewComputed("storage_unit")
-		}
-	}
-}
-
-// isServerlessOrUrsa checks if the cluster type is serverless or if the instance is ursa
-// This is used in DiffSuppressFunc where we can only access schema.ResourceData
-func isServerlessOrUrsa(d *schema.ResourceData) bool {
-	// Check if type is serverless
-	clusterType := d.Get("type")
-	if clusterType == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
-		return true
-	}
-	// Note: We cannot check for ursa in DiffSuppressFunc because we don't have access to the instance
-	// Ursa checking is handled in CustomizeDiff via suppressBookieForServerlessOrUrsa
-	return false
 }
 
 // makeLakehouseStorageComputedForServerless makes lakehouse_storage_enabled computed for serverless clusters
