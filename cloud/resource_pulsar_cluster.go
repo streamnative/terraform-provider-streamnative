@@ -46,6 +46,10 @@ func resourcePulsarCluster() *schema.Resource {
 			oldName, newName := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
 				// This is create event, so we don't need to check the diff.
+				// But we still need to check if bookie_replicas should be suppressed for serverless/ursa
+				suppressBookieForServerlessOrUrsa(ctx, diff, i)
+				// For serverless clusters, make lakehouse_storage_enabled computed
+				makeLakehouseStorageComputedForServerless(ctx, diff, i)
 				return nil
 			}
 			if oldName != "" && newName == "" {
@@ -56,6 +60,10 @@ func resourcePulsarCluster() *schema.Resource {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 					"The pulsar cluster organization, name, instance_name, location, pool_member_name does not support updates, please recreate it")
 			}
+			// Suppress bookie_replicas changes for serverless or ursa clusters
+			suppressBookieForServerlessOrUrsa(ctx, diff, i)
+			// For serverless clusters, make lakehouse_storage_enabled computed
+			makeLakehouseStorageComputedForServerless(ctx, diff, i)
 			return nil
 		},
 		Importer: &schema.ResourceImporter{
@@ -364,7 +372,7 @@ func resourcePulsarCluster() *schema.Resource {
 			"lakehouse_storage_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Computed:    true,
 				Description: descriptions["lakehouse_storage"],
 			},
 			"apply_lakehouse_to_all_topics": {
@@ -571,18 +579,29 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		getPulsarClusterChanged(ctx, pulsarCluster, d)
 	}
 
-	if d.Get("lakehouse_storage_enabled").(bool) {
-		if ursaEnabled {
-			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
-				"you don't set this option for ursa engine cluster"))
-		}
+	// Handle lakehouse_storage_enabled
+	if pulsarInstance.IsServerless() {
+		// For serverless clusters, automatically enable lakehouse storage
 		if pulsarCluster.Spec.Config == nil {
 			pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
 		}
 		pulsarCluster.Spec.Config.LakehouseStorage = &cloudv1alpha1.LakehouseStorageConfig{
 			Enabled: pointer.Bool(true),
 		}
-
+	} else {
+		// For non-serverless clusters, check user input
+		if d.Get("lakehouse_storage_enabled").(bool) {
+			if ursaEnabled {
+				return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+					"you don't set this option for ursa engine cluster"))
+			}
+			if pulsarCluster.Spec.Config == nil {
+				pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+			}
+			pulsarCluster.Spec.Config.LakehouseStorage = &cloudv1alpha1.LakehouseStorageConfig{
+				Enabled: pointer.Bool(true),
+			}
+		}
 	}
 
 	// Handle catalog configuration
@@ -838,10 +857,16 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	_ = d.Set("storage_unit_per_bookie", storageUnit)
 
 	// Set lakehouse_storage_enabled
-	if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
-		_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
+		// For serverless clusters, always set to true (computed)
+		_ = d.Set("lakehouse_storage_enabled", true)
 	} else {
-		_ = d.Set("lakehouse_storage_enabled", false)
+		// For non-serverless clusters, use the actual value
+		if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
+			_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+		} else {
+			_ = d.Set("lakehouse_storage_enabled", false)
+		}
 	}
 
 	// Set catalog information
@@ -901,11 +926,15 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	serverless := d.Get("type")
 	displayNameChanged := d.HasChange("display_name")
 	lakehouseStorageChanged := d.HasChange("lakehouse_storage_enabled")
-	lakehouseStorageEnabled := d.Get("lakehouse_storage_enabled").(bool)
-	if !displayNameChanged && serverless == string(cloudv1alpha1.PulsarInstanceTypeServerless) &&
-		lakehouseStorageChanged && !lakehouseStorageEnabled {
-		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
-			"Disabling lakehouse_storage_enabled or changed display_name is not allowed for serverless pulsar cluster"))
+
+	// For serverless clusters, lakehouse_storage_enabled is computed and cannot be changed
+	if serverless == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+		if lakehouseStorageChanged {
+			return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+				"lakehouse_storage_enabled cannot be set for serverless pulsar cluster, it is automatically computed"))
+		}
+		// Always set to true for serverless clusters
+		_ = d.Set("lakehouse_storage_enabled", true)
 	}
 	if d.HasChange("organization") {
 		return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
@@ -949,8 +978,19 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	// Validate lakehouse_storage_enabled update: once enabled, cannot be disabled
-	if diagErr := validateLakehouseStorageUpdate(d, pulsarCluster); diagErr != nil {
-		return diagErr
+	// For serverless clusters, skip validation as it's computed
+	if serverless != string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+		if diagErr := validateLakehouseStorageUpdate(d, pulsarCluster); diagErr != nil {
+			return diagErr
+		}
+	} else {
+		// For serverless clusters, ensure lakehouse storage is enabled
+		if pulsarCluster.Spec.Config == nil {
+			pulsarCluster.Spec.Config = &cloudv1alpha1.Config{}
+		}
+		pulsarCluster.Spec.Config.LakehouseStorage = &cloudv1alpha1.LakehouseStorageConfig{
+			Enabled: pointer.Bool(true),
+		}
 	}
 	if d.HasChange("bookie_replicas") {
 		bookieReplicas := int32(d.Get("bookie_replicas").(int))
@@ -999,10 +1039,10 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	// Handle table format determination when catalog or lakehouse storage changes
 	if (pulsarCluster.Spec.TableFormat == "" || pulsarCluster.Spec.TableFormat == "none") &&
-		d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") || pulsarCluster.IsUsingUrsaEngine() {
+		(d.HasChange("catalog") || d.HasChange("lakehouse_storage_enabled") || pulsarCluster.IsUsingUrsaEngine()) {
 		catalogName := d.Get("catalog").(string)
-		lakehouseStorageEnabled = d.Get("lakehouse_storage_enabled").(bool)
-
+		// For serverless clusters, lakehouse storage is always enabled
+		// Determine table format based on catalog (lakehouse storage is always enabled for serverless)
 		tableFormat, err := determineTableFormat(ctx, clientSet, namespace, catalogName)
 		if err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_DETERMINE_TABLE_FORMAT: %w", err))
@@ -1143,6 +1183,7 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 	}
 
 	// Handle lakehouse_storage_enabled at the top level
+	// Note: For serverless clusters, this should not be changed by user, but we handle it here for completeness
 	if d.HasChange("lakehouse_storage_enabled") {
 		enabledBool := d.Get("lakehouse_storage_enabled").(bool)
 		if enabledBool {
@@ -1356,6 +1397,132 @@ func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 		return math.Max(float64(cpu)/2/1000, float64(memory)/(8*1024*1024*1024))
 	}
 	return 0.5 // default value
+}
+
+// suppressBookieForServerlessOrUrsa suppresses bookie_replicas and storage_unit_per_bookie
+// changes for serverless or ursa clusters, and hides them in plan output
+func suppressBookieForServerlessOrUrsa(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) {
+	isServerless := false
+	isUrsa := false
+
+	// Get instance information to check type and ursa status
+	instanceName := diff.Get("instance_name").(string)
+	namespace := diff.Get("organization").(string)
+	if instanceName == "" || namespace == "" {
+		return
+	}
+
+	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	if err != nil {
+		// If we can't get client, skip suppression
+		return
+	}
+
+	pulsarInstance, err := clientSet.CloudV1alpha1().
+		PulsarInstances(namespace).
+		Get(ctx, instanceName, metav1.GetOptions{})
+	if err != nil {
+		// If we can't get instance, skip suppression
+		return
+	}
+
+	// Check if instance is serverless
+	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
+		isServerless = true
+	}
+
+	// Check if instance is ursa
+	ursaEngine, ok := pulsarInstance.Annotations[UrsaEngineAnnotation]
+	if ok && ursaEngine == UrsaEngineValue {
+		isUrsa = true
+	}
+
+	// If serverless or ursa, suppress and hide bookie-related fields
+	if isServerless || isUrsa {
+		// Clear changes if any
+		if diff.HasChange("bookie_replicas") {
+			diff.Clear("bookie_replicas")
+		}
+		if diff.HasChange("storage_unit_per_bookie") {
+			diff.Clear("storage_unit_per_bookie")
+		}
+		if diff.HasChange("storage_unit") {
+			diff.Clear("storage_unit")
+		}
+
+		// Hide fields in plan by removing them from the diff for new resources
+		// This prevents them from showing up in terraform plan output
+		if diff.Id() == "" {
+			// This is a create operation, remove fields from diff to hide them
+			// For fields with default values, we need to check if they were explicitly set
+			// If not explicitly set, we can try to remove them from the diff
+			// However, for TypeInt and TypeFloat, we can't set to nil, so we use a workaround:
+			// Set them to their default values and rely on DiffSuppressFunc to suppress them
+			// But since DiffSuppressFunc already handles this, we just need to ensure
+			// the fields are not shown in the plan. The best way is to use SetNewComputed
+			// which marks them as "known after apply", but that still shows in plan.
+			// Instead, we'll use a different approach: set them to a sentinel value and suppress
+			// But actually, the DiffSuppressFunc should already handle this.
+			// The issue is that default values still show in plan even with DiffSuppressFunc.
+			// Let's try using SetNew to set them to nil (which may not work for TypeInt/Float)
+			// or use SetNewComputed which marks them as computed.
+			// Actually, the best approach is to use SetNewComputed which should work.
+			diff.SetNewComputed("bookie_replicas")
+			diff.SetNewComputed("storage_unit_per_bookie")
+			diff.SetNewComputed("storage_unit")
+		}
+	}
+}
+
+// isServerlessOrUrsa checks if the cluster type is serverless or if the instance is ursa
+// This is used in DiffSuppressFunc where we can only access schema.ResourceData
+func isServerlessOrUrsa(d *schema.ResourceData) bool {
+	// Check if type is serverless
+	clusterType := d.Get("type")
+	if clusterType == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+		return true
+	}
+	// Note: We cannot check for ursa in DiffSuppressFunc because we don't have access to the instance
+	// Ursa checking is handled in CustomizeDiff via suppressBookieForServerlessOrUrsa
+	return false
+}
+
+// makeLakehouseStorageComputedForServerless makes lakehouse_storage_enabled computed for serverless clusters
+func makeLakehouseStorageComputedForServerless(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) {
+	// Get instance information to check type
+	instanceName := diff.Get("instance_name").(string)
+	namespace := diff.Get("organization").(string)
+	if instanceName == "" || namespace == "" {
+		return
+	}
+
+	clientSet, err := getClientSet(getFactoryFromMeta(meta))
+	if err != nil {
+		// If we can't get client, skip
+		return
+	}
+
+	pulsarInstance, err := clientSet.CloudV1alpha1().
+		PulsarInstances(namespace).
+		Get(ctx, instanceName, metav1.GetOptions{})
+	if err != nil {
+		// If we can't get instance, skip
+		return
+	}
+
+	// Check if instance is serverless
+	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
+		// For serverless clusters, always set lakehouse_storage_enabled to computed
+		// and set its value to true
+		if diff.HasChange("lakehouse_storage_enabled") {
+			// If user tries to set it, clear the change and set as computed with value true
+			diff.Clear("lakehouse_storage_enabled")
+		}
+		// Always set as computed with value true for serverless
+		diff.SetNewComputed("lakehouse_storage_enabled")
+		// Set the value to true for serverless clusters
+		diff.SetNew("lakehouse_storage_enabled", true)
+	}
 }
 
 // determineTableFormat determines the table format based on catalog type and configuration

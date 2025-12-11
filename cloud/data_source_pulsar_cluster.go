@@ -430,10 +430,16 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	_ = d.Set("instance_name", pulsarInstance.Name)
 
 	// Set lakehouse_storage_enabled
-	if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
-		_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
+		// For serverless clusters, always set to true (computed)
+		_ = d.Set("lakehouse_storage_enabled", true)
 	} else {
-		_ = d.Set("lakehouse_storage_enabled", false)
+		// For non-serverless clusters, use the actual value
+		if pulsarCluster.Spec.Config != nil && pulsarCluster.Spec.Config.LakehouseStorage != nil && pulsarCluster.Spec.Config.LakehouseStorage.Enabled != nil {
+			_ = d.Set("lakehouse_storage_enabled", *pulsarCluster.Spec.Config.LakehouseStorage.Enabled)
+		} else {
+			_ = d.Set("lakehouse_storage_enabled", false)
+		}
 	}
 
 	// Set catalog information
