@@ -17,11 +17,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -69,6 +69,19 @@ func dataSourceServiceAccountBinding() *schema.Resource {
 				Description: descriptions["pool_member_namespace"],
 				Computed:    true,
 			},
+			"enable_iam_account_creation": {
+				Type:        schema.TypeBool,
+				Description: descriptions["enable_iam_account_creation"],
+				Computed:    true,
+			},
+			"aws_assume_role_arns": {
+				Type:        schema.TypeList,
+				Description: descriptions["aws_assume_role_arns"],
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -93,6 +106,8 @@ func DataSourceServiceAccountBindingRead(ctx context.Context, d *schema.Resource
 	_ = d.Set("service_account_name", serviceAccountBinding.Spec.ServiceAccountName)
 	_ = d.Set("pool_member_name", serviceAccountBinding.Spec.PoolMemberRef.Name)
 	_ = d.Set("pool_member_namespace", serviceAccountBinding.Spec.PoolMemberRef.Namespace)
+	_ = d.Set("enable_iam_account_creation", serviceAccountBinding.Spec.EnableIAMAccountCreation)
+	_ = d.Set("aws_assume_role_arns", flattenStringSlice(serviceAccountBinding.Spec.AWSAssumeRoleARNs))
 	d.SetId(fmt.Sprintf("%s/%s", serviceAccountBinding.Namespace, serviceAccountBinding.Name))
 
 	return nil
