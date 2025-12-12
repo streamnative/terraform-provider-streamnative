@@ -147,7 +147,9 @@ func testCheckServiceAccountBindingExists(name string) resource.TestCheckFunc {
 			return err
 		}
 		length := len(serviceAccountBinding.Status.Conditions)
-		if serviceAccountBinding.Status.Conditions[length-1].Type != "Ready" {
+		// the IAM
+		if serviceAccountBinding.Status.Conditions[0].Type != "IAMAccountReady" || serviceAccountBinding.Status.Conditions[0].Status != "True" ||
+			serviceAccountBinding.Status.Conditions[length-1].Type != "Ready" || serviceAccountBinding.Status.Conditions[length-1].Status != "True" {
 			return fmt.Errorf(`ERROR_RESOURCE_SERVICE_ACCOUNT_BINDING_NOT_READY: "%s"`, rs.Primary.ID)
 		}
 		return nil
@@ -185,7 +187,14 @@ resource "streamnative_service_account_binding" "test-service-account-binding" {
 	organization = "%s"
 	service_account_name = streamnative_service_account.test-service-account.name
     cluster_name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+    enable_iam_account_creation = true
 }
 
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name, true)
+data "streamnative_service_account_binding" "test-service-account-binding" {
+  depends_on = [streamnative_service_account_binding.test-service-account-binding]
+  organization = streamnative_service_account_binding.test-service-account-binding.organization
+  name         = streamnative_service_account_binding.test-service-account-binding.name
+}
+
+`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name, true, organization)
 }
