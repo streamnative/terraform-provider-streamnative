@@ -17,6 +17,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var saGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
 
 func TestServiceAccountBinding(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -38,10 +41,9 @@ func TestServiceAccountBinding(t *testing.T) {
 			{
 				Config: testResourceDataSourceServiceAccountBinding(
 					"sndev",
-					clusterGeneratedName,
-					"shared-gcp-prod",
-					"streamnative",
-					"us-central1", "rapid"),
+					saGeneratedName,
+					"gcp-shared-usc1-test",
+					"streamnative"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountBindingExists("streamnative_service_account_binding.test-service-account-binding"),
 				),
@@ -63,10 +65,9 @@ func TestServiceAccountBindingRemovedExternally(t *testing.T) {
 			{
 				Config: testResourceDataSourceServiceAccountBinding(
 					"sndev",
-					clusterGeneratedName,
-					"shared-gcp-prod",
-					"streamnative",
-					"us-central1", "rapid"),
+					saGeneratedName,
+					"gcp-shared-usc1-test",
+					"streamnative"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckServiceAccountBindingExists("streamnative_service_account_binding.test-service-account-binding"),
 				),
@@ -87,10 +88,9 @@ func TestServiceAccountBindingRemovedExternally(t *testing.T) {
 				},
 				Config: testResourceDataSourceServiceAccountBinding(
 					"sndev",
-					clusterGeneratedName,
-					"shared-gcp-prod",
-					"streamnative",
-					"us-central1", "rapid"),
+					saGeneratedName,
+					"gcp-shared-usc1-test",
+					"streamnative"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},
@@ -156,25 +156,9 @@ func testCheckServiceAccountBindingExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testResourceDataSourceServiceAccountBinding(organization, name, poolName, poolNamespace, location, releaseChannel string) string {
+func testResourceDataSourceServiceAccountBinding(organization, name, poolMemberName, poolMemberNamespace string) string {
 	return fmt.Sprintf(`
 provider "streamnative" {
-}
-resource "streamnative_pulsar_instance" "test-pulsar-instance" {
-	organization = "%s"
-	name = "%s"
-	availability_mode = "zonal"
-	pool_name = "%s"
-	pool_namespace = "%s"
-	type = "dedicated"
-}
-resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
-	organization = "%s"
-	name = "%s"
-	instance_name = "%s"
-	location = "%s"
-	release_channel = "%s"
-	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
 }
 
 resource "streamnative_service_account" "test-service-account" {
@@ -186,7 +170,8 @@ resource "streamnative_service_account" "test-service-account" {
 resource "streamnative_service_account_binding" "test-service-account-binding" {
 	organization = "%s"
 	service_account_name = streamnative_service_account.test-service-account.name
-    cluster_name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+    pool_member_name = "%s"
+    pool_member_namespace = "%s"
     enable_iam_account_creation = true
 }
 
@@ -196,5 +181,5 @@ data "streamnative_service_account_binding" "test-service-account-binding" {
   name         = streamnative_service_account_binding.test-service-account-binding.name
 }
 
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel, organization, name, true, organization)
+`, organization, name, true, organization, poolMemberName, poolMemberNamespace)
 }
