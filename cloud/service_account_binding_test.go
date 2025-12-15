@@ -81,7 +81,7 @@ func TestServiceAccountBindingRemovedExternally(t *testing.T) {
 					}
 					err = clientSet.CloudV1alpha1().
 						ServiceAccountBindings("sndev").
-						Delete(context.Background(), clusterGeneratedName+".streamnative.gcp-shared-usc1-test", metav1.DeleteOptions{})
+						Delete(context.Background(), saGeneratedName+".streamnative.gcp-shared-usc1-test", metav1.DeleteOptions{})
 					if err != nil {
 						t.Fatal(err)
 					}
