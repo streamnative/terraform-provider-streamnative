@@ -20,12 +20,11 @@ import (
 	"strings"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -99,6 +98,19 @@ func resourceServiceAccountBinding() *schema.Resource {
 				Computed:    true,
 				Optional:    true,
 			},
+			"enable_iam_account_creation": {
+				Type:        schema.TypeBool,
+				Description: descriptions["enable_iam_account_creation"],
+				Optional:    true,
+			},
+			"aws_assume_role_arns": {
+				Type:        schema.TypeList,
+				Description: descriptions["aws_assume_role_arns"],
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -112,6 +124,12 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 	if poolMemberName == "" && poolMemberNamespace == "" && clusterName == "" {
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_SERVICE_ACCOUNT_BINDING: " +
 			"either (pool_member_name & pool_member_namespace) or cluster_name must be provided"))
+	}
+	enableIAMAccountCreation := d.Get("enable_iam_account_creation").(bool)
+	awsAssumeRoleARNRawList := d.Get("aws_assume_role_arns").([]interface{})
+	awsAssumeRoleARNs := make([]string, len(awsAssumeRoleARNRawList))
+	for i, v := range awsAssumeRoleARNRawList {
+		awsAssumeRoleARNs[i] = v.(string)
 	}
 
 	clientSet, err := getClientSet(getFactoryFromMeta(meta))
@@ -145,6 +163,8 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 				Name:      poolMemberName,
 				Namespace: poolMemberNamespace,
 			},
+			EnableIAMAccountCreation: enableIAMAccountCreation,
+			AWSAssumeRoleARNs:        awsAssumeRoleARNs,
 		},
 	}
 	serviceAccountBinding, err := clientSet.CloudV1alpha1().ServiceAccountBindings(namespace).Create(ctx, sab, metav1.CreateOptions{
@@ -188,6 +208,8 @@ func resourceServiceAccountBindingRead(ctx context.Context, d *schema.ResourceDa
 	_ = d.Set("service_account_name", serviceAccountBinding.Spec.ServiceAccountName)
 	_ = d.Set("pool_member_name", serviceAccountBinding.Spec.PoolMemberRef.Name)
 	_ = d.Set("pool_member_namespace", serviceAccountBinding.Spec.PoolMemberRef.Namespace)
+	_ = d.Set("enable_iam_account_creation", serviceAccountBinding.Spec.EnableIAMAccountCreation)
+	_ = d.Set("aws_assume_role_arns", flattenStringSlice(serviceAccountBinding.Spec.AWSAssumeRoleARNs))
 	d.SetId(fmt.Sprintf("%s/%s", serviceAccountBinding.Namespace, serviceAccountBinding.Name))
 
 	return nil
