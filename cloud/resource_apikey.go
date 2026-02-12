@@ -345,6 +345,14 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(fmt.Errorf("ERROR_SET_ORGANIZATION: %w", err))
 	}
 
+	if err = d.Set("service_account_name", apiKey.Spec.ServiceAccountName); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_SERVICE_ACCOUNT_NAME: %w", err))
+	}
+
+	if err = d.Set("instance_name", apiKey.Spec.InstanceName); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_INSTANCE_NAME: %w", err))
+	}
+
 	if apiKey.Spec.CustomizedMetadata != nil && len(apiKey.Spec.CustomizedMetadata) > 0 {
 		if err = d.Set("customized_metadata", apiKey.Spec.CustomizedMetadata); err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_SET_CUSTOMIZED_METADATA: %w", err))
@@ -373,8 +381,8 @@ func resourceApiKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 					return diag.FromErr(fmt.Errorf("ERROR_SET_READY: %w", err))
 				}
 
-				privateKey := d.Get("private_key")
-				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil {
+				privateKey, ok := d.GetOk("private_key")
+				if apiKey.Status.EncryptedToken.JWE != nil && privateKey != nil && ok {
 					data, err := base64.StdEncoding.DecodeString(d.Get("private_key").(string))
 					if err != nil {
 						return diag.FromErr(fmt.Errorf("ERROR_DECODE_PRIVATE_KEY: %w", err))
