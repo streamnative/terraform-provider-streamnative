@@ -36,31 +36,31 @@ resource "streamnative_rolebinding" "basic_role_binding_2" {
   user_names = ["user-1"]
 }
 
-resource "streamnative_rolebinding" "conditional_role_binding_resource_names" {
+resource "streamnative_rolebinding" "tenant_admin_role_binding" {
   organization      = "o-y8z75"
-  name              = "conditional_role_binding_resource_names"
+  name              = "tenant_admin_role_binding"
   cluster_role_name = "tenant-admin"
   user_names = ["user-2"]
-  condition_resource_names {
-    instance = "instance-1"
-    cluster  = "cluster-1"
-    tenant   = "tenant-1"
-  }
-  condition_resource_names {
-    instance = "instance-2"
-    cluster  = "cluster-2"
-    tenant   = "tenant-2"
+  resource_name_restriction {
+    common_instance = "instance-1"
+    common_cluster  = "cluster-1"
+    common_tenant   = "tenant-1"
   }
 }
 
-resource "streamnative_rolebinding" "conditional_role_binding_cel" {
-  name              = "conditional_role_binding_cel"
+resource "streamnative_rolebinding" "topic_producer_role_binding" {
+  name              = "topic_producer_role_binding"
   organization      = "o-y8z75"
   cluster_role_name = "topic-producer"
   service_account_names = ["serviceaccount-3"]
-  condition_cel     = "srn.instance == 'instance-1' && srn.cluster == 'cluster-1' && srn.tenant == 'tenant-1' && srn.namespace == 'ns-1' && srn.topic_name == 'tp-1'"
+  resource_name_restriction {
+    common_instance     = "instance-1"
+    common_cluster      = "cluster-1"
+    common_tenant       = "tenant-1"
+    common_namespace    = "ns-1"
+    common_topic        = "tp-1"
+  }
 }
-
 
 resource "streamnative_rolebinding" "rb_resource_name_restriction" {
   name         = "rb_resource_name_restriction"
@@ -90,23 +90,23 @@ data "streamnative_rolebinding" "basic_role_binding" {
   name         = streamnative_rolebinding.basic_role_binding_2.name
 }
 
-data "streamnative_rolebinding" "conditional_role_binding_resource_names" {
-  depends_on = [streamnative_rolebinding.conditional_role_binding_resource_names]
-  organization = streamnative_rolebinding.conditional_role_binding_resource_names.organization
-  name         = streamnative_rolebinding.conditional_role_binding_resource_names.name
+data "streamnative_rolebinding" "tenant_admin_role_binding" {
+  depends_on = [streamnative_rolebinding.tenant_admin_role_binding]
+  organization = streamnative_rolebinding.tenant_admin_role_binding.organization
+  name         = streamnative_rolebinding.tenant_admin_role_binding.name
 }
 
-data "streamnative_rolebinding" "conditional_role_binding_cel" {
-  depends_on = [streamnative_rolebinding.conditional_role_binding_cel]
-  organization = streamnative_rolebinding.conditional_role_binding_cel.organization
-  name         = streamnative_rolebinding.conditional_role_binding_cel.name
+data "streamnative_rolebinding" "topic_producer_role_binding" {
+  depends_on = [streamnative_rolebinding.topic_producer_role_binding]
+  organization = streamnative_rolebinding.topic_producer_role_binding.organization
+  name         = streamnative_rolebinding.topic_producer_role_binding.name
 }
 
 output "streamnative_rolebindings" {
   value = [
     data.streamnative_rolebinding.basic_role_binding,
-    data.streamnative_rolebinding.conditional_role_binding_cel,
-    data.streamnative_rolebinding.conditional_role_binding_resource_names,
+    data.streamnative_rolebinding.tenant_admin_role_binding,
+    data.streamnative_rolebinding.topic_producer_role_binding,
     data.streamnative_rolebinding.rb_resource_name_restriction
   ]
 }
