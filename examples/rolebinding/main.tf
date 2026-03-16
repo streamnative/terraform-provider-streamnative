@@ -36,6 +36,32 @@ resource "streamnative_rolebinding" "basic_role_binding_2" {
   user_names = ["user-1"]
 }
 
+resource "streamnative_rolebinding" "tenant_admin_role_binding" {
+  organization      = "o-y8z75"
+  name              = "tenant_admin_role_binding"
+  cluster_role_name = "tenant-admin"
+  user_names = ["user-2"]
+  resource_name_restriction {
+    common_instance = "instance-1"
+    common_cluster  = "cluster-1"
+    common_tenant   = "tenant-1"
+  }
+}
+
+resource "streamnative_rolebinding" "topic_producer_role_binding" {
+  name              = "topic_producer_role_binding"
+  organization      = "o-y8z75"
+  cluster_role_name = "topic-producer"
+  service_account_names = ["serviceaccount-3"]
+  resource_name_restriction {
+    common_instance     = "instance-1"
+    common_cluster      = "cluster-1"
+    common_tenant       = "tenant-1"
+    common_namespace    = "ns-1"
+    common_topic        = "tp-1"
+  }
+}
+
 resource "streamnative_rolebinding" "rb_resource_name_restriction" {
   name         = "rb_resource_name_restriction"
   organization = "o-y8z75"
@@ -64,9 +90,23 @@ data "streamnative_rolebinding" "basic_role_binding" {
   name         = streamnative_rolebinding.basic_role_binding_2.name
 }
 
+data "streamnative_rolebinding" "tenant_admin_role_binding" {
+  depends_on = [streamnative_rolebinding.tenant_admin_role_binding]
+  organization = streamnative_rolebinding.tenant_admin_role_binding.organization
+  name         = streamnative_rolebinding.tenant_admin_role_binding.name
+}
+
+data "streamnative_rolebinding" "topic_producer_role_binding" {
+  depends_on = [streamnative_rolebinding.topic_producer_role_binding]
+  organization = streamnative_rolebinding.topic_producer_role_binding.organization
+  name         = streamnative_rolebinding.topic_producer_role_binding.name
+}
+
 output "streamnative_rolebindings" {
   value = [
     data.streamnative_rolebinding.basic_role_binding,
+    data.streamnative_rolebinding.tenant_admin_role_binding,
+    data.streamnative_rolebinding.topic_producer_role_binding,
     data.streamnative_rolebinding.rb_resource_name_restriction
   ]
 }
