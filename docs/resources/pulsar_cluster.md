@@ -39,6 +39,7 @@ description: |-
 - `release_channel` (String) The release channel of the pulsar cluster subscribe to, it must to be lts or rapid, default rapid
 - `storage_unit` (Number, Deprecated) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
 - `storage_unit_per_bookie` (Number) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `volume` (String) The name of the volume
 
 ### Read-Only
@@ -113,3 +114,12 @@ Optional:
 
 - `duration` (String) Duration of the maintenance window in Go duration format (e.g., "2h0m0s", "30m0s", "1h30m0s")
 - `start_time` (String) Start time of the maintenance window
+
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
