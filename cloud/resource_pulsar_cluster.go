@@ -931,11 +931,41 @@ func setPulsarClusterIdentityState(d *schema.ResourceData, pulsarCluster *cloudv
 	if err := d.Set("instance_name", pulsarCluster.Spec.InstanceName); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_INSTANCE_NAME: %w", err))
 	}
-	if err := d.Set("location", pulsarCluster.Spec.Location); err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_SET_LOCATION: %w", err))
-	}
-	if err := d.Set("pool_member_name", pulsarCluster.Spec.PoolMemberRef.Name); err != nil {
-		return diag.FromErr(fmt.Errorf("ERROR_SET_POOL_MEMBER_NAME: %w", err))
+
+	currentPoolMemberName := d.Get("pool_member_name").(string)
+	currentLocation := d.Get("location").(string)
+	remotePoolMemberName := pulsarCluster.Spec.PoolMemberRef.Name
+	remoteLocation := pulsarCluster.Spec.Location
+
+	switch {
+	case currentPoolMemberName != "":
+		if err := d.Set("location", ""); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CLEAR_LOCATION: %w", err))
+		}
+		if err := d.Set("pool_member_name", remotePoolMemberName); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_POOL_MEMBER_NAME: %w", err))
+		}
+	case currentLocation != "":
+		if err := d.Set("location", remoteLocation); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_LOCATION: %w", err))
+		}
+		if err := d.Set("pool_member_name", ""); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CLEAR_POOL_MEMBER_NAME: %w", err))
+		}
+	case remoteLocation != "":
+		if err := d.Set("location", remoteLocation); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_LOCATION: %w", err))
+		}
+		if err := d.Set("pool_member_name", ""); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CLEAR_POOL_MEMBER_NAME: %w", err))
+		}
+	default:
+		if err := d.Set("location", ""); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CLEAR_LOCATION: %w", err))
+		}
+		if err := d.Set("pool_member_name", remotePoolMemberName); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_POOL_MEMBER_NAME: %w", err))
+		}
 	}
 	return nil
 }
