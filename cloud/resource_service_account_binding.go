@@ -174,11 +174,20 @@ func resourceServiceAccountBindingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(fmt.Errorf("ERROR_CREATE_SERVICE_ACCOUNT_BINDING: %w", err))
 	}
 	_ = d.Set("name", serviceAccountBinding.Name)
-	// Don't retry too frequently to avoid affecting the api-server.
-	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		serviceAccountBinding, err := clientSet.CloudV1alpha1().ServiceAccountBindings(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return retry.RetryableError(fmt.Errorf("CONTINUE_RETRY_CREATE_SERVICE_ACCOUNT_BINDING"))
+			}
+			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT_BINDING: %w", err))
+		}
+		if !isServiceAccountBindingReady(serviceAccountBinding) {
+			return retry.RetryableError(fmt.Errorf("CONTINUE_RETRY_CREATE_SERVICE_ACCOUNT_BINDING"))
+		}
 		dia := resourceServiceAccountBindingRead(ctx, d, meta)
 		if dia.HasError() {
-			return retry.NonRetryableError(fmt.Errorf("ERROR_RETRY_CREATE_SERVICE_ACCOUNT_BINDING: %s", dia[0].Summary))
+			return retry.NonRetryableError(fmt.Errorf("ERROR_READ_SERVICE_ACCOUNT_BINDING: %s", dia[0].Summary))
 		}
 		return nil
 	})
@@ -233,4 +242,18 @@ func resourceServiceAccountBindingDelete(ctx context.Context, d *schema.Resource
 func resourceServiceAccountBindingUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("ERROR_UPDATE_SERVICE_ACCOUNT_BINDING: " +
 		"The service account binding does not support updates, please recreate it"))
+}
+
+func isServiceAccountBindingReady(serviceAccountBinding *v1alpha1.ServiceAccountBinding) bool {
+	iamReady := !serviceAccountBinding.Spec.EnableIAMAccountCreation
+	ready := false
+	for _, condition := range serviceAccountBinding.Status.Conditions {
+		if condition.Type == "IAMAccountReady" && condition.Status == "True" {
+			iamReady = true
+		}
+		if condition.Type == "Ready" && condition.Status == "True" {
+			ready = true
+		}
+	}
+	return iamReady && ready
 }

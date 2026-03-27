@@ -95,6 +95,11 @@ func TestPulsarClusterWithMaintenanceWindow(t *testing.T) {
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
 				),
 			},
 		},
@@ -154,6 +159,11 @@ func TestPulsarClusterRemoveMaintenanceWindow(t *testing.T) {
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
 				),
 			},
 			{
@@ -189,6 +199,11 @@ func TestPulsarClusterUpdateMaintenanceWindow(t *testing.T) {
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
 				),
 			},
 			{
@@ -224,6 +239,11 @@ func TestPulsarClusterMaintenanceWindowConfigDrift(t *testing.T) {
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
 				),
 			},
 			{
@@ -258,6 +278,11 @@ func TestPulsarClusterConfigDrift(t *testing.T) {
 					"us-central1", "rapid"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
 				),
 			},
 			{

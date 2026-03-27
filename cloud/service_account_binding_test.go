@@ -146,10 +146,7 @@ func testCheckServiceAccountBindingExists(name string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		length := len(serviceAccountBinding.Status.Conditions)
-		// the IAM
-		if serviceAccountBinding.Status.Conditions[0].Type != "IAMAccountReady" || serviceAccountBinding.Status.Conditions[0].Status != "True" ||
-			serviceAccountBinding.Status.Conditions[length-1].Type != "Ready" || serviceAccountBinding.Status.Conditions[length-1].Status != "True" {
+		if !isServiceAccountBindingReady(serviceAccountBinding) {
 			return fmt.Errorf(`ERROR_RESOURCE_SERVICE_ACCOUNT_BINDING_NOT_READY: "%s"`, rs.Primary.ID)
 		}
 		return nil
