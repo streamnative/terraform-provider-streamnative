@@ -45,8 +45,8 @@ func resourcePulsarCluster() *schema.Resource {
 			oldOrg, _ := diff.GetChange("organization")
 			oldName, newName := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
-				// For serverless clusters, make lakehouse_storage_enabled computed
-				makeLakehouseStorageComputedForServerless(ctx, diff, i)
+				// For serverless clusters, suppress diffs for provider-managed lakehouse storage.
+				suppressServerlessLakehouseStorageDiff(ctx, diff, i)
 				return nil
 			}
 			if oldName != "" && newName == "" {
@@ -57,8 +57,8 @@ func resourcePulsarCluster() *schema.Resource {
 				return fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
 					"The pulsar cluster organization, name, instance_name, location, pool_member_name does not support updates, please recreate it")
 			}
-			// For serverless clusters, make lakehouse_storage_enabled computed
-			makeLakehouseStorageComputedForServerless(ctx, diff, i)
+			// For serverless clusters, suppress diffs for provider-managed lakehouse storage.
+			suppressServerlessLakehouseStorageDiff(ctx, diff, i)
 			return nil
 		},
 		Importer: &schema.ResourceImporter{
@@ -385,7 +385,7 @@ func resourcePulsarCluster() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Maintenance window configuration for the pulsar cluster",
+				Description: "Maintenance window configuration for the pulsar cluster. This field is available only when maintenance windows are enabled for the organization.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"window": {
@@ -570,6 +570,7 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			}
 		}
 	}
+	pulsarCluster.Spec.MaintenanceWindow = expandMaintenanceWindow(ctx, d.Get("maintenance_window").([]interface{}))
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarInstance.IsUsingUrsaEngine() {
 		getPulsarClusterChanged(ctx, pulsarCluster, d)
 	}
@@ -648,6 +649,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			pulsarCluster.Annotations = make(map[string]string)
 		}
 		pulsarCluster.Annotations["cloud.streamnative.io/sdt-enabled"] = "true"
+	}
+	if diagErr := ensureMaintenanceWindowAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "CREATE"); diagErr != nil {
+		return diagErr
 	}
 
 	pc, err := clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
@@ -1024,7 +1028,6 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER: %w", err))
 	}
-
 	// Validate lakehouse_storage_enabled update: once enabled, cannot be disabled
 	// For serverless clusters, skip validation as it's computed
 	if serverless != string(cloudv1alpha1.PulsarInstanceTypeServerless) {
@@ -1063,6 +1066,10 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 			int64(storageUnit*8*1024*1024*1024), resource.DecimalSI)
 	}
 	changed := getPulsarClusterChanged(ctx, pulsarCluster, d)
+	if d.HasChange("maintenance_window") {
+		pulsarCluster.Spec.MaintenanceWindow = expandMaintenanceWindow(ctx, d.Get("maintenance_window").([]interface{}))
+		changed = true
+	}
 	if displayNameChanged {
 		displayName := d.Get("display_name").(string)
 		pulsarCluster.Spec.DisplayName = displayName
@@ -1162,6 +1169,11 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		d.HasChange("storage_unit") ||
 		d.HasChange("compute_unit_per_broker") ||
 		d.HasChange("storage_unit_per_bookie") || changed || displayNameChanged {
+		if d.HasChange("maintenance_window") && hasMaintenanceWindowConfigured(d) {
+			if diagErr := ensureMaintenanceWindowAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "UPDATE"); diagErr != nil {
+				return diagErr
+			}
+		}
 		_, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, metav1.UpdateOptions{
 			FieldManager: "terraform-update",
 		})
@@ -1358,59 +1370,127 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 		}
 	}
 
-	// Handle maintenance_window configuration
-	if d.HasChange("maintenance_window") {
-		maintenanceWindow := d.Get("maintenance_window").([]interface{})
-		if len(maintenanceWindow) > 0 {
-			for _, mwItem := range maintenanceWindow {
-				mwItemMap := mwItem.(map[string]interface{})
-
-				if pulsarCluster.Spec.MaintenanceWindow == nil {
-					pulsarCluster.Spec.MaintenanceWindow = &cloudv1alpha1.MaintenanceWindow{}
-				}
-
-				// Handle recurrence
-				if recurrence, ok := mwItemMap["recurrence"]; ok && recurrence != "" {
-					pulsarCluster.Spec.MaintenanceWindow.Recurrence = recurrence.(string)
-				}
-
-				// Handle window configuration
-				if window, ok := mwItemMap["window"].([]interface{}); ok && len(window) > 0 {
-					for _, windowItem := range window {
-						windowItemMap := windowItem.(map[string]interface{})
-
-						if pulsarCluster.Spec.MaintenanceWindow.Window == nil {
-							pulsarCluster.Spec.MaintenanceWindow.Window = &cloudv1alpha1.Window{}
-						}
-
-						// Handle start_time
-						if startTime, ok := windowItemMap["start_time"]; ok && startTime != "" {
-							pulsarCluster.Spec.MaintenanceWindow.Window.StartTime = startTime.(string)
-						}
-
-						// Handle duration
-						if durationStr, ok := windowItemMap["duration"]; ok && durationStr != "" {
-							duration, err := time.ParseDuration(durationStr.(string))
-							if err != nil {
-								tflog.Warn(ctx, fmt.Sprintf("Failed to parse maintenance window duration: %v", err))
-							} else {
-								pulsarCluster.Spec.MaintenanceWindow.Window.Duration = &metav1.Duration{Duration: duration}
-							}
-						}
-					}
-				}
-			}
-		} else {
-			// If maintenance_window is empty, clear the maintenance window configuration
-			pulsarCluster.Spec.MaintenanceWindow = nil
-		}
-		changed = true
-	}
-
 	tflog.Debug(ctx, "get pulsarcluster changed: %v", map[string]interface{}{
 		"pulsarcluster": *pulsarCluster.Spec.Config,
 	})
 	return changed
+}
+
+func hasMaintenanceWindowConfigured(d *schema.ResourceData) bool {
+	return len(d.Get("maintenance_window").([]interface{})) > 0
+}
+
+func validateMaintenanceWindowAccepted(
+	expected *cloudv1alpha1.MaintenanceWindow,
+	actual *cloudv1alpha1.MaintenanceWindow,
+	operation string,
+) error {
+	if maintenanceWindowEqual(expected, actual) {
+		return nil
+	}
+	return fmt.Errorf(
+		"ERROR_%s_PULSAR_CLUSTER: maintenance_window is not enabled for this organization",
+		operation,
+	)
+}
+
+func ensureMaintenanceWindowAcceptedOnDryRun(
+	ctx context.Context,
+	clientSet *cloudclient.Clientset,
+	namespace string,
+	pulsarCluster *cloudv1alpha1.PulsarCluster,
+	operation string,
+) diag.Diagnostics {
+	if pulsarCluster.Spec.MaintenanceWindow == nil {
+		return nil
+	}
+	var (
+		preview *cloudv1alpha1.PulsarCluster
+		err     error
+	)
+	options := metav1.UpdateOptions{
+		FieldManager: fmt.Sprintf("terraform-%s-maintenance-window-validation", strings.ToLower(operation)),
+		DryRun:       []string{metav1.DryRunAll},
+	}
+	if operation == "CREATE" {
+		preview, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
+			FieldManager: options.FieldManager,
+			DryRun:       options.DryRun,
+		})
+	} else {
+		preview, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, options)
+	}
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_VALIDATE_MAINTENANCE_WINDOW_ON_%s_PULSAR_CLUSTER: %w", operation, err))
+	}
+	if err := validateMaintenanceWindowAccepted(pulsarCluster.Spec.MaintenanceWindow, preview.Spec.MaintenanceWindow, operation); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func maintenanceWindowEqual(expected *cloudv1alpha1.MaintenanceWindow, actual *cloudv1alpha1.MaintenanceWindow) bool {
+	if expected == nil || actual == nil {
+		return expected == nil && actual == nil
+	}
+	if expected.Recurrence != actual.Recurrence {
+		return false
+	}
+	return windowEqual(expected.Window, actual.Window)
+}
+
+func windowEqual(expected *cloudv1alpha1.Window, actual *cloudv1alpha1.Window) bool {
+	if expected == nil || actual == nil {
+		return expected == nil && actual == nil
+	}
+	if expected.StartTime != actual.StartTime {
+		return false
+	}
+	if expected.Duration == nil || actual.Duration == nil {
+		return expected.Duration == nil && actual.Duration == nil
+	}
+	return expected.Duration.Duration == actual.Duration.Duration
+}
+
+func expandMaintenanceWindow(ctx context.Context, maintenanceWindow []interface{}) *cloudv1alpha1.MaintenanceWindow {
+	if len(maintenanceWindow) == 0 {
+		return nil
+	}
+
+	result := &cloudv1alpha1.MaintenanceWindow{}
+	for _, mwItem := range maintenanceWindow {
+		mwItemMap := mwItem.(map[string]interface{})
+		if recurrence, ok := mwItemMap["recurrence"]; ok && recurrence != "" {
+			result.Recurrence = recurrence.(string)
+		}
+
+		windowItems, ok := mwItemMap["window"].([]interface{})
+		if !ok || len(windowItems) == 0 {
+			continue
+		}
+		if result.Window == nil {
+			result.Window = &cloudv1alpha1.Window{}
+		}
+		for _, windowItem := range windowItems {
+			windowItemMap := windowItem.(map[string]interface{})
+			if startTime, ok := windowItemMap["start_time"]; ok && startTime != "" {
+				result.Window.StartTime = startTime.(string)
+			}
+			if durationStr, ok := windowItemMap["duration"]; ok && durationStr != "" {
+				duration, err := time.ParseDuration(durationStr.(string))
+				if err != nil {
+					tflog.Warn(ctx, fmt.Sprintf("Failed to parse maintenance window duration: %v", err))
+					continue
+				}
+				result.Window.Duration = &metav1.Duration{Duration: duration}
+			}
+		}
+	}
+
+	if result.Recurrence == "" && result.Window == nil {
+		return nil
+	}
+	return result
 }
 
 func getComputeUnit(d *schema.ResourceData) float64 {
@@ -1447,8 +1527,8 @@ func convertCpuAndMemoryToStorageUnit(pc *cloudv1alpha1.PulsarCluster) float64 {
 	return 0.5 // default value
 }
 
-// makeLakehouseStorageComputedForServerless makes lakehouse_storage_enabled computed for serverless clusters
-func makeLakehouseStorageComputedForServerless(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) {
+// suppressServerlessLakehouseStorageDiff keeps provider-managed serverless lakehouse storage out of plan diffs.
+func suppressServerlessLakehouseStorageDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) {
 	// Get instance information to check type
 	instanceName := diff.Get("instance_name").(string)
 	namespace := diff.Get("organization").(string)
@@ -1472,16 +1552,18 @@ func makeLakehouseStorageComputedForServerless(ctx context.Context, diff *schema
 
 	// Check if instance is serverless
 	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
-		// For serverless clusters, always set lakehouse_storage_enabled to computed
-		// and set its value to true
-		if diff.HasChange("lakehouse_storage_enabled") {
-			// If user tries to set it, clear the change and set as computed with value true
-			diff.Clear("lakehouse_storage_enabled")
-		}
-		// Always set as computed with value true for serverless
-		diff.SetNewComputed("lakehouse_storage_enabled")
-		// Set the value to true for serverless clusters
-		diff.SetNew("lakehouse_storage_enabled", true)
+		clearServerlessLakehouseStorageDiff(ctx, diff)
+	}
+}
+
+func clearServerlessLakehouseStorageDiff(ctx context.Context, diff *schema.ResourceDiff) {
+	if !diff.HasChange("lakehouse_storage_enabled") {
+		return
+	}
+	if err := diff.Clear("lakehouse_storage_enabled"); err != nil {
+		tflog.Warn(ctx, "failed to clear serverless lakehouse_storage_enabled diff", map[string]interface{}{
+			"error": err,
+		})
 	}
 }
 

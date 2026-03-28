@@ -54,6 +54,8 @@ description: |-
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
 
+`maintenance_window` is reported only when the control plane keeps a maintenance window on the cluster.
+
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`
 
