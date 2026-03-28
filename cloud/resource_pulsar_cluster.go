@@ -1259,7 +1259,9 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 	if len(config) > 0 {
 		for _, configItem := range config {
 			configItemMap := configItem.(map[string]interface{})
-			tflog.Debug(ctx, "configItemMap: %v", configItemMap)
+			tflog.Debug(ctx, "config item map", map[string]interface{}{
+				"config_item_map": configItemMap,
+			})
 			if configItemMap["websocket_enabled"] != nil {
 				webSocketEnabled := configItemMap["websocket_enabled"].(bool)
 				pulsarCluster.Spec.Config.WebsocketEnabled = &webSocketEnabled
@@ -1370,8 +1372,8 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 		}
 	}
 
-	tflog.Debug(ctx, "get pulsarcluster changed: %v", map[string]interface{}{
-		"pulsarcluster": *pulsarCluster.Spec.Config,
+	tflog.Debug(ctx, "pulsar cluster config changed", map[string]interface{}{
+		"pulsar_cluster_config": *pulsarCluster.Spec.Config,
 	})
 	return changed
 }
