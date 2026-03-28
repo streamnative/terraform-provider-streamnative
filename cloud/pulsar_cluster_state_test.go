@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,6 +228,41 @@ func TestExpandMaintenanceWindow(t *testing.T) {
 func TestExpandMaintenanceWindowEmpty(t *testing.T) {
 	assert.Nil(t, expandMaintenanceWindow(context.Background(), nil))
 	assert.Nil(t, expandMaintenanceWindow(context.Background(), []interface{}{}))
+}
+
+func TestMaintenanceWindowSchemaStrictlyManaged(t *testing.T) {
+	resourceSchema := resourcePulsarCluster().Schema
+	maintenanceWindowSchema := resourceSchema["maintenance_window"]
+	if assert.NotNil(t, maintenanceWindowSchema) {
+		assert.True(t, maintenanceWindowSchema.Optional)
+		assert.False(t, maintenanceWindowSchema.Computed)
+	}
+
+	maintenanceWindowResource := maintenanceWindowSchema.Elem.(*schema.Resource)
+	windowSchema := maintenanceWindowResource.Schema["window"]
+	if assert.NotNil(t, windowSchema) {
+		assert.True(t, windowSchema.Optional)
+		assert.False(t, windowSchema.Computed)
+	}
+
+	windowResource := windowSchema.Elem.(*schema.Resource)
+	startTimeSchema := windowResource.Schema["start_time"]
+	if assert.NotNil(t, startTimeSchema) {
+		assert.True(t, startTimeSchema.Optional)
+		assert.False(t, startTimeSchema.Computed)
+	}
+
+	durationSchema := windowResource.Schema["duration"]
+	if assert.NotNil(t, durationSchema) {
+		assert.True(t, durationSchema.Optional)
+		assert.False(t, durationSchema.Computed)
+	}
+
+	recurrenceSchema := maintenanceWindowResource.Schema["recurrence"]
+	if assert.NotNil(t, recurrenceSchema) {
+		assert.True(t, recurrenceSchema.Optional)
+		assert.False(t, recurrenceSchema.Computed)
+	}
 }
 
 func TestMaintenanceWindowEqual(t *testing.T) {

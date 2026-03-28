@@ -384,27 +384,23 @@ func resourcePulsarCluster() *schema.Resource {
 			"maintenance_window": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "Maintenance window configuration for the pulsar cluster. This field is available only when maintenance windows are enabled for the organization.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"window": {
 							Type:        schema.TypeList,
 							Optional:    true,
-							Computed:    true,
 							Description: "Maintenance execution window",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"start_time": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Computed:    true,
 										Description: "Start time of the maintenance window",
 									},
 									"duration": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										Computed:     true,
 										Description:  "Duration of the maintenance window in Go duration format (e.g., \"2h0m0s\", \"30m0s\", \"1h30m0s\")",
 										ValidateFunc: validateDuration,
 									},
@@ -414,7 +410,6 @@ func resourcePulsarCluster() *schema.Resource {
 						"recurrence": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
 							Description: "Recurrence pattern for maintenance (0-6 for Monday to Sunday)",
 						},
 					},

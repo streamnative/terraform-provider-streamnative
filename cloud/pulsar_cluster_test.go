@@ -177,6 +177,16 @@ func TestPulsarClusterRemoveMaintenanceWindow(t *testing.T) {
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
 			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
