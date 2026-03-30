@@ -177,6 +177,16 @@ func TestPulsarClusterRemoveMaintenanceWindow(t *testing.T) {
 					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
 				),
 			},
+			{
+				Config: testResourceDataSourcePulsarClusterWithoutConfig(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -326,6 +336,46 @@ func TestPulsarClusterNoConfigConfigDrift(t *testing.T) {
 					"shared-gcp-prod",
 					"streamnative",
 					"us-central1", "rapid"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestPulsarClusterServerlessLakehouseStorageDrift(t *testing.T) {
+	var clusterGeneratedName = fmt.Sprintf("t-%d-%d", rand.Intn(1000), rand.Intn(100))
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckPulsarClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourcePulsarClusterServerlessWithoutLakehouseStorage(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckPulsarClusterExists("streamnative_pulsar_cluster.test-pulsar-cluster"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "organization", "sndev"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "instance_name", clusterGeneratedName),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "location", "us-central1"),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "pool_member_name", ""),
+					resource.TestCheckResourceAttr("streamnative_pulsar_cluster.test-pulsar-cluster", "lakehouse_storage_enabled", "true"),
+				),
+			},
+			{
+				Config: testResourceDataSourcePulsarClusterServerlessWithoutLakehouseStorage(
+					"sndev",
+					clusterGeneratedName,
+					"shared-gcp-prod",
+					"streamnative",
+					"us-central1"),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
@@ -517,7 +567,40 @@ data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
   organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
   name = streamnative_pulsar_cluster.test-pulsar-cluster.name
 }
-`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+	`, organization, name, poolName, poolNamespace, organization, name, name, location, releaseChannel)
+}
+
+func testResourceDataSourcePulsarClusterServerlessWithoutLakehouseStorage(
+	organization,
+	name,
+	poolName,
+	poolNamespace,
+	location string,
+) string {
+	return fmt.Sprintf(`
+provider "streamnative" {
+}
+resource "streamnative_pulsar_instance" "test-pulsar-instance" {
+	organization = "%s"
+	name = "%s"
+	availability_mode = "zonal"
+	pool_name = "%s"
+	pool_namespace = "%s"
+	type = "serverless"
+}
+resource "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+	organization = "%s"
+	name = "%s"
+	instance_name = "%s"
+	location = "%s"
+	depends_on = [streamnative_pulsar_instance.test-pulsar-instance]
+}
+data "streamnative_pulsar_cluster" "test-pulsar-cluster" {
+  depends_on = [streamnative_pulsar_cluster.test-pulsar-cluster]
+  organization = streamnative_pulsar_cluster.test-pulsar-cluster.organization
+  name = streamnative_pulsar_cluster.test-pulsar-cluster.name
+}
+`, organization, name, poolName, poolNamespace, organization, name, name, location)
 }
 
 func testResourceDataSourcePulsarClusterWithMaintenanceWindowUpdated(organization, name, poolName, poolNamespace, location, releaseChannel string) string {

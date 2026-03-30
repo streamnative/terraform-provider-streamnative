@@ -290,7 +290,7 @@ func dataSourcePulsarCluster() *schema.Resource {
 			"maintenance_window": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Maintenance window configuration for the Pulsar cluster",
+				Description: "Maintenance window configuration reported by the control plane for the Pulsar cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"window": {
@@ -427,7 +427,9 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 		_ = d.Set("release_channel", releaseChannel)
 	}
 
-	_ = d.Set("instance_name", pulsarInstance.Name)
+	if diagErr := setPulsarClusterDataSourceIdentityState(d, pulsarCluster, pulsarInstance); diagErr != nil {
+		return diagErr
+	}
 
 	// Set lakehouse_storage_enabled
 	if pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless {
@@ -498,5 +500,19 @@ func dataSourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", pulsarCluster.Namespace, pulsarCluster.Name))
+	return nil
+}
+
+func setPulsarClusterDataSourceIdentityState(
+	d *schema.ResourceData,
+	pulsarCluster *cloudv1alpha1.PulsarCluster,
+	pulsarInstance *cloudv1alpha1.PulsarInstance,
+) diag.Diagnostics {
+	if err := d.Set("instance_name", pulsarInstance.Name); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_INSTANCE_NAME: %w", err))
+	}
+	if err := d.Set("location", pulsarCluster.Spec.Location); err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_SET_LOCATION: %w", err))
+	}
 	return nil
 }

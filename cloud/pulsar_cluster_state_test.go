@@ -15,8 +15,11 @@
 package cloud
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,4 +150,148 @@ func TestSetPulsarClusterIdentityStateImportBYOC(t *testing.T) {
 	assert.Equal(t, "instance-d", resourceData.Get("instance_name"))
 	assert.Equal(t, "", resourceData.Get("location"))
 	assert.Equal(t, "pool-member-d", resourceData.Get("pool_member_name"))
+}
+
+func TestSetPulsarClusterDataSourceIdentityState(t *testing.T) {
+	resourceData := dataSourcePulsarCluster().TestResourceData()
+
+	cluster := &cloudv1alpha1.PulsarCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-e",
+			Namespace: "org-e",
+		},
+		Spec: cloudv1alpha1.PulsarClusterSpec{
+			Location: "us-central1",
+		},
+	}
+	instance := &cloudv1alpha1.PulsarInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "instance-e",
+			Namespace: "org-e",
+		},
+	}
+
+	diagErr := setPulsarClusterDataSourceIdentityState(resourceData, cluster, instance)
+	assert.Nil(t, diagErr)
+	assert.Equal(t, "instance-e", resourceData.Get("instance_name"))
+	assert.Equal(t, "us-central1", resourceData.Get("location"))
+}
+
+func TestValidateMaintenanceWindowAccepted(t *testing.T) {
+	expected := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "0,1",
+		Window: &cloudv1alpha1.Window{
+			StartTime: "02:00",
+			Duration:  &metav1.Duration{Duration: 2 * time.Hour},
+		},
+	}
+
+	err := validateMaintenanceWindowAccepted(expected, expected.DeepCopy(), "UPDATE")
+	assert.NoError(t, err)
+}
+
+func TestValidateMaintenanceWindowAcceptedWhenDropped(t *testing.T) {
+	expected := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "0,1",
+	}
+
+	err := validateMaintenanceWindowAccepted(expected, nil, "CREATE")
+	assert.EqualError(t, err, "ERROR_CREATE_PULSAR_CLUSTER: maintenance_window is not enabled for this organization")
+}
+
+func TestExpandMaintenanceWindow(t *testing.T) {
+	duration := 2 * time.Hour
+
+	maintenanceWindow := expandMaintenanceWindow(context.Background(), []interface{}{
+		map[string]interface{}{
+			"recurrence": "0,1",
+			"window": []interface{}{
+				map[string]interface{}{
+					"start_time": "02:00",
+					"duration":   "2h0m0s",
+				},
+			},
+		},
+	})
+
+	if assert.NotNil(t, maintenanceWindow) {
+		assert.Equal(t, "0,1", maintenanceWindow.Recurrence)
+		if assert.NotNil(t, maintenanceWindow.Window) {
+			assert.Equal(t, "02:00", maintenanceWindow.Window.StartTime)
+			if assert.NotNil(t, maintenanceWindow.Window.Duration) {
+				assert.Equal(t, duration, maintenanceWindow.Window.Duration.Duration)
+			}
+		}
+	}
+}
+
+func TestExpandMaintenanceWindowEmpty(t *testing.T) {
+	assert.Nil(t, expandMaintenanceWindow(context.Background(), nil))
+	assert.Nil(t, expandMaintenanceWindow(context.Background(), []interface{}{}))
+}
+
+func TestMaintenanceWindowSchemaStrictlyManaged(t *testing.T) {
+	resourceSchema := resourcePulsarCluster().Schema
+	maintenanceWindowSchema := resourceSchema["maintenance_window"]
+	if assert.NotNil(t, maintenanceWindowSchema) {
+		assert.True(t, maintenanceWindowSchema.Optional)
+		assert.False(t, maintenanceWindowSchema.Computed)
+	}
+
+	maintenanceWindowResource := maintenanceWindowSchema.Elem.(*schema.Resource)
+	windowSchema := maintenanceWindowResource.Schema["window"]
+	if assert.NotNil(t, windowSchema) {
+		assert.True(t, windowSchema.Optional)
+		assert.False(t, windowSchema.Computed)
+	}
+
+	windowResource := windowSchema.Elem.(*schema.Resource)
+	startTimeSchema := windowResource.Schema["start_time"]
+	if assert.NotNil(t, startTimeSchema) {
+		assert.True(t, startTimeSchema.Optional)
+		assert.False(t, startTimeSchema.Computed)
+	}
+
+	durationSchema := windowResource.Schema["duration"]
+	if assert.NotNil(t, durationSchema) {
+		assert.True(t, durationSchema.Optional)
+		assert.False(t, durationSchema.Computed)
+	}
+
+	recurrenceSchema := maintenanceWindowResource.Schema["recurrence"]
+	if assert.NotNil(t, recurrenceSchema) {
+		assert.True(t, recurrenceSchema.Optional)
+		assert.False(t, recurrenceSchema.Computed)
+	}
+}
+
+func TestMaintenanceWindowEqual(t *testing.T) {
+	expected := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "0,1",
+		Window: &cloudv1alpha1.Window{
+			StartTime: "02:00",
+			Duration:  &metav1.Duration{Duration: 2 * time.Hour},
+		},
+	}
+
+	actual := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "0,1",
+		Window: &cloudv1alpha1.Window{
+			StartTime: "02:00",
+			Duration:  &metav1.Duration{Duration: 2 * time.Hour},
+		},
+	}
+
+	assert.True(t, maintenanceWindowEqual(expected, actual))
+}
+
+func TestMaintenanceWindowEqualWhenDifferent(t *testing.T) {
+	expected := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "0,1",
+	}
+	actual := &cloudv1alpha1.MaintenanceWindow{
+		Recurrence: "2,3",
+	}
+
+	assert.False(t, maintenanceWindowEqual(expected, actual))
 }

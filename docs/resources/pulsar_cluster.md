@@ -41,6 +41,10 @@ description: |-
 - `storage_unit_per_bookie` (Number) storage unit per bookie, 1 storage unit is 2 cpu and 8gb memory
 - `volume` (String) The name of the volume
 
+`maintenance_window` is available only when maintenance windows are enabled for the organization. If the organization does not support it, apply returns `maintenance_window is not enabled for this organization`.
+
+Removing the `maintenance_window` block from configuration clears the upstream maintenance window on the next apply.
+
 ### Read-Only
 
 - `bookkeeper_version` (String) The version of the bookkeeper cluster
