@@ -28,7 +28,7 @@ description: |-
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `private_key_data` (String) The private key data
+- `private_key_data` (String, Sensitive) The private key data
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

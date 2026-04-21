@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/streamnative/cloud-cli/pkg/auth"
 	"github.com/streamnative/cloud-cli/pkg/auth/store"
-	"github.com/streamnative/cloud-cli/pkg/cmd"
 	"github.com/streamnative/cloud-cli/pkg/config"
 	"github.com/streamnative/cloud-cli/pkg/plugin"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -356,7 +355,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 		Out:    os.Stdout,
 		ErrOut: os.Stderr,
 	}
-	options := cmd.NewOptions(streams)
+	options := config.NewConfigOptions(streams)
 	options.ConfigDir = configDir
 	options.ConfigPath = filepath.Join(configDir, "config")
 	options.BackendOverride = "file"
@@ -399,7 +398,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
-		err = options.ServerOptions.Complete(options)
+		err = options.ServerOptions.Complete(&options)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -408,7 +407,7 @@ func providerConfigure(d *schema.ResourceData, terraformVersion string) (interfa
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	factory := cmdutil.NewFactory(options)
+	factory := cmdutil.NewFactory(&options)
 	return factory, nil
 }
 
