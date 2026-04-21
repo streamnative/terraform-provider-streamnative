@@ -59,6 +59,7 @@ Read-Only:
 - `cloud_environment_name` (String)
 - `cloud_secret_name` (String)
 - `cloud_serviceaccount_name` (String)
+- `cloud_workspace_name` (String)
 - `common_cluster` (String)
 - `common_instance` (String)
 - `common_namespace` (String)
