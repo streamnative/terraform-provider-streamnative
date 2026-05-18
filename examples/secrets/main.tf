@@ -34,9 +34,13 @@ resource "streamnative_secret" "example" {
   name          = "tf-secret"
   instance_name = "pulsar-instance-name"
   location      = "us-west2"
-  data = {
+  string_data = {
     username = "demo-user"
     password = "demo-password"
+  }
+
+  binary_data = {
+    "cert.p12" = filebase64("./cert.p12")
   }
 }
 
