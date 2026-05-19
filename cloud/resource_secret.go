@@ -224,17 +224,20 @@ func validateBase64String(i interface{}, k string) (warnings []string, errors []
 }
 
 func validateSecretDataKeyUniqueness(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
-	seen := make(map[string]string)
-	for _, field := range []string{"data", "string_data", "binary_data"} {
+	binaryDataKeys, configured := configuredSecretDataKeys(diff, "binary_data")
+	if !configured {
+		return nil
+	}
+
+	for _, field := range []string{"data", "string_data"} {
 		keys, configured := configuredSecretDataKeys(diff, field)
 		if !configured {
 			continue
 		}
-		for key := range keys {
-			if existingField, ok := seen[key]; ok {
-				return fmt.Errorf("secret data key %q is configured in both %q and %q", key, existingField, field)
+		for key := range binaryDataKeys {
+			if _, ok := keys[key]; ok {
+				return fmt.Errorf("secret data key %q is configured in both %q and %q", key, field, "binary_data")
 			}
-			seen[key] = field
 		}
 	}
 	return nil

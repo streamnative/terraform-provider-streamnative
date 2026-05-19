@@ -83,10 +83,29 @@ func TestValidateSecretDataKeyUniqueness(t *testing.T) {
 
 	_, err := resource.SimpleDiff(context.Background(), nil, config, nil)
 	if err == nil {
-		t.Fatal("SimpleDiff should reject duplicate secret payload keys")
+		t.Fatal("SimpleDiff should reject duplicate binary_data payload keys")
 	}
 	if !strings.Contains(err.Error(), `secret data key "shared"`) {
 		t.Fatalf("unexpected duplicate-key error: %v", err)
+	}
+}
+
+func TestValidateSecretDataKeyUniquenessAllowsLegacyDataAndStringDataOverlap(t *testing.T) {
+	resource := resourceSecret()
+	config := terraform.NewResourceConfigRaw(map[string]interface{}{
+		"organization": "org-a",
+		"name":         "secret-a",
+		"data": map[string]interface{}{
+			"shared": "ciphertext",
+		},
+		"string_data": map[string]interface{}{
+			"shared": "plain text",
+		},
+	})
+
+	_, err := resource.SimpleDiff(context.Background(), nil, config, nil)
+	if err != nil {
+		t.Fatalf("SimpleDiff should allow legacy data/string_data duplicate keys: %v", err)
 	}
 }
 

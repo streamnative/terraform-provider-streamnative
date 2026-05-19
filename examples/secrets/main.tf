@@ -29,6 +29,11 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
+variable "cert_p12_path" {
+  type        = string
+  description = "Path to the local PKCS#12 certificate bundle to store in binary_data."
+}
+
 resource "streamnative_secret" "example" {
   organization  = "sndev"
   name          = "tf-secret"
@@ -40,7 +45,7 @@ resource "streamnative_secret" "example" {
   }
 
   binary_data = {
-    "cert.p12" = filebase64("./cert.p12")
+    "cert.p12" = filebase64(var.cert_p12_path)
   }
 }
 
