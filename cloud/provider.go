@@ -169,6 +169,7 @@ func init() {
 		"oauth2_issuer_url":                    "The issuer url of the oauth2",
 		"oauth2_audience":                      "The audience of the oauth2",
 		"annotations":                          "The metadata annotations of the resource",
+		"additional_tags":                       "Additional tags to apply to the cloud environment as annotations with the prefix cloud.streamnative.io/environment-parameter-",
 		"rolebinding_ready":                    "The RoleBinding is ready, it will be set to 'True' after the cluster is ready",
 		"rolebinding_name":                     "The name of rolebinding",
 		"rolebinding_cluster_role_name":        "The predefined role name",
