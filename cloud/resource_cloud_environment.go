@@ -404,11 +404,15 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("default_gateway", flattenDefaultGateway(cloudEnvironment.Spec.DefaultGateway))
 	}
 
-	if raw, ok := cloudEnvironment.Annotations["cloud.streamnative.io/environment-parameter-additional_tags"]; ok && raw != "" {
+	raw, ok := cloudEnvironment.Annotations["cloud.streamnative.io/environment-parameter-additional_tags"]
+	if !ok || raw == "" {
+		_ = d.Set("additional_tags", map[string]string{})
+	} else {
 		additionalTags := make(map[string]string)
-		if err := json.Unmarshal([]byte(raw), &additionalTags); err == nil {
-			_ = d.Set("additional_tags", additionalTags)
+		if err := json.Unmarshal([]byte(raw), &additionalTags); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: failed to deserialize additional_tags annotation: %w", err))
 		}
+		_ = d.Set("additional_tags", additionalTags)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
