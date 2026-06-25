@@ -10,9 +10,9 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.28.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/pkg/errors v0.9.1
-	github.com/streamnative/cloud-api-server v1.46.4-0.20260421040302-a0912ebde15d
+	github.com/streamnative/cloud-api-server v1.46.4-0.20260512020306-168891173b28
 	github.com/streamnative/cloud-cli v1.6.0
-	github.com/streamnative/sn-operator/api v0.18.0-rc.16
+	github.com/streamnative/sn-operator/api v0.19.0-rc.7
 	github.com/stretchr/testify v1.11.1
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	k8s.io/api v0.35.0
@@ -122,7 +122,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/spdystream v0.5.0 // indirect
+	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
@@ -139,6 +139,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.4 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
@@ -147,10 +148,10 @@ require (
 	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
-	github.com/streamnative/sn-operator v0.18.0-rc.16 // indirect
-	github.com/streamnative/sn-operator/api/commons v0.18.0-rc.16 // indirect
-	github.com/streamnative/sn-operator/pkg/commons v0.18.0-rc.16 // indirect
-	github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2-rc2 // indirect
+	github.com/streamnative/sn-operator v0.19.0-rc.7 // indirect
+	github.com/streamnative/sn-operator/api/commons v0.19.0-rc.7 // indirect
+	github.com/streamnative/sn-operator/pkg/commons v0.19.0-rc.7 // indirect
+	github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2-rc8 // indirect
 	github.com/stripe/stripe-go/v74 v74.5.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
@@ -265,12 +266,12 @@ replace (
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.20.1
 )
 
-// Pulsar operator (sn-operator 0.18.0-rc.14)
+// Pulsar operator (sn-operator 0.19.0-rc.7)
 replace (
 	github.com/operator-framework/api => github.com/operator-framework/api v0.14.0
-	github.com/streamnative/sn-operator/api => github.com/streamnative/sn-operator/api v0.18.0-rc.14
-	github.com/streamnative/sn-operator/api/commons => github.com/streamnative/sn-operator/api/commons v0.18.0-rc.14
-	github.com/streamnative/sn-operator/pkg/commons => github.com/streamnative/sn-operator/pkg/commons v0.18.0-rc.14
+	github.com/streamnative/sn-operator/api => github.com/streamnative/sn-operator/api v0.19.0-rc.7
+	github.com/streamnative/sn-operator/api/commons => github.com/streamnative/sn-operator/api/commons v0.19.0-rc.7
+	github.com/streamnative/sn-operator/pkg/commons => github.com/streamnative/sn-operator/pkg/commons v0.19.0-rc.7
 )
 
 // Alibaba Cloud SDK: the credentials/provider sub-module is not independently

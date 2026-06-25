@@ -67,6 +67,7 @@ func init() {
 		"secret_name":                  "The secret name",
 		"secret_data":                  "The secret data map",
 		"secret_string_data":           "Write-only string data that will be stored encrypted by the API server",
+		"secret_binary_data":           "Write-only base64-encoded binary data that will be stored encrypted by the API server",
 		"secret_type":                  "The Kubernetes secret type",
 		"availability-mode":            "The availability mode, supporting 'zonal' and 'regional'",
 		"pool_name":                    "The infrastructure pool name",
