@@ -104,7 +104,7 @@ Optional:
 
 Optional:
 
-- `recurrence` (String) Recurrence pattern for maintenance (0-6 for Monday to Sunday)
+- `recurrence` (String) Recurrence pattern for maintenance: comma-separated weekday integers where 0 = Sunday and 6 = Saturday (e.g. "0,6" means Sunday and Saturday)
 - `window` (Block List) Maintenance execution window (see [below for nested schema](#nestedblock--maintenance_window--window))
 
 <a id="nestedblock--maintenance_window--window"></a>
