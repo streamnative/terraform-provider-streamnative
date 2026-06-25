@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -190,6 +191,12 @@ func resourceCloudEnvironment() *schema.Resource {
 				Elem:         &schema.Schema{Type: schema.TypeString},
 				ValidateFunc: validateAnnotations,
 			},
+			"additional_tags": {
+				Type:        schema.TypeMap,
+				Description: descriptions["additional_tags"],
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"wait_for_completion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -230,6 +237,15 @@ func resourceCloudEnvironmentCreate(ctx context.Context, d *schema.ResourceData,
 		annotations = convertToStringMap(rawAnnotations)
 	}
 	annotations["cloud.streamnative.io/environment-type"] = cloudEnvironmentType
+
+	rawAdditionalTags := d.Get("additional_tags").(map[string]interface{})
+	if len(rawAdditionalTags) > 0 {
+		tagsJSON, err := json.Marshal(convertToStringMap(rawAdditionalTags))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_CLOUD_ENVIRONMENT: failed to serialize additional_tags: %w", err))
+		}
+		annotations["cloud.streamnative.io/environment-parameter-additional_tags"] = string(tagsJSON)
+	}
 
 	if cc.Spec.ConnectionType != cloudv1alpha1.ConnectionTypeAzure {
 		if !contains(validRegions, region) {
@@ -388,6 +404,17 @@ func resourceCloudEnvironmentRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("default_gateway", flattenDefaultGateway(cloudEnvironment.Spec.DefaultGateway))
 	}
 
+	raw, ok := cloudEnvironment.Annotations["cloud.streamnative.io/environment-parameter-additional_tags"]
+	if !ok || raw == "" {
+		_ = d.Set("additional_tags", map[string]string{})
+	} else {
+		additionalTags := make(map[string]string)
+		if err := json.Unmarshal([]byte(raw), &additionalTags); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_CLOUD_ENVIRONMENT: failed to deserialize additional_tags annotation: %w", err))
+		}
+		_ = d.Set("additional_tags", additionalTags)
+	}
+
 	d.SetId(fmt.Sprintf("%s/%s", cloudEnvironment.Namespace, cloudEnvironment.Name))
 	return nil
 }
@@ -427,6 +454,22 @@ func resourceCloudEnvironmentUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	cloudEnvironment.Spec.DefaultGateway = convertGateway(d.Get("default_gateway"))
+
+	if d.HasChange("additional_tags") {
+		if cloudEnvironment.Annotations == nil {
+			cloudEnvironment.Annotations = make(map[string]string)
+		}
+		rawAdditionalTags := d.Get("additional_tags").(map[string]interface{})
+		if len(rawAdditionalTags) > 0 {
+			tagsJSON, err := json.Marshal(convertToStringMap(rawAdditionalTags))
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("ERROR_UPDATE_CLOUD_ENVIRONMENT: failed to serialize additional_tags: %w", err))
+			}
+			cloudEnvironment.Annotations["cloud.streamnative.io/environment-parameter-additional_tags"] = string(tagsJSON)
+		} else {
+			delete(cloudEnvironment.Annotations, "cloud.streamnative.io/environment-parameter-additional_tags")
+		}
+	}
 
 	if _, err := clientSet.CloudV1alpha1().CloudEnvironments(namespace).Update(ctx, cloudEnvironment, metav1.UpdateOptions{
 		FieldManager: "terraform-update",
