@@ -316,7 +316,7 @@ func dataSourcePulsarCluster() *schema.Resource {
 						"recurrence": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "Recurrence pattern for maintenance (0-6 for Monday to Sunday)",
+							Description: "Recurrence pattern for maintenance: comma-separated weekday integers where 0 = Sunday and 6 = Saturday (e.g. \"0,6\" means Sunday and Saturday)",
 						},
 					},
 				},
