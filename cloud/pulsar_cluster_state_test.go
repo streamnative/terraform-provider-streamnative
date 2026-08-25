@@ -295,3 +295,115 @@ func TestMaintenanceWindowEqualWhenDifferent(t *testing.T) {
 
 	assert.False(t, maintenanceWindowEqual(expected, actual))
 }
+
+func TestExpandBrokerAutoScalingPolicy(t *testing.T) {
+	policy := expandBrokerAutoScalingPolicy([]interface{}{
+		map[string]interface{}{
+			"min_replicas": 2,
+			"max_replicas": 6,
+		},
+	})
+
+	assert.NotNil(t, policy)
+	assert.Equal(t, int32(6), policy.MaxReplicas)
+	assert.NotNil(t, policy.MinReplicas)
+	assert.Equal(t, int32(2), *policy.MinReplicas)
+}
+
+// min_replicas is Computed, so an omitted value arrives as 0. Sending that literally would ask the
+// control plane for a floor of no brokers, so it has to stay nil and be filled in server side.
+func TestExpandBrokerAutoScalingPolicyOmittedMinReplicas(t *testing.T) {
+	policy := expandBrokerAutoScalingPolicy([]interface{}{
+		map[string]interface{}{
+			"min_replicas": 0,
+			"max_replicas": 4,
+		},
+	})
+
+	assert.NotNil(t, policy)
+	assert.Equal(t, int32(4), policy.MaxReplicas)
+	assert.Nil(t, policy.MinReplicas)
+}
+
+func TestExpandBrokerAutoScalingPolicyEmpty(t *testing.T) {
+	assert.Nil(t, expandBrokerAutoScalingPolicy(nil))
+	assert.Nil(t, expandBrokerAutoScalingPolicy([]interface{}{}))
+	assert.Nil(t, expandBrokerAutoScalingPolicy([]interface{}{nil}))
+}
+
+func TestFlattenBrokerAutoScalingPolicy(t *testing.T) {
+	minReplicas := int32(3)
+	flattened := flattenBrokerAutoScalingPolicy(&cloudv1alpha1.AutoScalingPolicy{
+		MinReplicas: &minReplicas,
+		MaxReplicas: 9,
+	})
+
+	assert.Len(t, flattened, 1)
+	assert.Equal(t, map[string]interface{}{"min_replicas": 3, "max_replicas": 9}, flattened[0])
+	assert.Equal(t, []interface{}{}, flattenBrokerAutoScalingPolicy(nil))
+}
+
+func TestBrokerAutoScalingPolicyEqual(t *testing.T) {
+	minReplicas := int32(2)
+	expected := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &minReplicas, MaxReplicas: 6}
+	actualMin := int32(2)
+	actual := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &actualMin, MaxReplicas: 6}
+
+	assert.True(t, brokerAutoScalingPolicyEqual(expected, actual))
+	assert.True(t, brokerAutoScalingPolicyEqual(nil, nil))
+	assert.False(t, brokerAutoScalingPolicyEqual(expected, nil))
+	assert.False(t, brokerAutoScalingPolicyEqual(nil, actual))
+}
+
+func TestBrokerAutoScalingPolicyEqualWhenDifferent(t *testing.T) {
+	minReplicas := int32(2)
+	expected := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &minReplicas, MaxReplicas: 6}
+
+	differentMax := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &minReplicas, MaxReplicas: 7}
+	assert.False(t, brokerAutoScalingPolicyEqual(expected, differentMax))
+
+	otherMin := int32(3)
+	differentMin := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &otherMin, MaxReplicas: 6}
+	assert.False(t, brokerAutoScalingPolicyEqual(expected, differentMin))
+
+	droppedMin := &cloudv1alpha1.AutoScalingPolicy{MaxReplicas: 6}
+	assert.False(t, brokerAutoScalingPolicyEqual(expected, droppedMin))
+}
+
+// A min_replicas the user did not ask for is the control plane's to choose, so a server-filled value
+// must not read as drift.
+func TestBrokerAutoScalingPolicyEqualWhenMinReplicasDefaulted(t *testing.T) {
+	expected := &cloudv1alpha1.AutoScalingPolicy{MaxReplicas: 6}
+	serverFilled := int32(2)
+	actual := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &serverFilled, MaxReplicas: 6}
+
+	assert.True(t, brokerAutoScalingPolicyEqual(expected, actual))
+}
+
+func TestValidateBrokerAutoScalingPolicyAccepted(t *testing.T) {
+	minReplicas := int32(2)
+	expected := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &minReplicas, MaxReplicas: 6}
+
+	assert.NoError(t, validateBrokerAutoScalingPolicyAccepted(expected, expected, "CREATE"))
+}
+
+func TestValidateBrokerAutoScalingPolicyAcceptedWhenDropped(t *testing.T) {
+	expected := &cloudv1alpha1.AutoScalingPolicy{MaxReplicas: 6}
+
+	err := validateBrokerAutoScalingPolicyAccepted(expected, nil, "CREATE")
+	assert.EqualError(t, err,
+		"ERROR_CREATE_PULSAR_CLUSTER: broker_auto_scaling_policy is not enabled for this organization")
+}
+
+// The control plane pins serverless clusters to its own policy; catching that as a mismatch is what
+// stops a silently overridden configuration from being reported as applied.
+func TestValidateBrokerAutoScalingPolicyAcceptedWhenOverridden(t *testing.T) {
+	requestedMin := int32(1)
+	expected := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &requestedMin, MaxReplicas: 10}
+	pinnedMin := int32(2)
+	actual := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &pinnedMin, MaxReplicas: 3}
+
+	err := validateBrokerAutoScalingPolicyAccepted(expected, actual, "UPDATE")
+	assert.EqualError(t, err,
+		"ERROR_UPDATE_PULSAR_CLUSTER: broker_auto_scaling_policy is not enabled for this organization")
+}

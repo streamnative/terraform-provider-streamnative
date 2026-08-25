@@ -381,6 +381,29 @@ func resourcePulsarCluster() *schema.Resource {
 				Computed:    true,
 				Description: descriptions["iam_policy"],
 			},
+			"broker_auto_scaling_policy": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["broker_auto_scaling_policy"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"min_replicas": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Computed:     true,
+							Description:  "The minimum number of brokers to scale down to. Defaults to the value chosen by the control plane when omitted.",
+							ValidateFunc: validateAutoScalingReplicas,
+						},
+						"max_replicas": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							Description:  "The maximum number of brokers to scale up to.",
+							ValidateFunc: validateAutoScalingReplicas,
+						},
+					},
+				},
+			},
 			"maintenance_window": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -516,6 +539,12 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
 				"broker_replicas must be 2 for serverless instance"))
 		}
+		if hasBrokerAutoScalingPolicyConfigured(d) {
+			// The control plane pins the policy for serverless clusters and refuses later changes to
+			// it, so a configured block here could never be honoured.
+			return diag.FromErr(fmt.Errorf("ERROR_CREATE_PULSAR_CLUSTER: " +
+				"broker_auto_scaling_policy is not supported for serverless instance"))
+		}
 		pulsarCluster.Annotations = map[string]string{
 			"cloud.streamnative.io/type": "serverless",
 		}
@@ -566,6 +595,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	pulsarCluster.Spec.MaintenanceWindow = expandMaintenanceWindow(ctx, d.Get("maintenance_window").([]interface{}))
+	if autoScalingPolicy := expandBrokerAutoScalingPolicy(d.Get("broker_auto_scaling_policy").([]interface{})); autoScalingPolicy != nil {
+		pulsarCluster.Spec.Broker.AutoScalingPolicy = autoScalingPolicy
+	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarInstance.IsUsingUrsaEngine() {
 		getPulsarClusterChanged(ctx, pulsarCluster, d)
 	}
@@ -646,6 +678,9 @@ func resourcePulsarClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		pulsarCluster.Annotations["cloud.streamnative.io/sdt-enabled"] = "true"
 	}
 	if diagErr := ensureMaintenanceWindowAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "CREATE"); diagErr != nil {
+		return diagErr
+	}
+	if diagErr := ensureBrokerAutoScalingPolicyAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "CREATE"); diagErr != nil {
 		return diagErr
 	}
 
@@ -833,6 +868,14 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 	} else {
 		_ = d.Set("maintenance_window", []interface{}{})
+	}
+	if pulsarCluster.Spec.Broker.AutoScalingPolicy != nil {
+		err = d.Set("broker_auto_scaling_policy", flattenBrokerAutoScalingPolicy(pulsarCluster.Spec.Broker.AutoScalingPolicy))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_BROKER_AUTO_SCALING_POLICY: %w", err))
+		}
+	} else {
+		_ = d.Set("broker_auto_scaling_policy", []interface{}{})
 	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
@@ -1065,6 +1108,15 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		pulsarCluster.Spec.MaintenanceWindow = expandMaintenanceWindow(ctx, d.Get("maintenance_window").([]interface{}))
 		changed = true
 	}
+	if d.HasChange("broker_auto_scaling_policy") {
+		if d.Get("type") == string(cloudv1alpha1.PulsarInstanceTypeServerless) {
+			return diag.FromErr(fmt.Errorf("ERROR_UPDATE_PULSAR_CLUSTER: " +
+				"broker_auto_scaling_policy is not supported for serverless instance"))
+		}
+		pulsarCluster.Spec.Broker.AutoScalingPolicy = expandBrokerAutoScalingPolicy(
+			d.Get("broker_auto_scaling_policy").([]interface{}))
+		changed = true
+	}
 	if displayNameChanged {
 		displayName := d.Get("display_name").(string)
 		pulsarCluster.Spec.DisplayName = displayName
@@ -1166,6 +1218,11 @@ func resourcePulsarClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		d.HasChange("storage_unit_per_bookie") || changed || displayNameChanged {
 		if d.HasChange("maintenance_window") && hasMaintenanceWindowConfigured(d) {
 			if diagErr := ensureMaintenanceWindowAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "UPDATE"); diagErr != nil {
+				return diagErr
+			}
+		}
+		if d.HasChange("broker_auto_scaling_policy") && hasBrokerAutoScalingPolicyConfigured(d) {
+			if diagErr := ensureBrokerAutoScalingPolicyAcceptedOnDryRun(ctx, clientSet, namespace, pulsarCluster, "UPDATE"); diagErr != nil {
 				return diagErr
 			}
 		}
@@ -1371,6 +1428,114 @@ func getPulsarClusterChanged(ctx context.Context, pulsarCluster *cloudv1alpha1.P
 		"pulsar_cluster_config": *pulsarCluster.Spec.Config,
 	})
 	return changed
+}
+
+func hasBrokerAutoScalingPolicyConfigured(d *schema.ResourceData) bool {
+	return len(d.Get("broker_auto_scaling_policy").([]interface{})) > 0
+}
+
+// expandBrokerAutoScalingPolicy builds the API policy from configuration. min_replicas is Computed,
+// so an omitted value reads back as 0; that is left nil for the control plane to fill in rather than
+// sent as a literal zero, which would ask for a scale-to-nothing floor.
+func expandBrokerAutoScalingPolicy(policy []interface{}) *cloudv1alpha1.AutoScalingPolicy {
+	if len(policy) == 0 || policy[0] == nil {
+		return nil
+	}
+	policyMap, ok := policy[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	result := &cloudv1alpha1.AutoScalingPolicy{}
+	if maxReplicas, ok := policyMap["max_replicas"].(int); ok {
+		result.MaxReplicas = int32(maxReplicas)
+	}
+	if minReplicas, ok := policyMap["min_replicas"].(int); ok && minReplicas > 0 {
+		value := int32(minReplicas)
+		result.MinReplicas = &value
+	}
+	return result
+}
+
+func flattenBrokerAutoScalingPolicy(policy *cloudv1alpha1.AutoScalingPolicy) []interface{} {
+	if policy == nil {
+		return []interface{}{}
+	}
+	result := map[string]interface{}{
+		"max_replicas": int(policy.MaxReplicas),
+	}
+	if policy.MinReplicas != nil {
+		result["min_replicas"] = int(*policy.MinReplicas)
+	}
+	return []interface{}{result}
+}
+
+func brokerAutoScalingPolicyEqual(expected *cloudv1alpha1.AutoScalingPolicy, actual *cloudv1alpha1.AutoScalingPolicy) bool {
+	if expected == nil || actual == nil {
+		return expected == nil && actual == nil
+	}
+	if expected.MaxReplicas != actual.MaxReplicas {
+		return false
+	}
+	// An omitted min_replicas is filled in by the control plane, so only a value the user asked for
+	// has to survive the round trip.
+	if expected.MinReplicas == nil {
+		return true
+	}
+	return actual.MinReplicas != nil && *expected.MinReplicas == *actual.MinReplicas
+}
+
+func validateBrokerAutoScalingPolicyAccepted(
+	expected *cloudv1alpha1.AutoScalingPolicy,
+	actual *cloudv1alpha1.AutoScalingPolicy,
+	operation string,
+) error {
+	if brokerAutoScalingPolicyEqual(expected, actual) {
+		return nil
+	}
+	return fmt.Errorf(
+		"ERROR_%s_PULSAR_CLUSTER: broker_auto_scaling_policy is not enabled for this organization",
+		operation,
+	)
+}
+
+// ensureBrokerAutoScalingPolicyAcceptedOnDryRun asks the control plane to evaluate the cluster without
+// persisting it, and fails when the policy that comes back is not the one that went in. The admission
+// plugin refuses the field outright when the organization lacks the autoscaling feature, so the dry run
+// surfaces that as a create/update error rather than as silently unscaled brokers.
+func ensureBrokerAutoScalingPolicyAcceptedOnDryRun(
+	ctx context.Context,
+	clientSet *cloudclient.Clientset,
+	namespace string,
+	pulsarCluster *cloudv1alpha1.PulsarCluster,
+	operation string,
+) diag.Diagnostics {
+	if pulsarCluster.Spec.Broker.AutoScalingPolicy == nil {
+		return nil
+	}
+	var (
+		preview *cloudv1alpha1.PulsarCluster
+		err     error
+	)
+	options := metav1.UpdateOptions{
+		FieldManager: fmt.Sprintf("terraform-%s-broker-auto-scaling-validation", strings.ToLower(operation)),
+		DryRun:       []string{metav1.DryRunAll},
+	}
+	if operation == "CREATE" {
+		preview, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Create(ctx, pulsarCluster, metav1.CreateOptions{
+			FieldManager: options.FieldManager,
+			DryRun:       options.DryRun,
+		})
+	} else {
+		preview, err = clientSet.CloudV1alpha1().PulsarClusters(namespace).Update(ctx, pulsarCluster, options)
+	}
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_VALIDATE_BROKER_AUTO_SCALING_POLICY_ON_%s_PULSAR_CLUSTER: %w", operation, err))
+	}
+	if err := validateBrokerAutoScalingPolicyAccepted(
+		pulsarCluster.Spec.Broker.AutoScalingPolicy, preview.Spec.Broker.AutoScalingPolicy, operation); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func hasMaintenanceWindowConfigured(d *schema.ResourceData) bool {
