@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	cloudv1alpha1 "github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -310,19 +311,31 @@ func TestExpandBrokerAutoScalingPolicy(t *testing.T) {
 	assert.Equal(t, int32(2), *policy.MinReplicas)
 }
 
-// min_replicas is Computed, so an omitted value arrives as 0. Sending that literally would ask the
-// control plane for a floor of no brokers, so it has to stay nil and be filled in server side.
-func TestExpandBrokerAutoScalingPolicyOmittedMinReplicas(t *testing.T) {
+// min_replicas is Required, so the schema rejects an omitted value before expand is reached. What
+// expand must never do is drop a minimum it was given: sn-operator's GetAutoScalingPolicyWithDefault
+// returns a nil policy whenever MinReplicas is nil, which builds no HorizontalPodAutoscaler and
+// leaves autoscaling silently off.
+func TestExpandBrokerAutoScalingPolicyAlwaysSendsMinReplicas(t *testing.T) {
 	policy := expandBrokerAutoScalingPolicy([]interface{}{
 		map[string]interface{}{
-			"min_replicas": 0,
+			"min_replicas": 1,
 			"max_replicas": 4,
 		},
 	})
 
 	assert.NotNil(t, policy)
 	assert.Equal(t, int32(4), policy.MaxReplicas)
-	assert.Nil(t, policy.MinReplicas)
+	assert.NotNil(t, policy.MinReplicas)
+	assert.Equal(t, int32(1), *policy.MinReplicas)
+}
+
+func TestBrokerAutoScalingPolicySchemaRequiresMinReplicas(t *testing.T) {
+	elem := resourcePulsarCluster().Schema["broker_auto_scaling_policy"].Elem.(*schema.Resource)
+
+	assert.True(t, elem.Schema["min_replicas"].Required,
+		"min_replicas must be Required; an absent minimum disables the downstream HPA")
+	assert.False(t, elem.Schema["min_replicas"].Computed,
+		"min_replicas must not be Computed; a server-filled value would mask the absent minimum")
 }
 
 func TestExpandBrokerAutoScalingPolicyEmpty(t *testing.T) {
@@ -372,12 +385,20 @@ func TestBrokerAutoScalingPolicyEqualWhenDifferent(t *testing.T) {
 
 // A min_replicas the user did not ask for is the control plane's to choose, so a server-filled value
 // must not read as drift.
-func TestBrokerAutoScalingPolicyEqualWhenMinReplicasDefaulted(t *testing.T) {
-	expected := &cloudv1alpha1.AutoScalingPolicy{MaxReplicas: 6}
+// The dry-run comparison used to treat a nil expected minimum as "whatever the control plane fills
+// in", which hid the case this PR now prevents: a request carrying no minimum builds no HPA at all.
+// min_replicas is Required, so a nil on either side is a real mismatch rather than a defaulted value.
+func TestBrokerAutoScalingPolicyEqualRejectsMissingMinReplicas(t *testing.T) {
 	serverFilled := int32(2)
-	actual := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &serverFilled, MaxReplicas: 6}
+	withMin := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &serverFilled, MaxReplicas: 6}
+	withoutMin := &cloudv1alpha1.AutoScalingPolicy{MaxReplicas: 6}
 
-	assert.True(t, brokerAutoScalingPolicyEqual(expected, actual))
+	assert.False(t, brokerAutoScalingPolicyEqual(withoutMin, withMin),
+		"a minimum the request never asked for is not an accepted policy")
+	assert.False(t, brokerAutoScalingPolicyEqual(withMin, withoutMin),
+		"a dropped minimum means the policy was not accepted as sent")
+	assert.True(t, brokerAutoScalingPolicyEqual(withoutMin, withoutMin),
+		"two policies without a minimum still compare equal")
 }
 
 func TestValidateBrokerAutoScalingPolicyAccepted(t *testing.T) {
@@ -406,4 +427,75 @@ func TestValidateBrokerAutoScalingPolicyAcceptedWhenOverridden(t *testing.T) {
 	err := validateBrokerAutoScalingPolicyAccepted(expected, actual, "UPDATE")
 	assert.EqualError(t, err,
 		"ERROR_UPDATE_PULSAR_CLUSTER: broker_auto_scaling_policy is not enabled for this organization")
+}
+
+// An unmanaged policy must never reach state. The block is Optional with no Computed, so a policy
+// Terraform did not write would make an absent configuration plan broker_auto_scaling_policy.# from
+// 1 to 0 -- rejected by the update guard on serverless, and a silent disable on dedicated.
+func TestBrokerAutoScalingPolicyForState(t *testing.T) {
+	minReplicas := int32(2)
+	policy := &cloudv1alpha1.AutoScalingPolicy{MinReplicas: &minReplicas, MaxReplicas: 6}
+	managed := []interface{}{map[string]interface{}{"min_replicas": 2, "max_replicas": 6}}
+
+	assert.Equal(t, managed, brokerAutoScalingPolicyForState(policy, true, false),
+		"a policy Terraform manages on a dedicated cluster is surfaced")
+	assert.Equal(t, []interface{}{}, brokerAutoScalingPolicyForState(policy, false, false),
+		"a policy set out of band is not adopted into state")
+	assert.Equal(t, []interface{}{}, brokerAutoScalingPolicyForState(policy, true, true),
+		"the serverless admission-injected policy is never surfaced")
+	assert.Equal(t, []interface{}{}, brokerAutoScalingPolicyForState(nil, true, false),
+		"an absent policy clears state so removal drift is still detected")
+}
+
+// Plan-level regression for the same issue: once refresh leaves an unmanaged policy out of state, a
+// configuration without the block must produce no broker_auto_scaling_policy change at all.
+func TestBrokerAutoScalingPolicyUnmanagedProducesNoPlan(t *testing.T) {
+	state := &terraform.InstanceState{
+		ID:         "test-cluster",
+		Attributes: map[string]string{"id": "test-cluster"},
+	}
+
+	diff, err := resourcePulsarCluster().SimpleDiff(
+		context.Background(), state, terraform.NewResourceConfigRaw(map[string]interface{}{}), nil)
+	assert.NoError(t, err)
+	if diff != nil {
+		_, planned := diff.Attributes["broker_auto_scaling_policy.#"]
+		assert.False(t, planned,
+			"an unmanaged policy absent from state must not plan a broker_auto_scaling_policy change")
+	}
+}
+
+func TestValidateBrokerAutoScalingPolicyBounds(t *testing.T) {
+	boundsFor := func(minReplicas, maxReplicas int) []interface{} {
+		return []interface{}{
+			map[string]interface{}{"min_replicas": minReplicas, "max_replicas": maxReplicas},
+		}
+	}
+
+	err := validateBrokerAutoScalingPolicyBounds(boundsFor(10, 5))
+	assert.Error(t, err, "an inverted range must fail at plan time, not at Kubernetes reconcile")
+	assert.Contains(t, err.Error(), "min_replicas (10) must be less than or equal to max_replicas (5)")
+
+	assert.NoError(t, validateBrokerAutoScalingPolicyBounds(boundsFor(3, 3)), "an equal range is valid")
+	assert.NoError(t, validateBrokerAutoScalingPolicyBounds(boundsFor(2, 6)), "an ascending range is valid")
+	assert.NoError(t, validateBrokerAutoScalingPolicyBounds(nil), "an absent block carries no bounds")
+	assert.NoError(t, validateBrokerAutoScalingPolicyBounds([]interface{}{nil}), "a nil entry is ignored")
+}
+
+// The inverted range must surface through the resource's CustomizeDiff, not just the helper.
+func TestBrokerAutoScalingPolicyBoundsRejectedAtPlan(t *testing.T) {
+	state := &terraform.InstanceState{
+		ID:         "test-cluster",
+		Attributes: map[string]string{"id": "test-cluster"},
+	}
+
+	_, err := resourcePulsarCluster().SimpleDiff(context.Background(), state,
+		terraform.NewResourceConfigRaw(map[string]interface{}{
+			"broker_auto_scaling_policy": []interface{}{
+				map[string]interface{}{"min_replicas": 10, "max_replicas": 5},
+			},
+		}), nil)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "min_replicas (10) must be less than or equal to max_replicas (5)")
 }

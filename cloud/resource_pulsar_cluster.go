@@ -42,6 +42,12 @@ func resourcePulsarCluster() *schema.Resource {
 		UpdateContext: resourcePulsarClusterUpdate,
 		DeleteContext: resourcePulsarClusterDelete,
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
+			// Runs ahead of the early returns below so the bounds hold on create and update alike.
+			if policy, ok := diff.Get("broker_auto_scaling_policy").([]interface{}); ok {
+				if err := validateBrokerAutoScalingPolicyBounds(policy); err != nil {
+					return err
+				}
+			}
 			oldOrg, _ := diff.GetChange("organization")
 			oldName, newName := diff.GetChange("name")
 			if oldOrg.(string) == "" && oldName.(string) == "" {
@@ -390,9 +396,8 @@ func resourcePulsarCluster() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"min_replicas": {
 							Type:         schema.TypeInt,
-							Optional:     true,
-							Computed:     true,
-							Description:  "The minimum number of brokers to scale down to. Defaults to the value chosen by the control plane when omitted.",
+							Required:     true,
+							Description:  "The minimum number of brokers to scale down to. Must be set explicitly: the operator builds no HorizontalPodAutoscaler at all when the minimum is absent, so an omitted value would leave autoscaling silently off.",
 							ValidateFunc: validateAutoScalingReplicas,
 						},
 						"max_replicas": {
@@ -869,13 +874,13 @@ func resourcePulsarClusterRead(ctx context.Context, d *schema.ResourceData, meta
 	} else {
 		_ = d.Set("maintenance_window", []interface{}{})
 	}
-	if pulsarCluster.Spec.Broker.AutoScalingPolicy != nil {
-		err = d.Set("broker_auto_scaling_policy", flattenBrokerAutoScalingPolicy(pulsarCluster.Spec.Broker.AutoScalingPolicy))
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_BROKER_AUTO_SCALING_POLICY: %w", err))
-		}
-	} else {
-		_ = d.Set("broker_auto_scaling_policy", []interface{}{})
+	err = d.Set("broker_auto_scaling_policy", brokerAutoScalingPolicyForState(
+		pulsarCluster.Spec.Broker.AutoScalingPolicy,
+		hasBrokerAutoScalingPolicyConfigured(d),
+		pulsarInstance.Spec.Type == cloudv1alpha1.PulsarInstanceTypeServerless,
+	))
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("ERROR_READ_PULSAR_CLUSTER_BROKER_AUTO_SCALING_POLICY: %w", err))
 	}
 	if pulsarInstance.Spec.Type != cloudv1alpha1.PulsarInstanceTypeServerless && !pulsarCluster.IsUsingUrsaEngine() {
 		bookkeeperImage := strings.Split(pulsarCluster.Spec.BookKeeper.Image, ":")
@@ -1434,9 +1439,9 @@ func hasBrokerAutoScalingPolicyConfigured(d *schema.ResourceData) bool {
 	return len(d.Get("broker_auto_scaling_policy").([]interface{})) > 0
 }
 
-// expandBrokerAutoScalingPolicy builds the API policy from configuration. min_replicas is Computed,
-// so an omitted value reads back as 0; that is left nil for the control plane to fill in rather than
-// sent as a literal zero, which would ask for a scale-to-nothing floor.
+// expandBrokerAutoScalingPolicy builds the API policy from configuration. min_replicas is Required
+// because sn-operator's GetAutoScalingPolicyWithDefault returns a nil policy whenever MinReplicas is
+// nil, which builds no HorizontalPodAutoscaler and leaves autoscaling silently off.
 func expandBrokerAutoScalingPolicy(policy []interface{}) *cloudv1alpha1.AutoScalingPolicy {
 	if len(policy) == 0 || policy[0] == nil {
 		return nil
@@ -1449,11 +1454,49 @@ func expandBrokerAutoScalingPolicy(policy []interface{}) *cloudv1alpha1.AutoScal
 	if maxReplicas, ok := policyMap["max_replicas"].(int); ok {
 		result.MaxReplicas = int32(maxReplicas)
 	}
-	if minReplicas, ok := policyMap["min_replicas"].(int); ok && minReplicas > 0 {
+	if minReplicas, ok := policyMap["min_replicas"].(int); ok {
 		value := int32(minReplicas)
 		result.MinReplicas = &value
 	}
 	return result
+}
+
+// brokerAutoScalingPolicyForState decides what refresh writes into state. Only a policy Terraform
+// already manages may be surfaced: the block is Optional with no Computed, so importing an unmanaged
+// policy would make an absent configuration plan broker_auto_scaling_policy.# from 1 to 0. On a
+// serverless instance admission injects a policy the practitioner never wrote, and the update guard
+// then rejects every apply of that removal; on a dedicated cluster whose policy was set out of band,
+// the same plan would silently disable autoscaling.
+func brokerAutoScalingPolicyForState(
+	policy *cloudv1alpha1.AutoScalingPolicy, managed bool, serverless bool,
+) []interface{} {
+	if policy == nil || !managed || serverless {
+		return []interface{}{}
+	}
+	return flattenBrokerAutoScalingPolicy(policy)
+}
+
+// validateBrokerAutoScalingPolicyBounds rejects an inverted range at plan time. The scalar
+// validators only bound each field independently, and cloud-api admission performs no cross-field
+// check, so min_replicas > max_replicas would otherwise surface as a Kubernetes reconcile failure
+// long after apply reported success.
+func validateBrokerAutoScalingPolicyBounds(policy []interface{}) error {
+	if len(policy) == 0 || policy[0] == nil {
+		return nil
+	}
+	policyMap, ok := policy[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	minReplicas, _ := policyMap["min_replicas"].(int)
+	maxReplicas, _ := policyMap["max_replicas"].(int)
+	if minReplicas <= 0 || maxReplicas <= 0 || minReplicas <= maxReplicas {
+		return nil
+	}
+	return fmt.Errorf(
+		"ERROR_PULSAR_CLUSTER_BROKER_AUTO_SCALING_POLICY: "+
+			"min_replicas (%d) must be less than or equal to max_replicas (%d)",
+		minReplicas, maxReplicas)
 }
 
 func flattenBrokerAutoScalingPolicy(policy *cloudv1alpha1.AutoScalingPolicy) []interface{} {
@@ -1476,12 +1519,10 @@ func brokerAutoScalingPolicyEqual(expected *cloudv1alpha1.AutoScalingPolicy, act
 	if expected.MaxReplicas != actual.MaxReplicas {
 		return false
 	}
-	// An omitted min_replicas is filled in by the control plane, so only a value the user asked for
-	// has to survive the round trip.
-	if expected.MinReplicas == nil {
-		return true
+	if expected.MinReplicas == nil || actual.MinReplicas == nil {
+		return expected.MinReplicas == nil && actual.MinReplicas == nil
 	}
-	return actual.MinReplicas != nil && *expected.MinReplicas == *actual.MinReplicas
+	return *expected.MinReplicas == *actual.MinReplicas
 }
 
 func validateBrokerAutoScalingPolicyAccepted(

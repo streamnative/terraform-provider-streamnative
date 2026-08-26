@@ -68,10 +68,7 @@ description: |-
 Required:
 
 - `max_replicas` (Number) The maximum number of brokers to scale up to.
-
-Optional:
-
-- `min_replicas` (Number) The minimum number of brokers to scale down to. Defaults to the value chosen by the control plane when omitted.
+- `min_replicas` (Number) The minimum number of brokers to scale down to. Must be set explicitly: the operator builds no HorizontalPodAutoscaler at all when the minimum is absent, so an omitted value would leave autoscaling silently off.
 
 
 <a id="nestedblock--config"></a>
