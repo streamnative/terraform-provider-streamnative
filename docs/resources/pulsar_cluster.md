@@ -24,6 +24,7 @@ description: |-
 
 - `apply_lakehouse_to_all_topics` (Boolean) Whether to apply lakehouse storage to all topics in the cluster
 - `bookie_replicas` (Number) The number of bookie replicas
+- `broker_auto_scaling_policy` (Block List, Max: 1) Autoscaling bounds for brokers. When set, the number of brokers is managed automatically between min_replicas and max_replicas and broker_replicas no longer takes effect. Requires the autoscaling feature to be enabled for the organization, and is not supported on serverless instances. (see [below for nested schema](#nestedblock--broker_auto_scaling_policy))
 - `broker_replicas` (Number) The number of broker replicas
 - `catalog` (String) The name of the catalog to use for this pulsar cluster
 - `compute_unit` (Number, Deprecated) compute unit per broker, 1 compute unit is 2 cpu and 8gb memory
@@ -60,6 +61,15 @@ description: |-
 - `type` (String) The streamnative cloud instance type, supporting 'serverless', 'dedicated', 'byoc' and 'byoc-pro'
 - `websocket_service_url` (String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url.
 - `websocket_service_urls` (List of String) If you want to connect to the pulsar cluster using the websocket protocol, use this websocket service url. There'll be multiple service urls if the cluster attached with multiple gateways
+
+<a id="nestedblock--broker_auto_scaling_policy"></a>
+### Nested Schema for `broker_auto_scaling_policy`
+
+Required:
+
+- `max_replicas` (Number) The maximum number of brokers to scale up to.
+- `min_replicas` (Number) The minimum number of brokers to scale down to. Must be set explicitly: the operator builds no HorizontalPodAutoscaler at all when the minimum is absent, so an omitted value would leave autoscaling silently off.
+
 
 <a id="nestedblock--config"></a>
 ### Nested Schema for `config`

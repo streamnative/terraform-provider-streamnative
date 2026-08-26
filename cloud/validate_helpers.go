@@ -325,3 +325,15 @@ var validRegions = []string{
 	"uaecentral",
 	"brazilsoutheas",
 }
+
+// validateAutoScalingReplicas bounds an autoscaling replica count to the same range the fixed
+// broker_replicas count allows, so a policy cannot ask for a cluster size that could not be
+// requested directly.
+func validateAutoScalingReplicas(val interface{}, key string) (warns []string, errs []error) {
+	v := val.(int)
+	if v < 1 || v > 15 {
+		errs = append(errs, fmt.Errorf(
+			"%q should be greater than or equal to 1 and less than or equal to 15, got: %d", key, v))
+	}
+	return
+}
