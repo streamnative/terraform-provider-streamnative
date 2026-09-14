@@ -396,7 +396,7 @@ func resourcePulsarCluster() *schema.Resource {
 									"start_time": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Description: "Start time of the maintenance window",
+										Description: "Start time of the maintenance window. Accepts UTC time in HH:MM format (e.g., \"01:00\" = 01:00 UTC). The admin console may display this in your local timezone.",
 									},
 									"duration": {
 										Type:         schema.TypeString,

@@ -113,7 +113,7 @@ Optional:
 Optional:
 
 - `duration` (String) Duration of the maintenance window in Go duration format (e.g., "2h0m0s", "30m0s", "1h30m0s")
-- `start_time` (String) Start time of the maintenance window
+- `start_time` (String) Start time of the maintenance window. Accepts UTC time in HH:MM format (e.g., "01:00" = 01:00 UTC). The admin console may display this in your local timezone.
 
 
 
