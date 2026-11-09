@@ -40,6 +40,23 @@ resource "streamnative_secret" "example" {
   }
 }
 
+# Write-only secret data (Terraform 1.11+) never reaches plan or state.
+# Bump string_data_wo_version to send a new value.
+variable "db_password" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+resource "streamnative_secret" "write_only" {
+  organization           = "sndev"
+  name                   = "tf-secret-write-only"
+  instance_name          = "pulsar-instance-name"
+  location               = "us-west2"
+  string_data_wo         = { password = var.db_password }
+  string_data_wo_version = 1
+}
+
 data "streamnative_secret" "example" {
   depends_on   = [streamnative_secret.example]
   organization = streamnative_secret.example.organization
