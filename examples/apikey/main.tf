@@ -18,7 +18,6 @@
 terraform {
   required_providers {
     streamnative = {
-      version = "0.1.0"
       source = "streamnative/streamnative"
     }
   }
@@ -29,14 +28,24 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
-resource "streamnative_apikey" "test-admin-a" {
-  organization = "sndev"
-  name = "test-admin-i"
-  instance_name = "terraform-test-api-key-pulsar-instance"
+# Omit instance_name for an organization-scoped API key v2. The organization
+# must have AuthV2 enabled, and the provider must be able to read it.
+resource "streamnative_apikey" "organization-key" {
+  organization         = "sndev"
+  name                 = "terraform-organization-key"
   service_account_name = "test-tf-admin"
-  description = "This is a test api key for terraform"
+  expiration_time      = "30d"
+}
+
+# Supplying an instance preserves the existing instance-based behavior.
+resource "streamnative_apikey" "test-admin-a" {
+  organization         = "sndev"
+  name                 = "test-admin-i"
+  instance_name        = "terraform-test-api-key-pulsar-instance"
+  service_account_name = "test-tf-admin"
+  description          = "This is a test api key for terraform"
   customized_metadata = {
-   "client_id": "abc"
+    "client_id" : "abc"
   }
   # If you want to revoke the api key, you can set revoke to true
   # By default, after revoking an apikey object, all connections using that apikey will
@@ -44,17 +53,17 @@ resource "streamnative_apikey" "test-admin-a" {
   revoke = false
   # expiration_time = "2025-01-01T10:00:00Z"
   # If you don't want to set expiration time, you can set expiration_time to "0"
-   expiration_time = "0"
+  expiration_time = "0"
 }
 
 data "streamnative_apikey" "test-admin-a" {
-  depends_on = [streamnative_apikey.test-admin-a]
+  depends_on   = [streamnative_apikey.test-admin-a]
   organization = streamnative_apikey.test-admin-a.organization
-  name = streamnative_apikey.test-admin-a.name
-  private_key = streamnative_apikey.test-admin-a.private_key
+  name         = streamnative_apikey.test-admin-a.name
+  private_key  = streamnative_apikey.test-admin-a.private_key
 }
 
 output "apikey" {
   sensitive = true
-  value = data.streamnative_apikey.test-admin-a
+  value     = data.streamnative_apikey.test-admin-a
 }
