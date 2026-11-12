@@ -22,6 +22,7 @@ description: |-
 
 ### Optional
 
+- `binary_data` (Map of String, Sensitive) Write-only base64-encoded binary data that will be stored encrypted by the API server
 - `data` (Map of String, Sensitive) The secret data map
 - `instance_name` (String) The pulsar instance name
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location

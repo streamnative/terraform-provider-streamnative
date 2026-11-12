@@ -75,6 +75,28 @@ func TestSecretStringData(t *testing.T) {
 	})
 }
 
+func TestSecretBinaryData(t *testing.T) {
+	binaryData := map[string]string{
+		"certificate": "YmluYXJ5LWNlcnQ=",
+	}
+	secretName := randomSecretName("terraform-test-secret-binarydata")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testCheckSecretDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testResourceDataSourceSecretWithBinaryData("sndev", secretName, binaryData),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckSecretExistsWithEncryptedData("streamnative_secret.test-secret", binaryData),
+				),
+			},
+		},
+	})
+}
+
 func TestSecretRemovedExternally(t *testing.T) {
 	data := map[string]string{
 		"token": "removed-secret",
@@ -221,6 +243,29 @@ func testResourceDataSourceSecret(organization string, name string, data map[str
 
 func testResourceDataSourceSecretWithStringData(organization string, name string, stringData map[string]string) string {
 	return testResourceDataSourceSecretWithParams(organization, name, nil, stringData, "", "")
+}
+
+func testResourceDataSourceSecretWithBinaryData(organization string, name string, binaryData map[string]string) string {
+	var resourceBuilder strings.Builder
+	resourceBuilder.WriteString(fmt.Sprintf(`resource "streamnative_secret" "test-secret" {
+  organization = "%s"
+  name = "%s"
+  binary_data = {
+%s  }
+}
+`, organization, name, buildHCLMap(binaryData)))
+
+	return fmt.Sprintf(`
+provider "streamnative" {
+}
+
+%s
+data "streamnative_secret" "test-secret" {
+  depends_on = [streamnative_secret.test-secret]
+  organization = streamnative_secret.test-secret.organization
+  name = streamnative_secret.test-secret.name
+}
+`, resourceBuilder.String())
 }
 
 func testResourceDataSourceSecretWithParams(

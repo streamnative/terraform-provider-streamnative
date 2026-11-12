@@ -16,6 +16,7 @@ package cloud
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -34,6 +35,7 @@ func resourceSecret() *schema.Resource {
 		ReadContext:   resourceSecretRead,
 		UpdateContext: resourceSecretUpdate,
 		DeleteContext: resourceSecretDelete,
+		CustomizeDiff: validateSecretDataKeyUniqueness,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
@@ -93,7 +95,7 @@ func resourceSecret() *schema.Resource {
 				Computed:     true,
 				Sensitive:    true,
 				ForceNew:     true,
-				AtLeastOneOf: []string{"data", "string_data"},
+				AtLeastOneOf: []string{"data", "string_data", "binary_data"},
 				Description:  descriptions["secret_data"],
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -104,10 +106,22 @@ func resourceSecret() *schema.Resource {
 				Optional:     true,
 				Sensitive:    true,
 				ForceNew:     true,
-				AtLeastOneOf: []string{"data", "string_data"},
+				AtLeastOneOf: []string{"data", "string_data", "binary_data"},
 				Description:  descriptions["secret_string_data"],
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+			},
+			"binary_data": {
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Sensitive:    true,
+				ForceNew:     true,
+				AtLeastOneOf: []string{"data", "string_data", "binary_data"},
+				Description:  descriptions["secret_binary_data"],
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateBase64String,
 				},
 			},
 		},
@@ -197,6 +211,74 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	return nil
 }
 
+func validateBase64String(i interface{}, k string) (warnings []string, errors []error) {
+	value, ok := i.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("%q must be a string", k))
+		return warnings, errors
+	}
+	if _, err := base64.StdEncoding.DecodeString(value); err != nil {
+		errors = append(errors, fmt.Errorf("%q must be a valid base64-encoded string: %w", k, err))
+	}
+	return warnings, errors
+}
+
+func validateSecretDataKeyUniqueness(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	binaryDataKeys, configured := configuredSecretDataKeys(diff, "binary_data")
+	if !configured {
+		return nil
+	}
+
+	for _, field := range []string{"data", "string_data"} {
+		keys, configured := configuredSecretDataKeys(diff, field)
+		if !configured {
+			continue
+		}
+		for key := range binaryDataKeys {
+			if _, ok := keys[key]; ok {
+				return fmt.Errorf("secret data key %q is configured in both %q and %q", key, field, "binary_data")
+			}
+		}
+	}
+	return nil
+}
+
+func configuredSecretDataKeys(diff *schema.ResourceDiff, field string) (map[string]struct{}, bool) {
+	rawConfig := diff.GetRawConfig()
+	if !rawConfig.IsNull() && rawConfig.IsKnown() {
+		value := rawConfig.GetAttr(field)
+		if value.IsNull() {
+			return nil, false
+		}
+		if !value.IsKnown() || !value.CanIterateElements() {
+			return nil, false
+		}
+
+		keys := make(map[string]struct{})
+		iterator := value.ElementIterator()
+		for iterator.Next() {
+			key, _ := iterator.Element()
+			if !key.IsKnown() || key.IsNull() {
+				continue
+			}
+			keys[key.AsString()] = struct{}{}
+		}
+		return keys, true
+	}
+
+	// Resource.SimpleDiff does not populate RawConfig, so keep a fallback for
+	// legacy SDK callers and unit tests.
+	value, ok := diff.GetOk(field)
+	if !ok {
+		return nil, false
+	}
+	keys := make(map[string]struct{})
+	for key := range value.(map[string]interface{}) {
+		keys[key] = struct{}{}
+	}
+	return keys, true
+}
+
 func buildSecretFromResourceData(d *schema.ResourceData) *v1alpha1.Secret {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
@@ -254,6 +336,14 @@ func applySecretPlan(secret *v1alpha1.Secret, d *schema.ResourceData, includeUns
 			secret.StringData = nil
 		}
 	}
+
+	if includeUnset || d.HasChange("binary_data") {
+		if binaryDataRaw, ok := d.GetOk("binary_data"); ok {
+			secret.BinaryData = convertToStringMap(binaryDataRaw.(map[string]interface{}))
+		} else {
+			secret.BinaryData = nil
+		}
+	}
 }
 
 func setSecretState(d *schema.ResourceData, secret *v1alpha1.Secret) diag.Diagnostics {
@@ -293,10 +383,16 @@ func setSecretState(d *schema.ResourceData, secret *v1alpha1.Secret) diag.Diagno
 		}
 	}
 
-	// Preserve user-supplied string_data without attempting to read it from the API server.
+	// Preserve user-supplied string_data and binary_data without attempting to read
+	// write-only fields from the API server.
 	if stringData, ok := d.GetOk("string_data"); ok {
 		if err := d.Set("string_data", stringData); err != nil {
 			return diag.FromErr(fmt.Errorf("ERROR_SET_STRING_DATA: %w", err))
+		}
+	}
+	if binaryData, ok := d.GetOk("binary_data"); ok {
+		if err := d.Set("binary_data", binaryData); err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_SET_BINARY_DATA: %w", err))
 		}
 	}
 
