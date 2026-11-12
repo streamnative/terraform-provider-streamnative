@@ -18,7 +18,6 @@
 terraform {
   required_providers {
     streamnative = {
-      version = "0.1.0"
       source = "streamnative/streamnative"
     }
   }
@@ -29,6 +28,16 @@ provider "streamnative" {
   key_file_path = "/path/to/your/service/account/key.json"
 }
 
+# Omit instance_name for an organization-scoped API key v2. The organization
+# must have AuthV2 enabled, and the provider must be able to read it.
+resource "streamnative_apikey" "organization-key" {
+  organization         = "sndev"
+  name                 = "terraform-organization-key"
+  service_account_name = "test-tf-admin"
+  expiration_time      = "30d"
+}
+
+# Supplying an instance preserves the existing instance-based behavior.
 resource "streamnative_apikey" "test-admin-a" {
   organization = "sndev"
   name = "test-admin-i"

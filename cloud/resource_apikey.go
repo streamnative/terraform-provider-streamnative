@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwe"
+	cloudapi "github.com/streamnative/cloud-api-server/pkg/apis/cloud"
 	"github.com/streamnative/cloud-api-server/pkg/apis/cloud/v1alpha1"
 	"github.com/streamnative/terraform-provider-streamnative/cloud/util"
 	"github.com/xhit/go-str2duration/v2"
@@ -82,9 +83,9 @@ func resourceApiKey() *schema.Resource {
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    true,
-				Description: descriptions["instance_name"],
+				Description: "The Pulsar instance name. Omit to create an organization-scoped API key v2 (requires AuthV2 and Organization read permission). Changing or removing this value replaces the API key.",
 			},
 			"customized_metadata": {
 				Type:        schema.TypeMap,
@@ -183,6 +184,16 @@ func resourceApiKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			InstanceName:       instanceName,
 			ServiceAccountName: serviceAccountName,
 		},
+	}
+	if instanceName == "" {
+		org, err := clientSet.CloudV1alpha1().Organizations().Get(ctx, namespace, metav1.GetOptions{})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("ERROR_READ_ORGANIZATION_ON_CREATE_API_KEY: %w", err))
+		}
+		if !org.IsAuthV2Enabled() {
+			return diag.Errorf("instance_name is required when AuthV2 is not enabled for organization %q", namespace)
+		}
+		ak.Annotations = map[string]string{cloudapi.AnnotationAuthMode: "v2"}
 	}
 	r1 := regexp.MustCompile(`^(\d+.)(s|m|h|d)$`)
 	t := time.Now()

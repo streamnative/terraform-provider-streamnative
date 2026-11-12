@@ -495,8 +495,8 @@ github.com/streamnative/sn-operator/api/commons v0.18.0-rc.14 h1:mOaIzyx+m4MZE2R
 github.com/streamnative/sn-operator/api/commons v0.18.0-rc.14/go.mod h1:o8yUOf2i6DCPlQSPkssbFyVVkBBKnnu6fg3eJWjOEiY=
 github.com/streamnative/sn-operator/pkg/commons v0.18.0-rc.14 h1:RfB2XGiYlrP2PPfbj+3jdIsPJ3TAinBrBTPpeSoNPdk=
 github.com/streamnative/sn-operator/pkg/commons v0.18.0-rc.14/go.mod h1:PhxW1CR/qt1c9LrDh0RYUQVWRNCKGOO9+kUchHvyLME=
-github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2-rc2 h1:RFWF61iQ7BrGnqvQqxxSTfU8Xrt2Kl7bIhIdaEPQgEg=
-github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2-rc2/go.mod h1:8DwyCYAtJRXl/Gp1rhXijFH9b5NFGUK/IBNuwU9KTG0=
+github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2 h1:XGO+p/Pp6sY3FFCsmi5t5/H5dUM8msgEJYB1QILoGps=
+github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2/go.mod h1:8DwyCYAtJRXl/Gp1rhXijFH9b5NFGUK/IBNuwU9KTG0=
 github.com/streamnative/unified-rbac/sdk/sdk-go-cloud v1.13.2-rc2 h1:/XejBfLa68qyg0RPiZ8MhV3pV/2FB4Ndkmdy5UAFn6M=
 github.com/streamnative/unified-rbac/sdk/sdk-go-cloud v1.13.2-rc2/go.mod h1:Rjddb31Pes/rOUmbMxHi6VV0TV14jodAfNQbvP1w/zE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

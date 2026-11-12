@@ -150,7 +150,7 @@ require (
 	github.com/streamnative/sn-operator v0.18.0-rc.16 // indirect
 	github.com/streamnative/sn-operator/api/commons v0.18.0-rc.16 // indirect
 	github.com/streamnative/sn-operator/pkg/commons v0.18.0-rc.16 // indirect
-	github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2-rc2 // indirect
+	github.com/streamnative/unified-rbac/sdk/sdk-go v1.13.2 // indirect
 	github.com/stripe/stripe-go/v74 v74.5.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
