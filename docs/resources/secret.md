@@ -22,11 +22,17 @@ description: |-
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `data` (Map of String, Sensitive) The secret data map
+- `data_wo` (Map of String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only `data`: never stored in plan or state. Needs Terraform 1.11+
+- `data_wo_version` (Number) Version of `data_wo`; change it to resend `data_wo`. `data` stays empty while set
 - `instance_name` (String) The pulsar instance name
 - `location` (String) The location of the pulsar cluster, supported location https://docs.streamnative.io/docs/cluster#cluster-location
 - `pool_member_name` (String) The infrastructure pool member name
 - `string_data` (Map of String, Sensitive) Write-only string data that will be stored encrypted by the API server
+- `string_data_wo` (Map of String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only `string_data`: never stored in plan or state. Needs Terraform 1.11+
+- `string_data_wo_version` (Number) Version of `string_data_wo`; change it to resend it. `data` stays empty while set
 - `type` (String) The Kubernetes secret type
 
 ### Read-Only

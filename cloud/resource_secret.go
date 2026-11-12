@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,7 +95,7 @@ func resourceSecret() *schema.Resource {
 				Computed:     true,
 				Sensitive:    true,
 				ForceNew:     true,
-				AtLeastOneOf: []string{"data", "string_data"},
+				AtLeastOneOf: []string{"data", "string_data", "data_wo", "string_data_wo"},
 				Description:  descriptions["secret_data"],
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -104,11 +106,45 @@ func resourceSecret() *schema.Resource {
 				Optional:     true,
 				Sensitive:    true,
 				ForceNew:     true,
-				AtLeastOneOf: []string{"data", "string_data"},
+				AtLeastOneOf: []string{"data", "string_data", "data_wo", "string_data_wo"},
 				Description:  descriptions["secret_string_data"],
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			// The write-only maps have no Elem: the SDK rejects WriteOnly on a TypeMap
+			// with an Elem, and a TypeMap without one is a map of strings.
+			"data_wo": {
+				Type:          schema.TypeMap,
+				Optional:      true,
+				Sensitive:     true,
+				WriteOnly:     true,
+				ConflictsWith: []string{"data", "string_data"},
+				RequiredWith:  []string{"data_wo_version"},
+				Description:   descriptions["secret_data_wo"],
+			},
+			"data_wo_version": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				RequiredWith: []string{"data_wo"},
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  descriptions["secret_data_wo_version"],
+			},
+			"string_data_wo": {
+				Type:          schema.TypeMap,
+				Optional:      true,
+				Sensitive:     true,
+				WriteOnly:     true,
+				ConflictsWith: []string{"data", "string_data"},
+				RequiredWith:  []string{"string_data_wo_version"},
+				Description:   descriptions["secret_string_data_wo"],
+			},
+			"string_data_wo_version": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				RequiredWith: []string{"string_data_wo"},
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  descriptions["secret_string_wo_version"],
 			},
 		},
 	}
@@ -120,7 +156,10 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(fmt.Errorf("ERROR_INIT_CLIENT_ON_CREATE_SECRET: %w", err))
 	}
 
-	secret := buildSecretFromResourceData(d)
+	secret, diags := buildSecretFromResourceData(d)
+	if diags.HasError() {
+		return diags
+	}
 	created, err := clientSet.CloudV1alpha1().Secrets(secret.Namespace).Create(ctx, secret, metav1.CreateOptions{
 		FieldManager: "terraform-create",
 	})
@@ -165,7 +204,9 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(fmt.Errorf("ERROR_GET_SECRET_ON_UPDATE: %w", err))
 	}
 
-	applySecretPlan(secret, d, false)
+	if diags := applySecretPlan(secret, d, false); diags.HasError() {
+		return diags
+	}
 	updated, err := clientSet.CloudV1alpha1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{
 		FieldManager: "terraform-update",
 	})
@@ -197,7 +238,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	return nil
 }
 
-func buildSecretFromResourceData(d *schema.ResourceData) *v1alpha1.Secret {
+func buildSecretFromResourceData(d *schema.ResourceData) (*v1alpha1.Secret, diag.Diagnostics) {
 	namespace := d.Get("organization").(string)
 	name := d.Get("name").(string)
 	secret := &v1alpha1.Secret{
@@ -211,11 +252,10 @@ func buildSecretFromResourceData(d *schema.ResourceData) *v1alpha1.Secret {
 		},
 	}
 
-	applySecretPlan(secret, d, true)
-	return secret
+	return secret, applySecretPlan(secret, d, true)
 }
 
-func applySecretPlan(secret *v1alpha1.Secret, d *schema.ResourceData, includeUnset bool) {
+func applySecretPlan(secret *v1alpha1.Secret, d *schema.ResourceData, includeUnset bool) diag.Diagnostics {
 	secret.InstanceName = d.Get("instance_name").(string)
 	secret.Location = d.Get("location").(string)
 
@@ -254,6 +294,50 @@ func applySecretPlan(secret *v1alpha1.Secret, d *schema.ResourceData, includeUns
 			secret.StringData = nil
 		}
 	}
+
+	// Write-only values are never in plan or state, so send them on create and
+	// again whenever a *_wo_version changes.
+	if usesWriteOnlyData(d) && (includeUnset || d.HasChanges("data_wo_version", "string_data_wo_version")) {
+		var diags diag.Diagnostics
+		if secret.Data, diags = writeOnlyStringMap(d, "data_wo"); diags.HasError() {
+			return diags
+		}
+		secret.StringData, diags = writeOnlyStringMap(d, "string_data_wo")
+		return diags
+	}
+	return nil
+}
+
+// usesWriteOnlyData reports whether the secret's data comes from data_wo or
+// string_data_wo. Their values never reach state, but the *_wo_version each
+// one requires does, so this also holds when refreshing.
+func usesWriteOnlyData(d *schema.ResourceData) bool {
+	_, data := d.GetOk("data_wo_version")
+	_, stringData := d.GetOk("string_data_wo_version")
+	return data || stringData
+}
+
+// writeOnlyStringMap reads a write-only map from the raw config, the only place
+// Terraform sends its value. It returns nil when the attribute is unset.
+func writeOnlyStringMap(d *schema.ResourceData, key string) (map[string]string, diag.Diagnostics) {
+	value, diags := d.GetRawConfigAt(cty.GetAttrPath(key))
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !value.IsWhollyKnown() {
+		return nil, diag.Errorf("ERROR_READ_%s: value is unknown", strings.ToUpper(key))
+	}
+	if value.IsNull() {
+		return nil, nil
+	}
+	result := make(map[string]string, value.LengthInt())
+	for k, v := range value.AsValueMap() {
+		if v.IsNull() {
+			return nil, diag.Errorf("ERROR_READ_%s: value for key %q is null", strings.ToUpper(key), k)
+		}
+		result[k] = v.AsString()
+	}
+	return result, nil
 }
 
 func setSecretState(d *schema.ResourceData, secret *v1alpha1.Secret) diag.Diagnostics {
@@ -269,7 +353,12 @@ func setSecretState(d *schema.ResourceData, secret *v1alpha1.Secret) diag.Diagno
 	if err := d.Set("location", secret.Location); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_LOCATION: %w", err))
 	}
-	if err := d.Set("data", secret.Data); err != nil {
+	// With data_wo or string_data_wo, the API's data would put the secret back into state.
+	data := secret.Data
+	if usesWriteOnlyData(d) {
+		data = nil
+	}
+	if err := d.Set("data", data); err != nil {
 		return diag.FromErr(fmt.Errorf("ERROR_SET_DATA: %w", err))
 	}
 
